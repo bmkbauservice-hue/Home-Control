@@ -40,7 +40,7 @@ public static class RoomEndpoints
             .Select(r => new RoomResponse(r.Id, r.Name, r.Devices.Count))
             .FirstOrDefaultAsync();
 
-        return room is null ? Results.NotFound() : Results.Ok(room);
+        return room is null ? RoomNotFound(id) : Results.Ok(room);
     }
 
     // POST /api/rooms – neuen Raum anlegen
@@ -79,7 +79,7 @@ public static class RoomEndpoints
         var room = await db.Rooms.FindAsync(id);
         if (room is null)
         {
-            return Results.NotFound();
+            return RoomNotFound(id);
         }
 
         room.Name = request.Name.Trim();
@@ -95,13 +95,22 @@ public static class RoomEndpoints
         var room = await db.Rooms.FindAsync(id);
         if (room is null)
         {
-            return Results.NotFound();
+            return RoomNotFound(id);
         }
 
         db.Rooms.Remove(room);
         await db.SaveChangesAsync();
 
         return Results.NoContent();
+    }
+
+    // 404 als ProblemDetails mit verständlicher Meldung.
+    private static IResult RoomNotFound(Guid id)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Raum nicht gefunden.",
+            detail: $"Es gibt keinen Raum mit der Id {id}.");
     }
 
     // Gibt eine Fehlermeldung zurück oder null, wenn der Name in Ordnung ist.

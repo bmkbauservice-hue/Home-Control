@@ -39,7 +39,7 @@ public static class DeviceEndpoints
     private static async Task<IResult> GetDeviceById(Guid id, ApplicationDbContext db)
     {
         var device = await FindDevice(id, db);
-        return device is null ? Results.NotFound() : Results.Ok(device);
+        return device is null ? DeviceNotFound(id) : Results.Ok(device);
     }
 
     // POST /api/devices – neues Gerät in einem Raum anlegen
@@ -70,7 +70,7 @@ public static class DeviceEndpoints
         var device = await db.Devices.FindAsync(id);
         if (device is null)
         {
-            return Results.NotFound();
+            return DeviceNotFound(id);
         }
 
         // Der bisher gespeicherte Typ bleibt erlaubt, auch wenn er nicht mehr in der Liste steht.
@@ -94,13 +94,23 @@ public static class DeviceEndpoints
         var device = await db.Devices.FindAsync(id);
         if (device is null)
         {
-            return Results.NotFound();
+            return DeviceNotFound(id);
         }
 
         db.Devices.Remove(device);
         await db.SaveChangesAsync();
 
         return Results.NoContent();
+    }
+
+    // 404 als ProblemDetails mit verständlicher Meldung.
+    // Wird auch von den Ereignis-Endpunkten genutzt (DeviceEventEndpoints).
+    internal static IResult DeviceNotFound(Guid id)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Gerät nicht gefunden.",
+            detail: $"Es gibt kein Gerät mit der Id {id}.");
     }
 
     // Lädt ein Gerät samt Raumnamen so, wie die API es zurückgibt.

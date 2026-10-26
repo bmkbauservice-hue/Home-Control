@@ -1,5 +1,6 @@
 using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
+using HomeControl.Api.ErrorHandling;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -13,7 +14,23 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
 
+// Einheitliche Fehlerantworten im ProblemDetails-Format (RFC 9457)
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Fehlerhafte Anfragen (z. B. kaputtes JSON) immer als Exception melden – sonst passiert das
+// nur im Development-Modus. So beantwortet der GlobalExceptionHandler sie überall gleich (400).
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
+
 var app = builder.Build();
+
+// Reihenfolge ist wichtig: Der Exception Handler steht ganz vorne,
+// damit er Fehler aus allen folgenden Schritten abfangen kann.
+app.UseExceptionHandler();
+
+// Antworten mit Fehlercode, aber ohne Inhalt (z. B. 404 für eine unbekannte Route
+// oder eine ungültige GUID in der URL), bekommen ebenfalls ProblemDetails.
+app.UseStatusCodePages();
 
 // Beim Start fehlende Migrationen automatisch anwenden.
 // So wird die SQLite-Datei angelegt und passt immer zum aktuellen Modell.

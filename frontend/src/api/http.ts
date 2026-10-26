@@ -8,16 +8,18 @@ type ProblemDetails = {
 
 // Liest eine verständliche Fehlermeldung aus der Antwort.
 async function getErrorMessage(response: Response): Promise<string> {
-  if (response.status >= 500) {
-    return 'Die API ist nicht erreichbar. Läuft das Backend?'
-  }
-
-  // Manche Fehlerantworten haben keinen Inhalt (z. B. 404 bei Räumen), dann bleibt problem null.
+  // Manche Fehlerantworten haben keinen Inhalt, dann bleibt problem null.
   let problem: ProblemDetails | null = null
   try {
     problem = (await response.json()) as ProblemDetails
   } catch {
     problem = null
+  }
+
+  // 500 mit ProblemDetails kommt vom Backend selbst. Eine leere 500 liefert der
+  // Vite-Proxy, wenn das Backend gar nicht läuft.
+  if (response.status >= 500) {
+    return problem?.title ?? 'Die API ist nicht erreichbar. Läuft das Backend?'
   }
 
   if (response.status === 404) {

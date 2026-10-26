@@ -66,7 +66,10 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
     return (
       <div className="tile device-tile tile-danger">
         <h3 className="tile-title">„{device.name}“ löschen?</h3>
-        <p className="tile-text">Das kann nicht rückgängig gemacht werden.</p>
+        <p className="tile-text">
+          Dabei wird auch der gesamte Ereignisverlauf dieses Geräts gelöscht. Das kann nicht rückgängig
+          gemacht werden.
+        </p>
         <div className="tile-actions">
           <button type="button" className="button button-danger" onClick={handleDelete} disabled={busy}>
             Ja, löschen

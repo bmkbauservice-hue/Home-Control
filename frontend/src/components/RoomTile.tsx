@@ -72,11 +72,7 @@ export function RoomTile({ room, onRename, onDelete }: RoomTileProps) {
     return (
       <div className="tile room-tile tile-danger">
         <h3 className="tile-title">„{room.name}“ löschen?</h3>
-        <p className="tile-text">
-          {room.deviceCount > 0
-            ? `Auch ${room.deviceCount} Gerät(e) in diesem Raum werden gelöscht.`
-            : 'Das kann nicht rückgängig gemacht werden.'}
-        </p>
+        <p className="tile-text">{getRoomDeleteWarning(room.deviceCount)}</p>
         <div className="tile-actions">
           <button type="button" className="button button-danger" onClick={handleDelete} disabled={busy}>
             Ja, löschen
@@ -107,4 +103,17 @@ export function RoomTile({ room, onRename, onDelete }: RoomTileProps) {
       </div>
     </div>
   )
+}
+
+// Text für die Löschbestätigung. Beim Löschen eines Raums entfernt die Datenbank
+// auch alle Geräte darin und deren gesamten Ereignisverlauf (Cascade).
+function getRoomDeleteWarning(deviceCount: number): string {
+  if (deviceCount === 0) {
+    return 'Der Raum enthält keine Geräte. Das kann nicht rückgängig gemacht werden.'
+  }
+  const devices =
+    deviceCount === 1
+      ? 'das Gerät in diesem Raum und sein gesamter Ereignisverlauf'
+      : `alle ${deviceCount} Geräte in diesem Raum und deren gesamter Ereignisverlauf`
+  return `Dabei werden auch ${devices} gelöscht. Das kann nicht rückgängig gemacht werden.`
 }

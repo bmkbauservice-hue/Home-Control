@@ -29,7 +29,7 @@ public static class DeviceEventEndpoints
     {
         if (!await db.Devices.AnyAsync(d => d.Id == id))
         {
-            return DeviceNotFound(id);
+            return DeviceEndpoints.DeviceNotFound(id);
         }
 
         var events = await db.DeviceEvents
@@ -47,7 +47,7 @@ public static class DeviceEventEndpoints
     {
         if (!await db.Devices.AnyAsync(d => d.Id == id))
         {
-            return DeviceNotFound(id);
+            return DeviceEndpoints.DeviceNotFound(id);
         }
 
         var errors = Validate(request);
@@ -76,15 +76,6 @@ public static class DeviceEventEndpoints
 
         var response = new DeviceEventResponse(deviceEvent.Id, deviceEvent.Timestamp, deviceEvent.Action, deviceEvent.Value);
         return Results.Created($"/api/devices/{id}/events/{deviceEvent.Id}", response);
-    }
-
-    // 404 mit ProblemDetails, damit das Frontend eine lesbare Meldung bekommt.
-    private static IResult DeviceNotFound(Guid id)
-    {
-        return Results.Problem(
-            statusCode: StatusCodes.Status404NotFound,
-            title: "Gerät nicht gefunden.",
-            detail: $"Es gibt kein Gerät mit der Id {id}.");
     }
 
     // Sammelt die Fehler pro Feld. Ein leeres Dictionary bedeutet: alles in Ordnung.
