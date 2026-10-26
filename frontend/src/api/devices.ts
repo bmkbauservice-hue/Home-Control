@@ -40,8 +40,24 @@ export function getDeviceTypeLabel(type: string): string {
 
 const BASE_URL = '/api/devices'
 
-export async function getDevices(): Promise<Device[]> {
-  const response = await send(BASE_URL)
+// Suche und Filter für die Geräteliste. Ein leerer Wert bedeutet "Alle".
+export type DeviceFilter = {
+  q: string
+  roomId: string
+  type: string
+}
+
+export const emptyDeviceFilter: DeviceFilter = { q: '', roomId: '', type: '' }
+
+// Nur ausgefüllte Filter werden an die API geschickt. Die API kombiniert sie mit UND.
+export async function getDevices(filter: DeviceFilter = emptyDeviceFilter): Promise<Device[]> {
+  const params = new URLSearchParams()
+  if (filter.q.trim() !== '') params.set('q', filter.q.trim())
+  if (filter.roomId !== '') params.set('roomId', filter.roomId)
+  if (filter.type !== '') params.set('type', filter.type)
+
+  const query = params.toString()
+  const response = await send(query === '' ? BASE_URL : `${BASE_URL}?${query}`)
   return (await response.json()) as Device[]
 }
 

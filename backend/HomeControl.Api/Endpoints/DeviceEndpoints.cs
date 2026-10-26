@@ -23,10 +23,59 @@ public static class DeviceEndpoints
         devices.MapDelete("/{id:guid}", DeleteDevice);
     }
 
-    // GET /api/devices – alle Geräte, sortiert nach Raum und Name
-    private static async Task<IResult> GetAllDevices(ApplicationDbContext db)
+    // GET /api/devices?q=...&roomId=...&type=... – alle Geräte, sortiert nach Raum und Name.
+    // Alle Filter sind optional und werden mit UND kombiniert. Leer = keine Einschränkung.
+    private static async Task<IResult> GetAllDevices(string? q, string? roomId, string? type, ApplicationDbContext db)
     {
-        var devices = await db.Devices
+        // roomId und type kommen als Text an, damit wir sie selbst prüfen
+        // und eine Feldmeldung zurückgeben können.
+        var errors = new Dictionary<string, string[]>();
+
+        Guid? roomGuid = null;
+        if (!string.IsNullOrWhiteSpace(roomId))
+        {
+            if (Guid.TryParse(roomId.Trim(), out var parsed))
+            {
+                roomGuid = parsed;
+            }
+            else
+            {
+                errors["roomId"] = [$"„{roomId}“ ist keine gültige Raum-Id."];
+            }
+        }
+
+        var typeFilter = type?.Trim();
+        if (!string.IsNullOrEmpty(typeFilter) && !DeviceTypes.Contains(typeFilter))
+        {
+            errors["type"] = [$"Den Gerätetyp „{typeFilter}“ gibt es nicht."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return Results.ValidationProblem(errors);
+        }
+
+        var query = db.Devices.AsQueryable();
+
+        // Eine gültige, aber unbekannte roomId liefert einfach eine leere Liste.
+        if (roomGuid is not null)
+        {
+            query = query.Where(d => d.RoomId == roomGuid);
+        }
+
+        if (!string.IsNullOrEmpty(typeFilter))
+        {
+            query = query.Where(d => d.Type == typeFilter);
+        }
+
+        var search = q?.Trim();
+        if (!string.IsNullOrEmpty(search))
+        {
+            var pattern = Search.ContainsPattern(search);
+            query = query.Where(d => EF.Functions.Like(d.Name, pattern, Search.EscapeChar));
+        }
+
+        var devices = await query
             .OrderBy(d => d.Room.Name)
             .ThenBy(d => d.Name)
             .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue))

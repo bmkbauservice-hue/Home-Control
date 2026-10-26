@@ -5,18 +5,46 @@ import { RoomTile } from '../components/RoomTile'
 
 export function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
+  const [search, setSearch] = useState('')
   const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Beim ersten Anzeigen der Seite alle Räume laden.
+  // Räume laden – beim ersten Anzeigen und bei jeder Änderung der Suche.
   useEffect(() => {
-    getRooms()
-      .then(setRooms)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
+    // ignore = true, sobald eine neuere Suche läuft. Dann wird eine ältere,
+    // langsamere Antwort verworfen und überschreibt das neuere Ergebnis nicht.
+    let ignore = false
+
+    // Beim Tippen kurz warten, damit nicht jeder Tastendruck eine Anfrage auslöst.
+    const delay = search.trim() === '' ? 0 : 300
+    const timer = setTimeout(() => {
+      getRooms(search)
+        .then((loaded) => {
+          if (!ignore) setRooms(loaded)
+        })
+        .catch((err: Error) => {
+          if (!ignore) setError(err.message)
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false)
+        })
+    }, delay)
+
+    return () => {
+      ignore = true
+      clearTimeout(timer)
+    }
+  }, [search])
+
+  function changeSearch(value: string) {
+    setSearch(value)
+    setLoading(true)
+    setError(null)
+  }
+
+  const isSearching = search.trim() !== ''
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
@@ -62,7 +90,9 @@ export function RoomsPage() {
       <header className="page-header">
         <h1>Räume</h1>
         <p className="page-subtitle">
-          {loading ? 'Wird geladen …' : `${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'}`}
+          {loading
+            ? 'Wird geladen …'
+            : `${rooms.length} ${rooms.length === 1 ? 'Raum' : 'Räume'}${isSearching ? ' gefunden' : ''}`}
         </p>
       </header>
 
@@ -86,14 +116,37 @@ export function RoomsPage() {
         </div>
       </form>
 
+      <div className="tile filter-bar">
+        <div className="field">
+          <label className="field-label" htmlFor="room-search">
+            Räume durchsuchen
+          </label>
+          <input
+            id="room-search"
+            type="search"
+            className="input"
+            placeholder="Name enthält …"
+            value={search}
+            onChange={(event) => changeSearch(event.target.value)}
+          />
+        </div>
+        <button type="button" className="button" onClick={() => changeSearch('')} disabled={!isSearching}>
+          Suche zurücksetzen
+        </button>
+      </div>
+
       {error && (
         <p className="alert" role="alert">
           {error}
         </p>
       )}
 
-      {!loading && rooms.length === 0 && !error && (
+      {!loading && rooms.length === 0 && !error && !isSearching && (
         <p className="empty">Noch keine Räume. Lege oben deinen ersten Raum an.</p>
+      )}
+
+      {!loading && rooms.length === 0 && !error && isSearching && (
+        <p className="empty">Keine passenden Räume gefunden.</p>
       )}
 
       <div className="tile-grid">

@@ -21,10 +21,20 @@ public static class RoomEndpoints
         rooms.MapDelete("/{id:guid}", DeleteRoom);
     }
 
-    // GET /api/rooms – alle Räume, alphabetisch sortiert
-    private static async Task<IResult> GetAllRooms(ApplicationDbContext db)
+    // GET /api/rooms?q=... – alle Räume, alphabetisch sortiert, optional mit Suche im Namen
+    private static async Task<IResult> GetAllRooms(string? q, ApplicationDbContext db)
     {
-        var rooms = await db.Rooms
+        var query = db.Rooms.AsQueryable();
+
+        // Leere Suche (oder nur Leerzeichen) bedeutet: keine Einschränkung.
+        var search = q?.Trim();
+        if (!string.IsNullOrEmpty(search))
+        {
+            var pattern = Search.ContainsPattern(search);
+            query = query.Where(r => EF.Functions.Like(r.Name, pattern, Search.EscapeChar));
+        }
+
+        var rooms = await query
             .OrderBy(r => r.Name)
             .Select(r => new RoomResponse(r.Id, r.Name, r.Devices.Count))
             .ToListAsync();

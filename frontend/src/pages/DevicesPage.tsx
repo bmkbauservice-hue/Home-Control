@@ -1,5 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { createDevice, deleteDevice, getDevices, updateDevice, type Device, type DeviceInput } from '../api/devices'
+import {
+  createDevice,
+  deleteDevice,
+  deviceTypes,
+  emptyDeviceFilter,
+  getDevices,
+  updateDevice,
+  type Device,
+  type DeviceFilter,
+  type DeviceInput,
+} from '../api/devices'
 import { getRooms, type Room } from '../api/rooms'
 import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
@@ -13,23 +23,59 @@ type DevicesPageProps = {
 export function DevicesPage({ onNavigate }: DevicesPageProps) {
   const [devices, setDevices] = useState<Device[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
+  const [filter, setFilter] = useState<DeviceFilter>(emptyDeviceFilter)
   const [newDevice, setNewDevice] = useState<DeviceInput>({ name: '', type: 'Light', roomId: '' })
+  const [roomsLoading, setRoomsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Geräte und Räume gleichzeitig laden. Die Räume braucht man für die Auswahl im Formular.
+  // Räume einmal laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
   useEffect(() => {
-    Promise.all([getDevices(), getRooms()])
-      .then(([loadedDevices, loadedRooms]) => {
-        setDevices(loadedDevices)
+    getRooms()
+      .then((loadedRooms) => {
         setRooms(loadedRooms)
         // Den ersten Raum vorauswählen, damit das Formular sofort benutzbar ist.
         setNewDevice((current) => ({ ...current, roomId: loadedRooms[0]?.id ?? '' }))
       })
       .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false))
+      .finally(() => setRoomsLoading(false))
   }, [])
+
+  // Geräte laden – beim ersten Anzeigen und bei jeder Änderung von Suche oder Filter.
+  useEffect(() => {
+    // ignore = true, sobald eine neuere Anfrage läuft. Dann wird eine ältere,
+    // langsamere Antwort verworfen und überschreibt das neuere Ergebnis nicht.
+    let ignore = false
+
+    // Beim Tippen kurz warten, damit nicht jeder Tastendruck eine Anfrage auslöst.
+    const delay = filter.q.trim() === '' ? 0 : 300
+    const timer = setTimeout(() => {
+      getDevices(filter)
+        .then((loaded) => {
+          if (!ignore) setDevices(loaded)
+        })
+        .catch((err: Error) => {
+          if (!ignore) setError(err.message)
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false)
+        })
+    }, delay)
+
+    return () => {
+      ignore = true
+      clearTimeout(timer)
+    }
+  }, [filter])
+
+  function changeFilter(next: DeviceFilter) {
+    setFilter(next)
+    setLoading(true)
+    setError(null)
+  }
+
+  const hasFilter = filter.q.trim() !== '' || filter.roomId !== '' || filter.type !== ''
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
@@ -81,7 +127,9 @@ export function DevicesPage({ onNavigate }: DevicesPageProps) {
       <header className="page-header">
         <h1>Geräte</h1>
         <p className="page-subtitle">
-          {loading ? 'Wird geladen …' : `${devices.length} ${devices.length === 1 ? 'Gerät' : 'Geräte'}`}
+          {loading
+            ? 'Wird geladen …'
+            : `${devices.length} ${devices.length === 1 ? 'Gerät' : 'Geräte'}${hasFilter ? ' gefunden' : ''}`}
         </p>
       </header>
 
@@ -91,7 +139,7 @@ export function DevicesPage({ onNavigate }: DevicesPageProps) {
         </p>
       )}
 
-      {!loading && !error && rooms.length === 0 && (
+      {!roomsLoading && !error && rooms.length === 0 && (
         <div className="empty-state">
           <h2 className="tile-title">Zuerst einen Raum anlegen</h2>
           <p className="tile-text">Jedes Gerät gehört zu einem Raum. Lege deshalb zuerst einen Raum an.</p>
@@ -118,8 +166,77 @@ export function DevicesPage({ onNavigate }: DevicesPageProps) {
         </form>
       )}
 
-      {!loading && rooms.length > 0 && devices.length === 0 && (
+      {rooms.length > 0 && (
+        <div className="tile filter-bar">
+          <div className="field">
+            <label className="field-label" htmlFor="device-search">
+              Suche
+            </label>
+            <input
+              id="device-search"
+              type="search"
+              className="input"
+              placeholder="Name enthält …"
+              value={filter.q}
+              onChange={(event) => changeFilter({ ...filter, q: event.target.value })}
+            />
+          </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="device-filter-room">
+              Raum
+            </label>
+            <select
+              id="device-filter-room"
+              className="input"
+              value={filter.roomId}
+              onChange={(event) => changeFilter({ ...filter, roomId: event.target.value })}
+            >
+              <option value="">Alle</option>
+              {rooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="device-filter-type">
+              Gerätetyp
+            </label>
+            <select
+              id="device-filter-type"
+              className="input"
+              value={filter.type}
+              onChange={(event) => changeFilter({ ...filter, type: event.target.value })}
+            >
+              <option value="">Alle</option>
+              {deviceTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            className="button"
+            onClick={() => changeFilter(emptyDeviceFilter)}
+            disabled={!hasFilter}
+          >
+            Filter zurücksetzen
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && rooms.length > 0 && devices.length === 0 && !hasFilter && (
         <p className="empty">Noch keine Geräte. Lege oben dein erstes Gerät an.</p>
+      )}
+
+      {!loading && !error && rooms.length > 0 && devices.length === 0 && hasFilter && (
+        <p className="empty">Keine passenden Geräte gefunden.</p>
       )}
 
       {groups.map((group) => (

@@ -11,8 +11,14 @@ export type Room = {
 
 const BASE_URL = '/api/rooms'
 
-export async function getRooms(): Promise<Room[]> {
-  const response = await send(BASE_URL)
+// Ohne Suchtext kommen alle Räume, sonst nur Räume, deren Name den Text enthält.
+export async function getRooms(search = ''): Promise<Room[]> {
+  const params = new URLSearchParams()
+  if (search.trim() !== '') {
+    params.set('q', search.trim())
+  }
+  const query = params.toString()
+  const response = await send(query === '' ? BASE_URL : `${BASE_URL}?${query}`)
   return (await response.json()) as Room[]
 }
 
