@@ -18,12 +18,14 @@ import type { Page } from '../components/Navigation'
 
 type DevicesPageProps = {
   onNavigate: (page: Page) => void
+  // Optional: Raum, nach dem beim Öffnen gefiltert wird (z. B. von einer Raumkarte der Übersicht).
+  initialRoomId?: string
 }
 
-export function DevicesPage({ onNavigate }: DevicesPageProps) {
+export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps) {
   const [devices, setDevices] = useState<Device[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
-  const [filter, setFilter] = useState<DeviceFilter>(emptyDeviceFilter)
+  const [filter, setFilter] = useState<DeviceFilter>({ ...emptyDeviceFilter, roomId: initialRoomId })
   const [newDevice, setNewDevice] = useState<DeviceInput>({ name: '', type: 'Light', roomId: '' })
   const [roomsLoading, setRoomsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
