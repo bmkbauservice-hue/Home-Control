@@ -1,0 +1,16 @@
+# .NET Build-Ausgaben
+bin/
+obj/
+
+# SQLite-Datenbank (wird lokal erzeugt)
+*.db
+*.db-shm
+*.db-wal
+
+# Frontend
+node_modules/
+dist/
+
+# Editor
+.vs/
+.idea/
