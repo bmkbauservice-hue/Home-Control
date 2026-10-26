@@ -22,6 +22,7 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
     <nav className="nav" aria-label="Hauptnavigation">
       <div className="nav-brand" aria-hidden="true">
         <HomeIcon size={28} />
+        <span>Home Control</span>
       </div>
       {items.map((item) => (
         <button
