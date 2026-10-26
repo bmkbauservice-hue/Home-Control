@@ -74,14 +74,14 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           <span className="tile-text">Zur Raumverwaltung</span>
         </button>
 
-        <div className="tile summary-card">
+        <button type="button" className="tile tile-link summary-card" onClick={() => onNavigate('devices')}>
           <span className="tile-icon">
             <DeviceIcon size={28} />
           </span>
           <span className="summary-label">Geräte</span>
           <span className="summary-value">{deviceValue}</span>
           <span className="tile-text">Status: Noch keine Daten</span>
-        </div>
+        </button>
 
         <button type="button" className="tile tile-link summary-card" onClick={() => onNavigate('blink')}>
           <span className="tile-icon">
@@ -123,7 +123,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                   <p className="tile-text">
                     {room.deviceCount === 1 ? '1 Gerät' : `${room.deviceCount} Geräte`}
                   </p>
-                  <dl className="room-values">
+                  <dl className="tile-values">
                     <dt>Messwerte</dt>
                     <dd>Noch keine Daten</dd>
                   </dl>

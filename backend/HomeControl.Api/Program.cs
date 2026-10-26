@@ -33,5 +33,6 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/", () => "Hello World!");
 
 app.MapRoomEndpoints();
+app.MapDeviceEndpoints();
 
 app.Run();

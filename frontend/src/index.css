@@ -57,7 +57,8 @@ p {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
   color: inherit;
 }
@@ -253,6 +254,32 @@ input {
   background: var(--danger-soft);
 }
 
+/* Kleine Zeile mit Messwerten unten in einer Kachel (Räume, Geräte) */
+.tile-values {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: auto 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.tile-values dt {
+  color: var(--text-muted);
+}
+
+.tile-values dd {
+  margin: 0;
+  color: var(--offline);
+  font-style: italic;
+}
+
+/* Kachel mit Aktionen: Messwerte nicht ganz nach unten schieben */
+.tile-values + .tile-actions {
+  margin-top: 0;
+}
+
 /* ---------- Formular zum Anlegen ---------- */
 
 .create-form {
@@ -268,6 +295,20 @@ input {
 
 .create-row .input {
   flex: 1 1 220px;
+}
+
+/* Mehrere Felder nebeneinander, auf dem Handy untereinander */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: end;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .field-label {
@@ -508,26 +549,6 @@ input {
   min-height: 200px;
 }
 
-.room-values {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin: auto 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 0.9rem;
-}
-
-.room-values dt {
-  color: var(--text-muted);
-}
-
-.room-values dd {
-  margin: 0;
-  color: var(--offline);
-  font-style: italic;
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -578,4 +599,24 @@ input {
   background: var(--bg);
   color: var(--offline);
   font-size: 0.9rem;
+}
+
+/* ---------- Geräte ---------- */
+
+select.input {
+  cursor: pointer;
+}
+
+.device-tile {
+  min-height: 0;
+}
+
+.device-group {
+  margin-top: 24px;
+}
+
+.group-title {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
 }

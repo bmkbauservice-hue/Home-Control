@@ -105,7 +105,8 @@ public static class RoomEndpoints
     }
 
     // Gibt eine Fehlermeldung zurück oder null, wenn der Name in Ordnung ist.
-    private static string? ValidateName(string? name)
+    // Wird auch für Gerätenamen genutzt (DeviceEndpoints).
+    internal static string? ValidateName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
