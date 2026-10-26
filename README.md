@@ -13,6 +13,16 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) ·
 [API](docs/API.md) · [Präsentation](docs/PRAESENTATION.md)
 
+## Projektübersicht
+
+![Home Control – Architektur und Projektidee mit Frontend, Backend, Datenbank und Smart-Home-Geräten](docs/images/home-control-architektur.png)
+
+> Die Infografik zeigt die ursprüngliche Projektidee einschließlich geplanter Erweiterungen.
+> Im aktuellen Code sind IDs vom Typ `Guid` und Ereigniszeitstempel vom Typ `DateTimeOffset`.
+> Dashboard und Reports sind bereits umgesetzt; echte Geräteanbindungen sind noch geplant
+> und werden über das Backend angebunden, nicht direkt über die Datenbank.
+> Das aktuelle Datenmodell steht in [docs/DATENMODELL.md](docs/DATENMODELL.md).
+
 ## Aktueller Funktionsumfang
 
 | Bereich | Was funktioniert |
