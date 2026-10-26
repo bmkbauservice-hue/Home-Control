@@ -11,6 +11,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Legt bei Bedarf Demo-Daten an (siehe Data/DatabaseSeeder.cs).
+builder.Services.AddScoped<DatabaseSeeder>();
+
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
 
@@ -38,6 +41,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+
+    // Demo-Daten nur in Development und nur, wenn "SeedDemoData" ausdrücklich true ist.
+    if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("SeedDemoData"))
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())
