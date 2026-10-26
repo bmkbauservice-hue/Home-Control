@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { getDeviceTypeLabel, type Device, type DeviceInput } from '../api/devices'
 import type { Room } from '../api/rooms'
+import { DeviceEvents } from './DeviceEvents'
 import { DeviceFields } from './DeviceFields'
-import { DeviceIcon, EditIcon, TrashIcon } from './Icons'
+import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
 
 type DeviceTileProps = {
   device: Device
@@ -12,8 +13,8 @@ type DeviceTileProps = {
   onDelete: () => Promise<boolean>
 }
 
-// Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen.
-type Mode = 'view' | 'edit' | 'confirmDelete'
+// Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen – zusätzlich den Verlauf zeigen.
+type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
 export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
@@ -78,6 +79,24 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
     )
   }
 
+  if (mode === 'events') {
+    // Der Verlauf braucht Platz, deshalb nimmt die Kachel die ganze Zeile ein.
+    return (
+      <div className="tile device-tile device-tile-wide">
+        <div className="events-header">
+          <div>
+            <h3 className="tile-title">{device.name}</h3>
+            <p className="tile-text">{getDeviceTypeLabel(device.type)} · Ereignisse</p>
+          </div>
+          <button type="button" className="button" onClick={() => setMode('view')}>
+            Schließen
+          </button>
+        </div>
+        <DeviceEvents deviceId={device.id} />
+      </div>
+    )
+  }
+
   return (
     <div className="tile device-tile">
       <span className="tile-icon">
@@ -90,6 +109,10 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
         <dd>{device.lastValue ?? 'Noch keine Daten'}</dd>
       </dl>
       <div className="tile-actions">
+        <button type="button" className="button button-full" onClick={() => setMode('events')}>
+          <HistoryIcon size={20} />
+          Ereignisse
+        </button>
         <button type="button" className="button" onClick={() => setMode('edit')}>
           <EditIcon size={20} />
           Bearbeiten

@@ -52,6 +52,7 @@ body {
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
 }
@@ -619,4 +620,99 @@ select.input {
   margin-bottom: 12px;
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+/* Eigene Zeile für einen Button in .tile-actions */
+.tile-actions .button-full {
+  flex-basis: 100%;
+}
+
+/* ---------- Geräteereignisse ---------- */
+
+/* Kachel mit geöffnetem Verlauf geht über die ganze Breite des Rasters */
+.device-tile-wide {
+  grid-column: 1 / -1;
+  gap: 16px;
+}
+
+.events-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Verlauf links, Formular rechts – auf dem Handy untereinander */
+.events {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.events-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--bg);
+}
+
+.event-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-action {
+  font-weight: 600;
+}
+
+.event-value {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+/* Testformular deutlich vom echten Verlauf abgesetzt */
+.events-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+}
+
+.events-form-title {
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.events-hint {
+  font-size: 0.9rem;
+}
+
+.events-form .alert {
+  margin: 0;
 }

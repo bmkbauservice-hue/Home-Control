@@ -11,17 +11,21 @@ async function getErrorMessage(response: Response): Promise<string> {
   if (response.status >= 500) {
     return 'Die API ist nicht erreichbar. Läuft das Backend?'
   }
-  if (response.status === 404) {
-    return 'Der Eintrag wurde nicht gefunden. Wurde er inzwischen gelöscht?'
+
+  // Manche Fehlerantworten haben keinen Inhalt (z. B. 404 bei Räumen), dann bleibt problem null.
+  let problem: ProblemDetails | null = null
+  try {
+    problem = (await response.json()) as ProblemDetails
+  } catch {
+    problem = null
   }
 
-  try {
-    const problem = (await response.json()) as ProblemDetails
-    const firstError = problem.errors ? Object.values(problem.errors)[0]?.[0] : undefined
-    return firstError ?? problem.title ?? `Fehler ${response.status}`
-  } catch {
-    return `Fehler ${response.status}`
+  if (response.status === 404) {
+    return problem?.title ?? 'Der Eintrag wurde nicht gefunden. Wurde er inzwischen gelöscht?'
   }
+
+  const firstError = problem?.errors ? Object.values(problem.errors)[0]?.[0] : undefined
+  return firstError ?? problem?.title ?? `Fehler ${response.status}`
 }
 
 // Führt einen Aufruf aus und wirft bei Netzwerkfehlern eine lesbare Meldung.
