@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react'
-import { CameraIcon, DeviceIcon, HomeIcon, RoomsIcon } from './Icons'
+import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, RoomsIcon } from './Icons'
 
 // Die Seiten der App. Neue Seiten werden hier ergänzt.
-export type Page = 'dashboard' | 'rooms' | 'devices' | 'blink'
+export type Page = 'dashboard' | 'rooms' | 'devices' | 'reports' | 'blink'
 
 const items: { page: Page; label: string; icon: ReactNode }[] = [
   { page: 'dashboard', label: 'Übersicht', icon: <HomeIcon /> },
   { page: 'rooms', label: 'Räume', icon: <RoomsIcon /> },
   { page: 'devices', label: 'Geräte', icon: <DeviceIcon /> },
+  { page: 'reports', label: 'Reports', icon: <ChartIcon /> },
   { page: 'blink', label: 'Blink', icon: <CameraIcon /> },
 ]
 

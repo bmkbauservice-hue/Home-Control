@@ -716,3 +716,107 @@ select.input {
 .events-form .alert {
   margin: 0;
 }
+
+/* ---------- Reports ---------- */
+
+.reports {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.reports .page-header {
+  margin-bottom: 0;
+}
+
+/* Datumsauswahl und UTC-Hinweis nebeneinander, auf dem Handy untereinander */
+.reports-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  align-items: center;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Gut sichtbarer Hinweis, dass nach UTC gezählt wird */
+.utc-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-left-width: 6px;
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.utc-note strong {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+/* Kalender-Symbol im dunklen Design sichtbar machen */
+input[type='date'].input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+.reports-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.reports-columns .tile {
+  min-height: 0;
+}
+
+.report-heading {
+  margin-bottom: 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.report-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-row:last-child {
+  border-bottom: none;
+}
+
+.report-rank {
+  min-width: 2ch;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-name {
+  overflow-wrap: anywhere;
+}
+
+.report-count {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-footnote {
+  font-size: 0.85rem;
+}

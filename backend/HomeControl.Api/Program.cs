@@ -35,5 +35,6 @@ app.MapGet("/", () => "Hello World!");
 app.MapRoomEndpoints();
 app.MapDeviceEndpoints();
 app.MapDeviceEventEndpoints();
+app.MapReportEndpoints();
 
 app.Run();
