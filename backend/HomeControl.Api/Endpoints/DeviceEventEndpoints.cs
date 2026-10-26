@@ -21,6 +21,7 @@ public static class DeviceEventEndpoints
         var events = app.MapGroup("/api/devices/{id:guid}/events");
 
         events.MapGet("/", GetEvents);
+        events.MapGet("/{eventId:guid}", GetEventById);
         events.MapPost("/", CreateEvent);
     }
 
@@ -41,8 +42,36 @@ public static class DeviceEventEndpoints
         return Results.Ok(events);
     }
 
+    // GET /api/devices/{id}/events/{eventId} – ein einzelnes Ereignis eines Geräts.
+    // Auf diese Adresse verweist auch der Location-Header nach dem Anlegen (POST).
+    private static async Task<IResult> GetEventById(Guid id, Guid eventId, ApplicationDbContext db)
+    {
+        if (!await db.Devices.AnyAsync(d => d.Id == id))
+        {
+            return DeviceEndpoints.DeviceNotFound(id);
+        }
+
+        // Das Ereignis muss zu genau diesem Gerät gehören. Ein Ereignis eines anderen
+        // Geräts wird hier also nicht gefunden.
+        var deviceEvent = await db.DeviceEvents
+            .Where(e => e.Id == eventId && e.DeviceId == id)
+            .Select(e => new DeviceEventResponse(e.Id, e.Timestamp, e.Action, e.Value))
+            .FirstOrDefaultAsync();
+
+        if (deviceEvent is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Ereignis nicht gefunden.",
+                detail: $"Das Gerät {id} hat kein Ereignis mit der Id {eventId}.");
+        }
+
+        return Results.Ok(deviceEvent);
+    }
+
     // POST /api/devices/{id}/events – ein Ereignis speichern.
     // Es wird nur der Eintrag gespeichert. IsActive und LastValue des Geräts bleiben unverändert.
+    // Antwort: 201 mit Location-Header auf GET /api/devices/{id}/events/{eventId}.
     private static async Task<IResult> CreateEvent(Guid id, DeviceEventRequest request, ApplicationDbContext db)
     {
         if (!await db.Devices.AnyAsync(d => d.Id == id))
