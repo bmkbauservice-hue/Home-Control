@@ -50,7 +50,7 @@ Tuya-Cloud.
 > Die Infografik zeigt die Projektidee einschließlich geplanter Erweiterungen. Im aktuellen
 > Code sind IDs vom Typ `Guid` und Ereigniszeitstempel vom Typ `DateTimeOffset`.
 > Geräte werden über das Backend angebunden, nicht direkt über die Datenbank. Umgesetzt
-> ist bisher die Tuya-Cloud, Blink ist noch ein Platzhalter.
+> ist die Tuya-Cloud sowie – nur lesend, ohne Oberfläche – Status und Kameraliste von Blink.
 > Details: [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md)
 
 ## Technik
@@ -79,8 +79,10 @@ Tuya-Cloud.
 
 **Bewusste Grenzen des aktuellen Stands:**
 
-- Tuya ist **nur lesend** angebunden und bisher für **ein** Gerät eingerichtet.
-- Blink ist ein Platzhalter, eine Anmeldung gibt es noch nicht.
+- Tuya ist **nur lesend** angebunden, inzwischen für alle verknüpften Geräte.
+- Blink ist **nur lesend** angebunden (`GET /api/blink/status`, `GET /api/blink/cameras`);
+  die Einrichtung läuft über ein separates Konsolenprojekt (`tools/BlinkSpike`), die
+  Oberfläche zeigt noch keine echten Kameras an. Details: [docs/BLINK.md](docs/BLINK.md).
 - Woher ein Ereignis kommt (manuell oder vom Gerät), wird noch nicht gespeichert.
 
 **Geplant:**
@@ -94,7 +96,7 @@ Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“
 ## Dokumentation
 
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
-[Tuya-Anbindung](docs/TUYA.md) · [Präsentation](docs/PRAESENTATION.md)
+[Tuya-Anbindung](docs/TUYA.md) · [Blink-Anbindung](docs/BLINK.md) · [Präsentation](docs/PRAESENTATION.md)
 
 ## Lokal starten
 
@@ -192,8 +194,8 @@ dotnet ef migrations list --project backend/HomeControl.Api
 dotnet ef database update --project backend/HomeControl.Api
 ```
 
-Bisher gibt es zwei Migrationen: `InitialCreate` und `TuyaGeraeteIdErgaenzt`
-(Tuya-Verknüpfung am Gerät).
+Bisher gibt es drei Migrationen: `InitialCreate`, `TuyaGeraeteIdErgaenzt`
+(Tuya-Verknüpfung am Gerät) und `BlinkAnmeldedatenErgaenzt` (Tabelle `BlinkCredentials`).
 
 ### Demo-Daten (Seeding)
 
@@ -236,7 +238,8 @@ npm run lint    # Linter oxlint
 
 ```
 backend/HomeControl.Api/   REST API (Details in docs/ARCHITEKTUR.md)
-backend/HomeControl.Api.Tests/  xUnit-Tests (Tuya-Token-Cache und Tuya-Abgleich)
+backend/HomeControl.Api.Tests/  xUnit-Tests (Tuya-Token-Cache, Tuya-Abgleich, Blink-Zugangsdaten)
+tools/BlinkSpike/          Konsolenprojekt für den Blink-Erst-Login mit 2FA (siehe docs/BLINK.md)
 frontend/src/              React-Oberfläche
 docs/                      Dokumentation
 HomeControl.slnx           .NET-Lösung
