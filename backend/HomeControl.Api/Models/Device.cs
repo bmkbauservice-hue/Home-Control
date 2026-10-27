@@ -12,6 +12,11 @@ public class Device
 
     public string? LastValue { get; set; }
 
+    // Id des Geräts in der Tuya-Cloud, wenn es mit einem echten Gerät verknüpft ist.
+    // Kein Geheimnis (ohne Client-Secret nutzlos), aber nur in der lokalen Datenbank, nicht in Git.
+    // Jedes Tuya-Gerät kann höchstens mit einem Gerät verknüpft sein (eindeutiger Index).
+    public string? TuyaDeviceId { get; set; }
+
     public Guid RoomId { get; set; }
 
     public Room Room { get; set; } = null!;

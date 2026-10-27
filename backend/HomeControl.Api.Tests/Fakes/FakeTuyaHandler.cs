@@ -14,12 +14,16 @@ public class FakeTuyaHandler : HttpMessageHandler
     private readonly Lock sync = new();
     private int tokenRequestCount;
     private readonly List<string?> statusAccessTokens = [];
+    private readonly List<string> deviceListPaths = [];
 
     // Bekommt die laufende Nummer des Token-Abrufs (ab 1) und liefert den JSON-Body.
     public Func<int, string> TokenResponse { get; set; } = n => TuyaJson.Token($"token-{n}", 7200);
 
     // Bekommt die laufende Nummer des Statusabrufs (ab 1) und das mitgeschickte Token.
     public Func<int, string?, string> StatusResponse { get; set; } = (_, _) => TuyaJson.Status(false);
+
+    // Bekommt die laufende Nummer des Geräteliste-Abrufs (ab 1) und liefert den JSON-Body.
+    public Func<int, string> DeviceListResponse { get; set; } = _ => TuyaJson.DeviceList(false, null);
 
     // Optional: Token-Antworten erst schicken, wenn dieser Task fertig ist (für parallele Abrufe).
     public Task? TokenGate { get; set; }
@@ -30,6 +34,12 @@ public class FakeTuyaHandler : HttpMessageHandler
     public int TokenRequestCount
     {
         get { lock (sync) return tokenRequestCount; }
+    }
+
+    // Pfad mit Query jedes Geräteliste-Abrufs, in Reihenfolge
+    public IReadOnlyList<string> DeviceListPaths
+    {
+        get { lock (sync) return deviceListPaths.ToList(); }
     }
 
     // access_token-Header jedes Statusabrufs, in Reihenfolge
@@ -54,6 +64,18 @@ public class FakeTuyaHandler : HttpMessageHandler
             }
 
             return Json(TokenResponse(number));
+        }
+
+        if (path.StartsWith("/v1.0/iot-01/associated-users/devices", StringComparison.Ordinal))
+        {
+            int number;
+            lock (sync)
+            {
+                deviceListPaths.Add(path);
+                number = deviceListPaths.Count;
+            }
+
+            return Json(DeviceListResponse(number));
         }
 
         if (path.StartsWith("/v1.0/iot-03/devices/", StringComparison.Ordinal))
@@ -88,6 +110,16 @@ public static class TuyaJson
 
     public static string Status(bool switchOn) =>
         $$"""{ "success": true, "result": [ { "code": "switch_1", "value": {{(switchOn ? "true" : "false")}} } ] }""";
+
+    // Eine Seite der Geräteliste. Jedes Gerät enthält wie bei Tuya auch einen local_key,
+    // damit Tests prüfen können, dass er nirgends übernommen wird.
+    public static string DeviceList(bool hasMore, string? lastRowKey, params (string Id, string Name, bool Online)[] devices)
+    {
+        var items = string.Join(",", devices.Select(d =>
+            $$"""{ "id": "{{d.Id}}", "name": "{{d.Name}}", "product_name": "Wi-Fi Socket", "category": "cz", "online": {{(d.Online ? "true" : "false")}}, "local_key": "geheim-{{d.Id}}" }"""));
+        var key = lastRowKey is null ? "null" : $"\"{lastRowKey}\"";
+        return $$"""{ "success": true, "result": { "devices": [ {{items}} ], "has_more": {{(hasMore ? "true" : "false")}}, "last_row_key": {{key}} } }""";
+    }
 
     public static string Error(string code, string message) =>
         $$"""{ "success": false, "code": {{code}}, "msg": "{{message}}" }""";

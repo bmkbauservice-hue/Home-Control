@@ -23,6 +23,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | GET | `/api/devices/{id}/events/{eventId}` | Ein einzelnes Ereignis dieses Geräts | 200 | 404 |
 | POST | `/api/devices/{id}/events` | Ereignis speichern | 201 | 400, 404 |
 | GET | `/api/reports/daily?date=JJJJ-MM-TT` | Tagesauswertung (UTC-Tag) | 200 | 400 |
+| GET | `/api/tuya/devices` | Alle Geräte aus der Tuya-Cloud mit Verknüpfung zu unseren Geräten (nur lesend) | 200 | 502, 503, 504 |
 | GET | `/api/tuya/test-device/status` | Status des Tuya-Testgeräts aus der Tuya-Cloud (nur lesend) | 200 | 502, 503, 504 |
 | POST | `/api/tuya/test-device/sync` | Status lesen und `switch_1` auf das verknüpfte Gerät übertragen (schaltet nichts) | 200 | 502, 503, 504 |
 
@@ -46,16 +47,22 @@ Die API gibt nie die Datenbank-Klassen direkt heraus, sondern eigene DTOs
 ### Geräte
 
 ```jsonc
-// DeviceRequest (POST, PUT)
-{ "name": "Wasserkocher", "type": "Socket", "roomId": "2b7ebae0-…" }
+// DeviceRequest (POST, PUT) – tuyaDeviceId ist optional, leer = keine Verknüpfung
+{ "name": "Wasserkocher", "type": "Socket", "roomId": "2b7ebae0-…", "tuyaDeviceId": "<TUYA-GERAETE-ID>" }
 
 // DeviceResponse
 { "id": "b1cb3a70-…", "name": "Wasserkocher", "type": "Socket",
-  "roomId": "2b7ebae0-…", "roomName": "Küche", "lastValue": null }
+  "roomId": "2b7ebae0-…", "roomName": "Küche", "lastValue": null, "tuyaDeviceId": "<TUYA-GERAETE-ID>" }
 ```
 
-`IsActive` ist bewusst nicht enthalten, und `lastValue` ist derzeit immer `null`
-(siehe [DATENMODELL.md](DATENMODELL.md)).
+`IsActive` ist bewusst nicht enthalten. `lastValue` bleibt `null`, solange kein Abgleich
+einen Wert geliefert hat (siehe [DATENMODELL.md](DATENMODELL.md)).
+
+`tuyaDeviceId` muss aus Buchstaben und Ziffern bestehen (höchstens 64 Zeichen), und jedes
+Tuya-Gerät darf nur mit **einem** Gerät verknüpft sein. Sonst antwortet die API mit 400 und
+einer Feldmeldung bei `tuyaDeviceId`. Wird die Verknüpfung beim Bearbeiten geändert oder
+entfernt, setzt die API `lastValue` und `IsActive` zurück, weil der alte Wert nicht mehr zu
+diesem Gerät gehört.
 
 ### Ereignisse
 
@@ -90,6 +97,20 @@ Unbekanntes Gerät, unbekanntes Ereignis oder ein Ereignis eines anderen Geräts
   "topDevices": [ { "deviceId": "b1cb3a70-…", "deviceName": "Wasserkocher", "eventCount": 1 } ]
 }
 ```
+
+### Tuya-Geräteliste
+
+```jsonc
+// TuyaCloudDeviceResponse (GET /api/tuya/devices), sortiert nach Name
+[ { "tuyaId": "<TUYA-GERAETE-ID>", "name": "Bad Licht", "productName": "Wi-Fi BLE Socket",
+    "category": "cz", "online": true,
+    "linkedDeviceId": "b1cb3a70-…", "linkedDeviceName": "Licht Bad" } ]
+```
+
+`online` ist das, was Tuya meldet (`null`, wenn Tuya nichts dazu sagt). `linkedDeviceId` und
+`linkedDeviceName` sind `null`, solange das Tuya-Gerät mit keinem unserer Geräte verknüpft ist.
+Den `local_key` aus der Tuya-Antwort gibt die API **nie** heraus. Braucht nur `Tuya:ClientId`
+und `Tuya:ClientSecret`, kein Testgerät.
 
 ### Tuya-Testgerät
 

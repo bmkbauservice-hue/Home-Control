@@ -11,6 +11,8 @@ export type Device = {
   roomName: string
   // null, solange die Geräte-Anbindung noch keine Werte liefert
   lastValue: string | null
+  // Id des verknüpften Geräts in der Tuya-Cloud, null = nicht verknüpft
+  tuyaDeviceId: string | null
 }
 
 // Das schickt das Frontend beim Anlegen und Bearbeiten.
@@ -18,6 +20,8 @@ export type DeviceInput = {
   name: string
   type: string
   roomId: string
+  // Leerer Text = keine Tuya-Verknüpfung
+  tuyaDeviceId: string
 }
 
 // Gleiche Liste wie DeviceTypes im Backend, hier mit deutscher Bezeichnung.

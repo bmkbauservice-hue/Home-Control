@@ -6,6 +6,10 @@ obj/
 *.db
 *.db-shm
 *.db-wal
+# Sicherungskopien der Datenbank (enthalten echte Daten, später ggf. Tokens)
+*.db.bak
+*.db.backup
+*.bak
 
 # Frontend
 node_modules/

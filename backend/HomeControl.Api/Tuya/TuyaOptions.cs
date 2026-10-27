@@ -27,10 +27,17 @@ public class TuyaOptions
     // Namen der Einstellungen, die noch fehlen. Die Werte selbst werden nie ausgegeben.
     public List<string> GetMissingSettings()
     {
+        var missing = GetMissingCredentials();
+        if (string.IsNullOrWhiteSpace(TestDeviceId)) missing.Add("Tuya:TestDeviceId");
+        return missing;
+    }
+
+    // Wie oben, aber nur die Zugangsdaten. Die Geräteliste braucht kein Testgerät.
+    public List<string> GetMissingCredentials()
+    {
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(ClientId)) missing.Add("Tuya:ClientId");
         if (string.IsNullOrWhiteSpace(ClientSecret)) missing.Add("Tuya:ClientSecret");
-        if (string.IsNullOrWhiteSpace(TestDeviceId)) missing.Add("Tuya:TestDeviceId");
         return missing;
     }
 }

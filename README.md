@@ -70,10 +70,10 @@ Tuya-Cloud.
 |---|---|
 | Übersicht | Anzahl Räume und Geräte, Räume als Kacheln, Lichtkarte mit echtem Tuya-Zustand |
 | Räume | Anlegen, anzeigen, umbenennen, löschen, nach Namen suchen |
-| Geräte | Anlegen, anzeigen, bearbeiten (auch Raum wechseln), löschen; Suche nach Namen, Filter nach Raum und Gerätetyp |
+| Geräte | Anlegen, anzeigen, bearbeiten (auch Raum wechseln), löschen; Suche nach Namen, Filter nach Raum und Gerätetyp; Verknüpfung mit einem Tuya-Gerät per Auswahlliste |
 | Ereignisse | Verlauf pro Gerät, manuelle Einträge und automatische Einträge aus dem Tuya-Abgleich |
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
-| Tuya | Status eines Geräts lesen (`GET /api/tuya/test-device/status`); Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis |
+| Tuya | Geräteliste aller verknüpften Tuya-App-Geräte (`GET /api/tuya/devices`); Status eines Geräts lesen (`GET /api/tuya/test-device/status`); Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis |
 
 ## Stand und nächste Schritte
 
@@ -85,7 +85,7 @@ Tuya-Cloud.
 
 **Geplant:**
 
-- Mehrere Tuya-Geräte über eine Geräteliste verknüpfen, statt über die Konfiguration
+- Alle verknüpften Tuya-Geräte gemeinsam abgleichen (die Verknüpfung per Geräteliste gibt es schon)
 - Weitere Gerätetypen: Steckdose mit Strommessung, Türkontakt, Akku-Ladestand
 - Tests für die Tuya-Signatur und die Endpunkte
 
@@ -192,7 +192,8 @@ dotnet ef migrations list --project backend/HomeControl.Api
 dotnet ef database update --project backend/HomeControl.Api
 ```
 
-Bisher gibt es eine Migration: `InitialCreate`.
+Bisher gibt es zwei Migrationen: `InitialCreate` und `TuyaGeraeteIdErgaenzt`
+(Tuya-Verknüpfung am Gerät).
 
 ### Demo-Daten (Seeding)
 

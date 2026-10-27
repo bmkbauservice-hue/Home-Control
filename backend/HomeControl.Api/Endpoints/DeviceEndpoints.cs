@@ -78,7 +78,7 @@ public static class DeviceEndpoints
         var devices = await query
             .OrderBy(d => d.Room.Name)
             .ThenBy(d => d.Name)
-            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue))
+            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -94,7 +94,7 @@ public static class DeviceEndpoints
     // POST /api/devices – neues Gerät in einem Raum anlegen
     private static async Task<IResult> CreateDevice(DeviceRequest request, ApplicationDbContext db)
     {
-        var errors = await Validate(request, null, db);
+        var errors = await Validate(request, null, null, db);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -104,7 +104,8 @@ public static class DeviceEndpoints
         {
             Name = request.Name.Trim(),
             Type = request.Type,
-            RoomId = request.RoomId
+            RoomId = request.RoomId,
+            TuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId)
         };
 
         db.Devices.Add(device);
@@ -113,7 +114,7 @@ public static class DeviceEndpoints
         return Results.Created($"/api/devices/{device.Id}", await FindDevice(device.Id, db));
     }
 
-    // PUT /api/devices/{id} – Name, Typ oder Raum eines Geräts ändern
+    // PUT /api/devices/{id} – Name, Typ, Raum oder Tuya-Verknüpfung eines Geräts ändern
     private static async Task<IResult> UpdateDevice(Guid id, DeviceRequest request, ApplicationDbContext db)
     {
         var device = await db.Devices.FindAsync(id);
@@ -123,15 +124,25 @@ public static class DeviceEndpoints
         }
 
         // Der bisher gespeicherte Typ bleibt erlaubt, auch wenn er nicht mehr in der Liste steht.
-        var errors = await Validate(request, device.Type, db);
+        var errors = await Validate(request, device.Type, id, db);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
         }
 
+        // Wird die Tuya-Verknüpfung geändert oder entfernt, gehört der zuletzt von Tuya
+        // gemeldete Zustand nicht mehr zu diesem Gerät. Er wird deshalb zurückgesetzt.
+        var tuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId);
+        if (tuyaDeviceId != device.TuyaDeviceId)
+        {
+            device.IsActive = false;
+            device.LastValue = null;
+        }
+
         device.Name = request.Name.Trim();
         device.Type = request.Type;
         device.RoomId = request.RoomId;
+        device.TuyaDeviceId = tuyaDeviceId;
         await db.SaveChangesAsync();
 
         return Results.Ok(await FindDevice(id, db));
@@ -167,14 +178,24 @@ public static class DeviceEndpoints
     {
         return db.Devices
             .Where(d => d.Id == id)
-            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue))
+            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId))
             .FirstOrDefaultAsync();
+    }
+
+    // Gleiche Grenze wie im ApplicationDbContext (TuyaDeviceId: HasMaxLength(64)).
+    private const int MaxTuyaDeviceIdLength = 64;
+
+    // Leer oder nur Leerzeichen heißt: keine Tuya-Verknüpfung.
+    internal static string? NormalizeTuyaDeviceId(string? tuyaDeviceId)
+    {
+        return string.IsNullOrWhiteSpace(tuyaDeviceId) ? null : tuyaDeviceId.Trim();
     }
 
     // Sammelt die Fehler pro Feld. Ein leeres Dictionary bedeutet: alles in Ordnung.
     // currentType ist beim Bearbeiten der gespeicherte Typ, beim Anlegen null.
+    // currentDeviceId ist beim Bearbeiten die Id des Geräts selbst, beim Anlegen null.
     private static async Task<Dictionary<string, string[]>> Validate(
-        DeviceRequest request, string? currentType, ApplicationDbContext db)
+        DeviceRequest request, string? currentType, Guid? currentDeviceId, ApplicationDbContext db)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -195,6 +216,28 @@ public static class DeviceEndpoints
         if (!await db.Rooms.AnyAsync(r => r.Id == request.RoomId))
         {
             errors["roomId"] = ["Bitte einen vorhandenen Raum auswählen."];
+        }
+
+        var tuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId);
+        if (tuyaDeviceId is not null)
+        {
+            // Tuya-Ids bestehen nur aus Buchstaben und Ziffern.
+            if (tuyaDeviceId.Length > MaxTuyaDeviceIdLength || !tuyaDeviceId.All(char.IsAsciiLetterOrDigit))
+            {
+                errors["tuyaDeviceId"] = ["Das ist keine gültige Tuya-Geräte-Id."];
+            }
+            else
+            {
+                // Ein Tuya-Gerät darf nur mit einem Gerät verknüpft sein.
+                var linkedName = await db.Devices
+                    .Where(d => d.TuyaDeviceId == tuyaDeviceId && d.Id != currentDeviceId)
+                    .Select(d => d.Name)
+                    .FirstOrDefaultAsync();
+                if (linkedName is not null)
+                {
+                    errors["tuyaDeviceId"] = [$"Dieses Tuya-Gerät ist schon mit „{linkedName}“ verknüpft."];
+                }
+            }
         }
 
         return errors;
