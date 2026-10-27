@@ -39,10 +39,11 @@ Frontend einfach `/api/...` aufrufen kann.
 | `Contracts/` | DTOs: was die API annimmt (`…Request`) und zurückgibt (`…Response`) |
 | `Endpoints/` | Minimal-API-Endpunkte, je Bereich eine Datei mit eigener `MapGroup`; `Search.cs` hilft bei der Textsuche |
 | `ErrorHandling/` | `GlobalExceptionHandler`: einheitliche Antwort bei unerwarteten Fehlern |
+| `Tuya/` | Lesender Zugriff auf die Tuya-Cloud: `TuyaClient` (HTTP), `TuyaSignature` (HMAC-SHA256), `TuyaOptions` (Einstellungen) |
 | `Properties/launchSettings.json` | Startprofile mit Ports (`http`: 5111) |
-| `appsettings.json` | Connection String und Option `SeedDemoData` |
+| `appsettings.json` | Connection String, Option `SeedDemoData`, `Tuya:BaseUrl` (Zugangsdaten stehen in den User Secrets) |
 
-Die Endpunkte sind in vier Gruppen aufgeteilt:
+Die Endpunkte sind in fünf Gruppen aufgeteilt:
 
 | Datei | Gruppe |
 |---|---|
@@ -50,6 +51,7 @@ Die Endpunkte sind in vier Gruppen aufgeteilt:
 | `DeviceEndpoints.cs` | `/api/devices` |
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
+| `TuyaEndpoints.cs` | `/api/tuya` (nur lesend, ohne Datenbank, siehe [TUYA.md](TUYA.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
 
@@ -124,6 +126,18 @@ using (var scope = app.Services.CreateScope())
 
 Auch der `GlobalExceptionHandler` bekommt seinen Logger und den `IProblemDetailsService`
 per DI.
+
+**TuyaClient:**
+
+```csharp
+builder.Services.Configure<TuyaOptions>(builder.Configuration.GetSection(TuyaOptions.SectionName));
+builder.Services.AddHttpClient<TuyaClient>(...);
+```
+
+`Configure` bindet den Abschnitt `Tuya` (aus `appsettings.json` und den User Secrets) an
+`TuyaOptions`. `AddHttpClient` registriert den `TuyaClient` mit einem eigenen `HttpClient`
+(BaseUrl, 10 Sekunden Timeout). Der Client liest die Einstellungen über `IOptionsMonitor`,
+deshalb wirken geänderte User Secrets ohne Neustart.
 
 ## Fehlerbehandlung (Middleware-Reihenfolge)
 

@@ -11,7 +11,7 @@ Das Projekt besteht aus zwei Teilen:
 
 Weitere Dokumentation liegt im Ordner [docs/](docs/):
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) ·
-[API](docs/API.md) · [Präsentation](docs/PRAESENTATION.md)
+[API](docs/API.md) · [Tuya](docs/TUYA.md) · [Präsentation](docs/PRAESENTATION.md)
 
 ## Projektübersicht
 
@@ -34,10 +34,13 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
 | API | Validierung mit Feldmeldungen, einheitliche Fehler (ProblemDetails), OpenAPI-Beschreibung mit Scalar-Oberfläche |
 | Datenbank | Migrationen werden beim Start automatisch angewendet, optionale Demo-Daten |
+| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend |
 
 **Noch nicht vorhanden:**
 
-- Keine echte Anbindung an Tuya oder Blink. Die Blink-Seite ist nur ein Platzhalter.
+- Tuya nur lesend und nur für ein Testgerät: kein Schalten, nichts wird gespeichert
+  (siehe [docs/TUYA.md](docs/TUYA.md)).
+- Keine Anbindung an Blink. Die Blink-Seite ist nur ein Platzhalter.
 - Keine Live-Werte. `IsActive` und `LastValue` werden nicht durch Ereignisse aktualisiert.
   In der Oberfläche steht deshalb „Noch keine Daten“.
 - Ereignisse werden nur gespeichert, es wird nichts geschaltet. Woher ein Ereignis kommt
@@ -66,6 +69,18 @@ npm install
 ```
 
 Die NuGet-Pakete des Backends lädt `dotnet run` bzw. `dotnet build` automatisch.
+
+### Tuya-Zugangsdaten (optional)
+
+Nur nötig, wenn der Tuya-Statusabruf genutzt werden soll. Die Zugangsdaten kommen in die
+.NET User Secrets, nicht ins Repository. Im Projektordner:
+
+```bash
+./tuya-secrets-einrichten.sh
+```
+
+Das Skript fragt Client-ID, Client-Secret und TestDeviceId verdeckt ab. Ohne diese Werte
+läuft die App normal, nur der Tuya-Abruf antwortet mit 503. Details in [docs/TUYA.md](docs/TUYA.md).
 
 ## Starten
 
@@ -169,4 +184,5 @@ frontend/src/              React-Oberfläche
 docs/                      Dokumentation
 HomeControl.slnx           .NET-Lösung
 dotnet-tools.json          lokales Tool dotnet-ef
+tuya-secrets-einrichten.sh Tuya-Zugangsdaten verdeckt in die User Secrets eintragen
 ```

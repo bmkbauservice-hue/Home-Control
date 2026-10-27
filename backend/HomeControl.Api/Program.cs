@@ -1,6 +1,8 @@
 using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
+using HomeControl.Api.Tuya;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -13,6 +15,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Legt bei Bedarf Demo-Daten an (siehe Data/DatabaseSeeder.cs).
 builder.Services.AddScoped<DatabaseSeeder>();
+
+// Tuya-Cloud (nur lesend). Zugangsdaten kommen aus den User Secrets, siehe README.
+builder.Services.Configure<TuyaOptions>(builder.Configuration.GetSection(TuyaOptions.SectionName));
+builder.Services.AddHttpClient<TuyaClient>((services, client) =>
+{
+    var tuya = services.GetRequiredService<IOptions<TuyaOptions>>().Value;
+    client.BaseAddress = new Uri(tuya.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
@@ -63,5 +74,6 @@ app.MapRoomEndpoints();
 app.MapDeviceEndpoints();
 app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
+app.MapTuyaEndpoints();
 
 app.Run();
