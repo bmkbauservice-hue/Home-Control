@@ -28,7 +28,7 @@ public static class TuyaEndpoints
         ILogger<TuyaClient> logger,
         CancellationToken cancellationToken)
     {
-        // Aktuelle Einstellungen lesen (geänderte User Secrets wirken ohne Neustart).
+        // Aktuelle Einstellungen lesen.
         // Fehlt etwas, nennen wir nur die Namen, nie die Werte.
         var settings = options.CurrentValue;
         var missing = settings.GetMissingSettings();

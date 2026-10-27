@@ -18,6 +18,11 @@ builder.Services.AddScoped<DatabaseSeeder>();
 
 // Tuya-Cloud (nur lesend). Zugangsdaten kommen aus den User Secrets, siehe README.
 builder.Services.Configure<TuyaOptions>(builder.Configuration.GetSection(TuyaOptions.SectionName));
+// Uhrzeit über TimeProvider, damit Tests die Zeit steuern können.
+builder.Services.AddSingleton(TimeProvider.System);
+// Singleton: Das Token bleibt zwischen den Anfragen erhalten. Der TuyaClient selbst ist
+// als typisierter HttpClient "transient" und wird pro Anfrage neu erzeugt.
+builder.Services.AddSingleton<TuyaTokenStore>();
 builder.Services.AddHttpClient<TuyaClient>((services, client) =>
 {
     var tuya = services.GetRequiredService<IOptions<TuyaOptions>>().Value;
