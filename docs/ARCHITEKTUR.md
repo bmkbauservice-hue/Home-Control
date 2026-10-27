@@ -51,7 +51,7 @@ Die Endpunkte sind in fünf Gruppen aufgeteilt:
 | `DeviceEndpoints.cs` | `/api/devices` |
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
-| `TuyaEndpoints.cs` | `/api/tuya` (nur lesend, ohne Datenbank, siehe [TUYA.md](TUYA.md)) |
+| `TuyaEndpoints.cs` | `/api/tuya` (bei Tuya nur lesend; der Abgleich `POST /sync` speichert den Zustand in der Datenbank, siehe [TUYA.md](TUYA.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
 

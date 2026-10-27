@@ -47,8 +47,8 @@ erDiagram
 | `Id` | Eindeutige Kennung (GUID) |
 | `Name` | Name des Geräts, höchstens 100 Zeichen |
 | `Type` | Gerätetyp, höchstens 50 Zeichen. Neue Geräte: `Light`, `Socket`, `TemperatureSensor`, `DoorSensor`, `Switch` |
-| `IsActive` | Ob das Gerät an ist. **Wird derzeit nicht gepflegt** (siehe unten) |
-| `LastValue` | Letzter Messwert. **Wird derzeit nicht gepflegt** (siehe unten) |
+| `IsActive` | Ob das Gerät an ist. Wird nur beim Tuya-Abgleich gesetzt (siehe unten) |
+| `LastValue` | Letzter Wert, z. B. „EIN“/„AUS“. Wird nur beim Tuya-Abgleich gesetzt (siehe unten) |
 | `RoomId` / `Room` | Zu welchem Raum das Gerät gehört |
 | `Events` | Ereignisverlauf des Geräts |
 
@@ -98,17 +98,19 @@ ausdrücklich darauf hin.
 - Die Oberfläche zeigt den Zeitpunkt in der Ortszeit des Browsers an.
 - Die Tagesauswertung rechnet mit **UTC-Tagen** (siehe [API.md](API.md)).
 
-## Was IsActive und LastValue (noch) nicht tun
+## Wann IsActive und LastValue gesetzt werden
 
-`IsActive` und `LastValue` gibt es im Modell, sie werden aber **nicht** durch Ereignisse
-aktualisiert. Ein Ereignis wie `turned_on` wird nur gespeichert. Das Gerät bleibt dabei
-unverändert. Die Tuya-Anbindung liest bisher nur den Status eines einzelnen Testgeräts und
-schreibt nichts in die Datenbank (siehe [TUYA.md](TUYA.md)). Eine Geräteanbindung, die diese
-Werte liefert, gibt es noch nicht.
+**Manuell erfasste Ereignisse** ändern das Gerät weiterhin nicht. Ein Ereignis wie `turned_on`
+wird nur gespeichert.
+
+**Der Tuya-Abgleich** (`POST /api/tuya/test-device/sync`) setzt dagegen bei genau einem Gerät,
+dem in `Tuya:LinkedDeviceId` eingestellten, `IsActive` und `LastValue` („EIN“/„AUS“) und
+speichert bei einer Änderung ein Ereignis (siehe [TUYA.md](TUYA.md)). Alle anderen Geräte
+bekommen keine echten Werte.
 
 Deshalb:
 
-- zeigt die Oberfläche beim Zustand „Noch keine Daten“,
+- zeigt die Oberfläche bei allen anderen Geräten „Noch keine Daten“,
 - gibt die API `IsActive` gar nicht aus,
 - gibt es keinen Filter und keine Auswertung nach „aktiven Geräten“.
 

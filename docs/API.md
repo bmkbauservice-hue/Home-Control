@@ -24,6 +24,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/devices/{id}/events` | Ereignis speichern | 201 | 400, 404 |
 | GET | `/api/reports/daily?date=JJJJ-MM-TT` | Tagesauswertung (UTC-Tag) | 200 | 400 |
 | GET | `/api/tuya/test-device/status` | Status des Tuya-Testgeräts aus der Tuya-Cloud (nur lesend) | 200 | 502, 503, 504 |
+| POST | `/api/tuya/test-device/sync` | Status lesen und `switch_1` auf das verknüpfte Gerät übertragen (schaltet nichts) | 200 | 502, 503, 504 |
 
 Zusätzlich antwortet `GET /` mit dem Text „Hello World!“ (Überbleibsel aus der Projektvorlage).
 
@@ -101,6 +102,19 @@ Unbekanntes Gerät, unbekanntes Ereignis oder ein Ereignis eines anderen Geräts
 
 `value` wird unverändert von Tuya übernommen und kann je nach Code ein Boolean, eine Zahl
 oder ein Text sein. Einrichtung, Fehlerfälle und Grenzen stehen in [TUYA.md](TUYA.md).
+
+```jsonc
+// TuyaDeviceSyncResponse (POST /api/tuya/test-device/sync)
+{ "retrievedAtUtc": "2026-10-27T08:21:11.921+00:00",
+  "status": [ { "code": "switch_1", "value": true } ],
+  "note": "…",
+  "syncResult": "changed" }
+```
+
+`syncResult` sagt, was in der Datenbank passiert ist: `changed` (Gerät aktualisiert und
+Ereignis gespeichert), `unchanged`, `notLinked` (kein Gerät eingestellt), `deviceNotFound`
+oder `unknownValue` (switch_1 fehlt oder ist kein Boolean). Nur bei `changed` wird etwas
+gespeichert. Fehlerantworten sind dieselben wie beim GET.
 
 ## Validierung
 
