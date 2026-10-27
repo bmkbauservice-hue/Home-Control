@@ -45,7 +45,7 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
   In der Oberfläche steht deshalb „Noch keine Daten“.
 - Ereignisse werden nur gespeichert, es wird nichts geschaltet. Woher ein Ereignis kommt
   (manuell oder von einem Gerät), wird noch nicht gespeichert.
-- Keine Anmeldung und keine automatisierten Tests.
+- Keine Anmeldung. Automatisierte Tests gibt es bisher nur für den Tuya-Token-Cache.
 
 ## Voraussetzungen
 
@@ -170,6 +170,7 @@ dotnet run -- --SeedDemoData=true --ConnectionStrings:DefaultConnection="Data So
 ```bash
 # Backend (im Projektordner, baut HomeControl.slnx)
 dotnet build
+dotnet test     # Tests in backend/HomeControl.Api.Tests
 
 # Frontend (im Ordner frontend)
 npm run build   # TypeScript prüfen und Produktions-Build nach frontend/dist
@@ -180,6 +181,7 @@ npm run lint    # Linter oxlint
 
 ```
 backend/HomeControl.Api/   REST API (Details in docs/ARCHITEKTUR.md)
+backend/HomeControl.Api.Tests/  xUnit-Tests (bisher Tuya-Token-Cache)
 frontend/src/              React-Oberfläche
 docs/                      Dokumentation
 HomeControl.slnx           .NET-Lösung

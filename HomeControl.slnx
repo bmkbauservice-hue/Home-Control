@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/backend/">
+    <Project Path="backend/HomeControl.Api.Tests/HomeControl.Api.Tests.csproj" />
     <Project Path="backend/HomeControl.Api/HomeControl.Api.csproj" />
   </Folder>
 </Solution>

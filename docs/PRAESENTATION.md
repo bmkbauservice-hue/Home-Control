@@ -126,6 +126,14 @@ Ein Standardformat (RFC 9457) für Fehlerantworten mit `status`, `title` und bei
 Validierungsfehlern `errors`. Alle Fehler der API haben dieses Format. Bei einem 500er sieht
 der Client nur eine allgemeine Meldung, die Details stehen im Server-Log.
 
+**Wie funktioniert der Token-Cache?**
+Für Anfragen an die Tuya-Cloud braucht das Backend ein Zugriffstoken, dessen Laufzeit Tuya in
+`expire_time` mitschickt. Weil der `TuyaClient` pro Anfrage neu erzeugt wird, merkt sich ein
+eigener Singleton, der `TuyaTokenStore`, dieses Token im Arbeitsspeicher. Ab 60 Sekunden vor
+Ablauf holt er automatisch ein neues Token. Laufen mehrere Abrufe gleichzeitig, sorgt ein
+`SemaphoreSlim` dafür, dass nur einer das Token holt und die anderen es mitbenutzen. Lehnt Tuya
+das Token trotzdem ab, wird genau einmal mit einem neuen Token wiederholt.
+
 **Minimal API und MapGroup**
 Endpunkte werden direkt mit `MapGet`, `MapPost` usw. definiert, ohne Controller-Klassen.
 `MapGroup("/api/rooms")` fasst alle Raum-Endpunkte unter einem gemeinsamen Pfad zusammen.

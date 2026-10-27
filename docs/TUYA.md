@@ -59,7 +59,9 @@ Vorsicht: `dotnet user-secrets list` zeigt die Werte im Klartext an.
 Entfernen: `dotnet user-secrets remove "Tuya:ClientSecret"` (einzeln) oder
 `dotnet user-secrets clear` (alle Secrets des Projekts).
 
-Geänderte Werte wirken ohne Neustart des Backends (`IOptionsMonitor`).
+Nach dem Ändern der Zugangsdaten das **Backend neu starten**. Das leert auch den
+Token-Speicher. Zur Sicherheit merkt sich das gespeicherte Token seine ClientId: Passt sie nicht
+mehr zur Konfiguration, holt das Backend ein neues Token.
 
 ### 3. Konfiguration
 
@@ -74,13 +76,32 @@ Geänderte Werte wirken ohne Neustart des Backends (`IOptionsMonitor`).
 
 `GET /api/tuya/test-device/status`
 
-Pro Abruf schickt das Backend zwei signierte GET-Anfragen an Tuya (HMAC-SHA256,
-Klassen `TuyaClient` und `TuyaSignature` im Ordner `Tuya/`):
+Das Backend schickt signierte GET-Anfragen an Tuya (HMAC-SHA256, Klassen `TuyaClient` und
+`TuyaSignature` im Ordner `Tuya/`):
 
-1. `GET /v1.0/token?grant_type=1`: Zugriffstoken holen
+1. `GET /v1.0/token?grant_type=1`: Zugriffstoken holen, nur wenn kein gültiges im Speicher liegt
 2. `GET /v1.0/iot-03/devices/{device_id}/status`: Status lesen
 
-Das Token wird nicht gespeichert und nicht protokolliert.
+### Token-Cache
+
+Das Token liegt im `TuyaTokenStore` und wird nur im Arbeitsspeicher gehalten, nie in Datei,
+Datenbank oder Log.
+
+- **Warum eine eigene Klasse?** `AddHttpClient<TuyaClient>` registriert den `TuyaClient` als
+  *transient*, also pro Anfrage neu. Ein Feld im `TuyaClient` wäre nach jedem Abruf wieder leer.
+  Der `TuyaTokenStore` ist ein **Singleton** und lebt so lange wie die App.
+- **Erneuern:** Tuya liefert die Laufzeit in `expire_time` (Sekunden). Ab **60 Sekunden vor
+  Ablauf** wird ein neues Token geholt. Einen Refresh-Token-Ablauf gibt es bewusst nicht.
+  Fehlt `expire_time`, wird das Token nicht wiederverwendet.
+- **Parallele Abrufe:** Ein `SemaphoreSlim` lässt nur einen Token-Abruf gleichzeitig zu.
+  Die anderen warten und nutzen danach dasselbe Token.
+- **Abgelehntes Token:** Antwortet Tuya beim Statusabruf mit `success: false` und einem
+  Token-Fehler (1010, 1011, 1012 oder 1400, auch bei HTTP 200), wird **genau einmal** mit einem
+  neuen Token wiederholt. Andere Fehler werden nicht wiederholt.
+- **Zuordnung:** Das Token merkt sich die ClientId, zu der es gehört.
+- **Zeit:** Die Uhrzeit kommt aus `TimeProvider`. In Tests wird sie vorgespult.
+- Ein fehlgeschlagener Token-Abruf wird nicht gespeichert. Beim nächsten Abruf wird es erneut
+  versucht.
 
 Antwort (200):
 
@@ -148,11 +169,34 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
   Quelle (z. B. Umgebungsvariablen `Tuya__ClientId` usw.).
 - **Ein Rechenzentrum.** Fest auf Central Europe eingestellt. Für ein anderes Rechenzentrum
   muss `Tuya:BaseUrl` geändert werden.
-- **Zwei Tuya-Aufrufe pro Abruf**, weil das Token jedes Mal neu geholt wird. Das zählt gegen
-  das API-Kontingent des Tuya-Projekts.
+- **Konfigurationswechsel erfordert Neustart.** `TuyaClient` liest die Einstellungen über
+  `IOptionsMonitor` und bekommt ein geändertes `Tuya:ClientSecret` sofort zu sehen, ohne
+  Neustart. Der Token-Cache merkt sich dabei aber nur die ClientId, nicht das Secret: Bleibt
+  die ClientId gleich, verwendet er das alte, noch gültige Token weiter, während neue Anfragen
+  schon mit dem neuen Secret signiert werden. Das passt nicht zusammen und führt zu einem
+  Signaturfehler (Tuya-Code 1004), der nicht automatisch behoben wird, weil er nicht in der
+  Wiederhol-Liste steht. Erst wenn das Token regulär abläuft oder das Backend neu startet,
+  greift das neue Secret zuverlässig. Bei einer geänderten ClientId holt der Cache dagegen
+  sofort ein neues Token (siehe oben).
+- **Token-Cache nur im Arbeitsspeicher.** Nach jedem Neustart wird zuerst ein neues Token
+  geholt. Laufen mehrere Backend-Instanzen, hat jede ihr eigenes Token.
 - **Karte fest benannt.** „Licht Wohnzimmer“ steht fest im Frontend und wertet nur
   `switch_1` aus. Die Karte ist nicht mit dem Raum „Wohnzimmer“ oder dessen Geräten in der
   Datenbank verbunden.
 - **Fehlermeldung ohne Tuya-Code.** Die Karte zeigt nur den `title` der Fehlerantwort. Code
   und Meldung von Tuya stehen in `detail` und im Server-Log.
-- **Keine automatisierten Tests**, auch nicht für die Signatur.
+- **Tests nur für den Token-Cache.** `HomeControl.Api.Tests` prüft den Cache mit einem
+  eigenen Fake-`HttpMessageHandler` (ohne Internet). Für die Signatur und die Endpunkte gibt es
+  noch keine Tests.
+
+## Tests
+
+```bash
+dotnet test   # im Projektordner, führt HomeControl.Api.Tests aus
+```
+
+`TuyaTokenCacheTests` prüft unter anderem: Wiederverwendung des Tokens, Erneuern ab 60 Sekunden
+vor Ablauf, nur ein Token-Abruf bei fünf parallelen Abrufen, eine Wiederholung bei Token-Fehler
+im Body, keine Wiederholung bei anderen Fehlern, neues Token bei anderer ClientId.
+Die Tests nutzen eigene Fakes (`FakeTuyaHandler`, `FakeTimeProvider`, `TestOptionsMonitor`),
+kein Mocking-Framework.
