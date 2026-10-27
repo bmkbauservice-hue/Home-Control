@@ -34,11 +34,11 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
 | API | Validierung mit Feldmeldungen, einheitliche Fehler (ProblemDetails), OpenAPI-Beschreibung mit Scalar-Oberfläche |
 | Datenbank | Migrationen werden beim Start automatisch angewendet, optionale Demo-Daten |
-| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend; Karte „Licht Wohnzimmer“ in der Übersicht zeigt EIN/AUS mit Abrufzeitpunkt |
+| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend; Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis; Karte „Licht Wohnzimmer“ in der Übersicht zeigt EIN/AUS mit Abrufzeitpunkt |
 
 **Noch nicht vorhanden:**
 
-- Tuya nur lesend und nur für ein Testgerät: kein Schalten, nichts wird gespeichert
+- Tuya nur lesend und nur für ein Testgerät: kein Schalten; gespeichert wird nur der Zustand des einen verknüpften Geräts
   (siehe [docs/TUYA.md](docs/TUYA.md)).
 - Keine Anbindung an Blink. Die Blink-Seite ist nur ein Platzhalter.
 - Keine Live-Werte. `IsActive` und `LastValue` werden nicht durch Ereignisse aktualisiert.
@@ -81,6 +81,9 @@ Nur nötig, wenn der Tuya-Statusabruf genutzt werden soll. Die Zugangsdaten komm
 
 Das Skript fragt Client-ID, Client-Secret und TestDeviceId verdeckt ab. Ohne diese Werte
 läuft die App normal, nur der Tuya-Abruf antwortet mit 503. Details in [docs/TUYA.md](docs/TUYA.md).
+
+Optional kann der Zustand des Testgeräts auf ein Gerät in der Datenbank übertragen werden
+(`Tuya:LinkedDeviceId`, siehe [docs/TUYA.md](docs/TUYA.md#3-konfiguration)).
 
 ## Starten
 

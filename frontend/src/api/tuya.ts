@@ -15,9 +15,24 @@ export type TuyaDeviceStatus = {
 // Zustand eines Schaltkanals. 'unknown', wenn Tuya keinen oder keinen gültigen Wert liefert.
 export type SwitchState = 'on' | 'off' | 'unknown'
 
+// Was beim Abgleich in unserer Datenbank passiert ist (TuyaSyncResults im Backend).
+export type TuyaSyncResult = 'changed' | 'unchanged' | 'notLinked' | 'deviceNotFound' | 'unknownValue'
+
+// Antwort von POST /api/tuya/test-device/sync: Status wie oben plus Ergebnis des Abgleichs.
+export type TuyaDeviceSync = TuyaDeviceStatus & {
+  syncResult: TuyaSyncResult
+}
+
 export async function getTestDeviceStatus(): Promise<TuyaDeviceStatus> {
   const response = await send('/api/tuya/test-device/status')
   return (await response.json()) as TuyaDeviceStatus
+}
+
+// Liest den Status bei Tuya (schaltet nichts) und überträgt switch_1 auf das verknüpfte Gerät.
+// Bei einer Änderung speichert das Backend ein Ereignis im Geräteverlauf.
+export async function syncTestDevice(): Promise<TuyaDeviceSync> {
+  const response = await send('/api/tuya/test-device/sync', { method: 'POST' })
+  return (await response.json()) as TuyaDeviceSync
 }
 
 // Liest einen Schaltkanal aus dem Status. Nur echte Booleans zählen,

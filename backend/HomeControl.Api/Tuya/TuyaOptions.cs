@@ -18,6 +18,12 @@ public class TuyaOptions
 
     public string TestDeviceId { get; set; } = string.Empty;
 
+    // Optional: Id des Geräts in UNSERER Datenbank, auf das der Tuya-Zustand übertragen wird
+    // (POST /api/tuya/test-device/sync). Kein Geheimnis, aber je Datenbank verschieden,
+    // deshalb ebenfalls in den User Secrets. Fehlt sie, wird nur gelesen und nichts gespeichert.
+    // Bewusst ein Text: Ein Tippfehler soll nicht die ganze Tuya-Konfiguration unlesbar machen.
+    public string LinkedDeviceId { get; set; } = string.Empty;
+
     // Namen der Einstellungen, die noch fehlen. Die Werte selbst werden nie ausgegeben.
     public List<string> GetMissingSettings()
     {

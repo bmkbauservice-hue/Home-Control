@@ -10,3 +10,11 @@ public record TuyaDeviceStatusResponse(
     DateTimeOffset RetrievedAtUtc,
     List<TuyaStatusItem> Status,
     string Note);
+
+// Antwort von POST /api/tuya/test-device/sync: derselbe Status wie oben und dazu,
+// was in unserer Datenbank passiert ist (siehe TuyaSyncResults).
+public record TuyaDeviceSyncResponse(
+    DateTimeOffset RetrievedAtUtc,
+    List<TuyaStatusItem> Status,
+    string Note,
+    string SyncResult);

@@ -16,7 +16,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Legt bei Bedarf Demo-Daten an (siehe Data/DatabaseSeeder.cs).
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// Tuya-Cloud (nur lesend). Zugangsdaten kommen aus den User Secrets, siehe README.
+// Tuya-Cloud (nur lesend, es wird nie geschaltet). Zugangsdaten kommen aus den User Secrets, siehe README.
 builder.Services.Configure<TuyaOptions>(builder.Configuration.GetSection(TuyaOptions.SectionName));
 // Uhrzeit über TimeProvider, damit Tests die Zeit steuern können.
 builder.Services.AddSingleton(TimeProvider.System);
@@ -29,6 +29,8 @@ builder.Services.AddHttpClient<TuyaClient>((services, client) =>
     client.BaseAddress = new Uri(tuya.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+// Scoped wie der DbContext: überträgt den Tuya-Zustand auf ein Gerät in der Datenbank.
+builder.Services.AddScoped<TuyaSwitchRecorder>();
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();

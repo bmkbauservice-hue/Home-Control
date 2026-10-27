@@ -91,7 +91,8 @@ Optional: In Scalar (http://localhost:5111/scalar) die Endpunkt-Gruppen zeigen.
 > „Was noch fehlt:
 > - Tuya nur lesend für ein Testgerät, noch kein Schalten; keine Blink-Anbindung,
 >   die Blink-Seite ist ein Platzhalter,
-> - keine Live-Werte: `IsActive` und `LastValue` werden noch nicht aktualisiert,
+> - echte Werte nur für ein Gerät: Der Tuya-Abgleich speichert den Zustand des
+>   Testlichts als `LastValue` und als Ereignis, alle anderen Geräte haben noch keine Werte,
 > - bei Ereignissen wird noch nicht gespeichert, ob sie manuell erfasst wurden
 >   oder von einem Gerät kommen,
 > - die Suche unterscheidet bei Umlauten noch Groß- und Kleinschreibung (Grenze von SQLite).“

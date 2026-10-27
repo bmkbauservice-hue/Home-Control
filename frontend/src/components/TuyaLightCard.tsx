@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatGermanTime, getSwitchState, getTestDeviceStatus, type SwitchState, type TuyaDeviceStatus } from '../api/tuya'
+import { formatGermanTime, getSwitchState, syncTestDevice, type SwitchState, type TuyaDeviceSync, type TuyaSyncResult } from '../api/tuya'
 import { LampIcon } from './Icons'
 
 const switchLabels: Record<SwitchState, string> = {
@@ -8,12 +8,23 @@ const switchLabels: Record<SwitchState, string> = {
   unknown: 'Unbekannt',
 }
 
+// Kurzer Hinweis, was der letzte Abgleich in der Datenbank bewirkt hat.
+const syncLabels: Record<TuyaSyncResult, string> = {
+  changed: 'Neuer Zustand im Geräteverlauf gespeichert.',
+  unchanged: 'Zustand unverändert, kein neues Ereignis gespeichert.',
+  notLinked: 'Kein Gerät verknüpft, es wird nichts gespeichert.',
+  deviceNotFound: 'Das verknüpfte Gerät wurde nicht gefunden, es wird nichts gespeichert.',
+  unknownValue: 'Zustand unbekannt, es wird nichts gespeichert.',
+}
+
 // Karte für das konfigurierte Tuya-Testgerät. Zeigt nur den zuletzt von Tuya gemeldeten
 // Zustand von switch_1 – kein Schalten, kein automatisches Aktualisieren.
+// Jeder Abruf läuft über /sync: Ändert sich der Zustand, speichert das Backend ihn beim
+// verknüpften Gerät (LastValue) und als Ereignis im Verlauf.
 // Bewusst keine Online-Anzeige: Ein erfolgreicher Abruf sagt nichts darüber, ob das Gerät erreichbar ist.
 export function TuyaLightCard() {
   // Letzter erfolgreicher Abruf. Bleibt bei einem Fehler erhalten und wird dann als veraltet markiert.
-  const [status, setStatus] = useState<TuyaDeviceStatus | null>(null)
+  const [status, setStatus] = useState<TuyaDeviceSync | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // Wird beim Klick auf "Aktualisieren" erhöht und löst so einen neuen Abruf aus.
@@ -23,7 +34,7 @@ export function TuyaLightCard() {
     // ignore = true, wenn die Karte verschwindet, bevor die Antwort da ist.
     let ignore = false
 
-    getTestDeviceStatus()
+    syncTestDevice()
       .then((loaded) => {
         if (ignore) return
         setStatus(loaded)
@@ -88,6 +99,8 @@ export function TuyaLightCard() {
       <button type="button" className="button" onClick={refresh} disabled={loading}>
         {loading ? 'Wird aktualisiert …' : 'Aktualisieren'}
       </button>
+
+      {status && !stale && <p className="light-hint">{syncLabels[status.syncResult] ?? ''}</p>}
 
       <p className="light-hint">Ob das Gerät gerade online ist, lässt sich daraus nicht ablesen.</p>
     </article>

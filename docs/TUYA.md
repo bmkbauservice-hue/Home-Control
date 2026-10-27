@@ -1,4 +1,4 @@
-# Tuya-Anbindung (nur lesend)
+# Tuya-Anbindung (lesend, Zustand optional gespeichert)
 
 Das Backend kann den Zustand **eines** Tuya-Geräts aus der Tuya-Cloud lesen. Es schaltet
 nichts, speichert nichts in der Datenbank und legt keine Ereignisse an.
@@ -71,6 +71,18 @@ mehr zur Konfiguration, holt das Backend ein neues Token.
 | `Tuya:ClientId` | User Secrets | Access ID des Cloud-Projekts |
 | `Tuya:ClientSecret` | User Secrets | Access Secret des Cloud-Projekts |
 | `Tuya:TestDeviceId` | User Secrets | Geräte-ID des Testgeräts |
+| `Tuya:LinkedDeviceId` | User Secrets (optional) | Id (GUID) des Geräts **in unserer Datenbank**, auf das der Zustand übertragen wird |
+
+`Tuya:LinkedDeviceId` ist kein Geheimnis, unterscheidet sich aber je Datenbank. Die Id steht in
+Scalar unter `GET /api/devices` oder in der Geräteliste. Eintragen im Ordner
+`backend/HomeControl.Api`:
+
+```bash
+dotnet user-secrets set "Tuya:LinkedDeviceId" "<GERAETE-ID-AUS-DER-DATENBANK>"
+```
+
+Danach das Backend neu starten. Ohne diesen Wert funktioniert alles wie bisher, es wird nur
+nichts gespeichert.
 
 ## Lesender Statusabruf
 
@@ -137,6 +149,25 @@ Schnelltest:
 curl -i http://localhost:5111/api/tuya/test-device/status
 ```
 
+## Zustand speichern (Abgleich)
+
+`POST /api/tuya/test-device/sync` liest den Status genauso wie der GET-Endpunkt und überträgt
+`switch_1` danach auf das in `Tuya:LinkedDeviceId` eingestellte Gerät
+(`Tuya/TuyaSwitchRecorder.cs`). Bei Tuya wird dabei weiterhin **nur gelesen**.
+
+- `true` → `IsActive = true`, `LastValue = "EIN"`, `false` → `IsActive = false`,
+  `LastValue = "AUS"`.
+- Nur wenn sich der Zustand **ändert**, wird zusätzlich ein Ereignis `turned_on` bzw.
+  `turned_off` mit dem Abrufzeitpunkt gespeichert. Mehrmals „Aktualisieren“ ohne Änderung
+  erzeugt also keine doppelten Einträge.
+- Ist `switch_1` kein echter Boolean, fehlt das Gerät oder ist nichts eingestellt, wird
+  **nichts** gespeichert. Es wird kein Zustand geraten.
+- Es läuft immer nur ein Abgleich gleichzeitig (`SemaphoreSlim`). So können zwei fast
+  gleichzeitige Aufrufe, etwa durch React StrictMode im Entwicklungsmodus, kein Ereignis doppelt
+  speichern.
+- Warum POST und nicht GET? Ein GET soll nichts verändern. Weil hier etwas in die Datenbank
+  geschrieben wird, ist es ein POST. Der reine GET-Endpunkt bleibt unverändert bestehen.
+
 ## Dashboard-Karte „Licht Wohnzimmer“
 
 Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testgerät
@@ -148,7 +179,8 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 - Darunter steht der Abrufzeitpunkt (`retrievedAtUtc`) in deutscher Ortszeit
   (Zeitzone Europe/Berlin, unabhängig von der Zeitzone des Browsers).
 - Abgerufen wird einmal beim Öffnen der Übersicht und danach nur über **Aktualisieren**.
-  Es gibt kein automatisches Polling.
+  Es gibt kein automatisches Polling. Die Karte nutzt dafür den Abgleich
+  (`POST /api/tuya/test-device/sync`) und zeigt in einer Zeile, ob etwas gespeichert wurde.
 - Während des Abrufs ist der Button gesperrt („Wird aktualisiert …“).
 - Schlägt eine Aktualisierung fehl, bleibt der alte Zustand stehen, wird abgeschwächt
   dargestellt und mit **Veraltet** gekennzeichnet. Dazu kommt die Fehlermeldung.
@@ -157,13 +189,21 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 ## Bekannte Grenzen
 
 - **Nur lesend.** Es gibt keinen Endpunkt zum Schalten.
-- **Nur ein Testgerät.** Die Geräte-ID kommt aus der Konfiguration. Das Testgerät ist nicht
-  mit den Geräten in der Datenbank verknüpft.
+- **Nur ein Testgerät.** Die Geräte-ID kommt aus der Konfiguration. Die Verknüpfung mit einem
+  Gerät in der Datenbank läuft ebenfalls über die Konfiguration (`Tuya:LinkedDeviceId`), nicht
+  über die Oberfläche.
 - **Kein Online-Status.** Gelesen wird, was die Cloud zuletzt über das Gerät weiß. Ein
   erfolgreicher Abruf heißt nicht, dass das Gerät gerade erreichbar ist oder dass der Wert
   noch stimmt. Den Online-Zustand fragt das Backend nicht ab.
-- **Nichts wird gespeichert.** Kein Eintrag in der Datenbank, keine Ereignisse. `IsActive`
-  und `LastValue` bleiben unverändert.
+- **Gespeichert wird nur beim Abgleich.** Nur `POST /sync` schreibt in die Datenbank, und nur
+  bei einer Änderung. Zustandswechsel zwischen zwei Abrufen (z. B. kurz an und wieder aus)
+  sieht das Backend nicht, es gibt kein Polling und keine Push-Nachrichten von Tuya.
+- **Herkunft nicht gespeichert.** Ein Ereignis aus dem Abgleich sieht im Verlauf genauso aus wie
+  ein manuell erfasstes. Dafür bräuchte es ein eigenes Feld und eine Migration.
+- **Andere Kacheln aktualisieren sich nicht mit.** Nach „Aktualisieren“ zeigt die Gerätekachel
+  im Dashboard den neuen `LastValue` erst nach dem nächsten Laden der Seite.
+- **Ein Abgleich gleichzeitig pro Backend-Prozess.** Die Sperre gilt nur innerhalb einer
+  laufenden API. Mehrere Backend-Instanzen auf dieselbe Datenbank wären nicht abgesichert.
 - **User Secrets nur in `Development`.** ASP.NET Core lädt User Secrets nur in der Umgebung
   `Development`. Für einen Betrieb in einer anderen Umgebung bräuchte es eine andere sichere
   Quelle (z. B. Umgebungsvariablen `Tuya__ClientId` usw.).
@@ -185,9 +225,9 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
   Datenbank verbunden.
 - **Fehlermeldung ohne Tuya-Code.** Die Karte zeigt nur den `title` der Fehlerantwort. Code
   und Meldung von Tuya stehen in `detail` und im Server-Log.
-- **Tests nur für den Token-Cache.** `HomeControl.Api.Tests` prüft den Cache mit einem
-  eigenen Fake-`HttpMessageHandler` (ohne Internet). Für die Signatur und die Endpunkte gibt es
-  noch keine Tests.
+- **Tests für Token-Cache und Abgleich.** `HomeControl.Api.Tests` prüft den Cache mit einem
+  eigenen Fake-`HttpMessageHandler` (ohne Internet) und den Abgleich mit einer SQLite-Datenbank
+  im Arbeitsspeicher. Für die Signatur und die Endpunkte gibt es noch keine Tests.
 
 ## Tests
 
@@ -198,5 +238,10 @@ dotnet test   # im Projektordner, führt HomeControl.Api.Tests aus
 `TuyaTokenCacheTests` prüft unter anderem: Wiederverwendung des Tokens, Erneuern ab 60 Sekunden
 vor Ablauf, nur ein Token-Abruf bei fünf parallelen Abrufen, eine Wiederholung bei Token-Fehler
 im Body, keine Wiederholung bei anderen Fehlern, neues Token bei anderer ClientId.
+
+`TuyaSwitchRecorderTests` prüft mit einer eigenen SQLite-Datenbank im Arbeitsspeicher (die echte
+`homecontrol.db` bleibt unberührt): EIN und AUS beim ersten Abruf, kein zweites Ereignis bei
+gleichem Zustand, Wechsel EIN → AUS, nichts speichern bei `"true"`, `1`, `null` oder fehlendem
+`switch_1`, nichts speichern ohne Verknüpfung oder bei unbekanntem bzw. ungültigem Gerät.
 Die Tests nutzen eigene Fakes (`FakeTuyaHandler`, `FakeTimeProvider`, `TestOptionsMonitor`),
 kein Mocking-Framework.
