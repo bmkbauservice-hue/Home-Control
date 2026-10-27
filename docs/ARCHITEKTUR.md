@@ -33,17 +33,18 @@ Frontend einfach `/api/...` aufrufen kann.
 | Ordner / Datei | Aufgabe |
 |---|---|
 | `Program.cs` | Startpunkt: Dienste registrieren, Middleware, Migrationen, Seeding, Endpunkte einbinden |
-| `Models/` | Datenbank-Klassen: `Room`, `Device`, `DeviceEvent` |
+| `Models/` | Datenbank-Klassen: `Room`, `Device`, `DeviceEvent`, `BlinkCredential` |
 | `Data/` | `ApplicationDbContext` (Tabellen, Längen, Beziehungen) und `DatabaseSeeder` (Demo-Daten) |
-| `Migrations/` | Von EF Core erzeugte Migration `InitialCreate` |
+| `Migrations/` | Von EF Core erzeugte Migrationen, u. a. `InitialCreate`, `BlinkAnmeldedatenErgaenzt` |
 | `Contracts/` | DTOs: was die API annimmt (`…Request`) und zurückgibt (`…Response`) |
 | `Endpoints/` | Minimal-API-Endpunkte, je Bereich eine Datei mit eigener `MapGroup`; `Search.cs` hilft bei der Textsuche |
 | `ErrorHandling/` | `GlobalExceptionHandler`: einheitliche Antwort bei unerwarteten Fehlern |
 | `Tuya/` | Lesender Zugriff auf die Tuya-Cloud: `TuyaClient` (HTTP), `TuyaTokenStore` (Token-Cache), `TuyaSignature` (HMAC-SHA256), `TuyaOptions` (Einstellungen) |
+| `Blink/` | Lesender Zugriff auf Blink (keine offizielle API, siehe [BLINK.md](BLINK.md)): `IBlinkCameraClient` (Abstraktion), `BlinkNetCameraClient` (Blink.NET-Implementierung), `BlinkCredentialStore` (verschlüsseltes Refresh-Token), `BlinkOptions` (Einstellungen) |
 | `Properties/launchSettings.json` | Startprofile mit Ports (`http`: 5111) |
 | `appsettings.json` | Connection String, Option `SeedDemoData`, `Tuya:BaseUrl` (Zugangsdaten stehen in den User Secrets) |
 
-Die Endpunkte sind in fünf Gruppen aufgeteilt:
+Die Endpunkte sind in sechs Gruppen aufgeteilt:
 
 | Datei | Gruppe |
 |---|---|
@@ -52,6 +53,7 @@ Die Endpunkte sind in fünf Gruppen aufgeteilt:
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
 | `TuyaEndpoints.cs` | `/api/tuya` (bei Tuya nur lesend; der Abgleich `POST /sync` speichert den Zustand in der Datenbank, siehe [TUYA.md](TUYA.md)) |
+| `BlinkEndpoints.cs` | `/api/blink` (nur lesend: `GET /status`, `GET /cameras`, siehe [BLINK.md](BLINK.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
 
@@ -146,11 +148,44 @@ die ganze Laufzeit der App einmal existiert. `TimeProvider.System` liefert die e
 In Tests wird stattdessen eine steuerbare Uhr übergeben. Nach einem Wechsel der Zugangsdaten
 wird das Backend neu gestartet (siehe [TUYA.md](TUYA.md)).
 
+**BlinkNetCameraClient:**
+
+```csharp
+builder.Services.Configure<BlinkOptions>(builder.Configuration.GetSection(BlinkOptions.SectionName));
+builder.Services.AddScoped<BlinkCredentialStore>();
+builder.Services.AddSingleton<IBlinkCameraClient, BlinkNetCameraClient>();
+```
+
+Anders als `TuyaClient` ist `BlinkNetCameraClient` selbst ein **Singleton**: Der zugrunde
+liegende `BlinkClient` aus Blink.NET hält den Login-Zustand (Account-Id, interner
+`HttpClient`) in sich selbst, ein Neuanlegen pro Anfrage würde jedes Mal einen neuen Login
+erzwingen. Ein Singleton darf aber keinen scoped Dienst wie `BlinkCredentialStore` (braucht
+den `ApplicationDbContext`) direkt im Konstruktor bekommen – das wäre ein „captive
+dependency“-Fehler. Deshalb bekommt `BlinkNetCameraClient` stattdessen ein
+`IServiceScopeFactory` und öffnet sich bei Bedarf selbst einen kurzlebigen Scope:
+
+```csharp
+using var scope = scopeFactory.CreateScope();
+var store = scope.ServiceProvider.GetRequiredService<BlinkCredentialStore>();
+```
+
+Die Data Protection API (verschlüsselt das Refresh-Token in der Datenbank) wird direkt
+daneben registriert, mit Schlüsseln außerhalb des Repos (siehe [BLINK.md](BLINK.md)):
+
+```csharp
+builder.Services.AddDataProtection()
+    .SetApplicationName("HomeControl")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
+```
+
 ## Tests (`backend/HomeControl.Api.Tests`)
 
-xUnit-Projekt, eingetragen in `HomeControl.slnx`, Start mit `dotnet test`. Bisher gibt es Tests
-für den Tuya-Token-Cache. Statt eines Mocking-Frameworks gibt es kleine eigene Fakes im Ordner
-`Fakes/`: Ein `HttpMessageHandler` ersetzt die Tuya-Cloud, ein `TimeProvider` lässt sich vorspulen.
+xUnit-Projekt, eingetragen in `HomeControl.slnx`, Start mit `dotnet test`. Es gibt Tests für
+den Tuya-Token-Cache, die Tuya-Geräteliste, den Tuya-Abgleich und den Blink-Credential-Store.
+Statt eines Mocking-Frameworks gibt es kleine eigene Fakes im Ordner `Fakes/`: Ein
+`HttpMessageHandler` ersetzt die Tuya-Cloud, ein `TimeProvider` lässt sich vorspulen. Für
+Blink genügt `EphemeralDataProtectionProvider` aus ASP.NET Core selbst (kein eigener Fake
+nötig) plus SQLite im Arbeitsspeicher wie beim Tuya-Abgleich.
 
 ## Fehlerbehandlung (Middleware-Reihenfolge)
 

@@ -1,7 +1,9 @@
+using HomeControl.Api.Blink;
 using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Tuya;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -31,6 +33,25 @@ builder.Services.AddHttpClient<TuyaClient>((services, client) =>
 });
 // Scoped wie der DbContext: überträgt den Tuya-Zustand auf ein Gerät in der Datenbank.
 builder.Services.AddScoped<TuyaSwitchRecorder>();
+
+// Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).
+// SetApplicationName hält den Schlüssel unabhängig vom Pfad des Checkouts gleich – sonst
+// wäre z. B. in einem Git-Worktree das gespeicherte Blink-Refresh-Token nicht entschlüsselbar.
+var dataProtectionKeyPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "HomeControl", "dataprotection-keys");
+builder.Services.AddDataProtection()
+    .SetApplicationName("HomeControl")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
+
+// Blink-Kameras (nur lesend, keine offizielle API, siehe docs/BLINK.md). HardwareId kommt aus
+// den User Secrets, das Refresh-Token aus der Datenbank (Bootstrap beim ersten Start ebenfalls
+// aus den User Secrets, siehe BlinkCredentialStore).
+builder.Services.Configure<BlinkOptions>(builder.Configuration.GetSection(BlinkOptions.SectionName));
+builder.Services.AddScoped<BlinkCredentialStore>();
+// Singleton: Der zugrunde liegende BlinkClient (Blink.NET) hält selbst den Login-Zustand.
+// Für die Datenbank holt er sich bei Bedarf über IServiceScopeFactory einen eigenen Scope.
+builder.Services.AddSingleton<IBlinkCameraClient, BlinkNetCameraClient>();
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
@@ -82,5 +103,6 @@ app.MapDeviceEndpoints();
 app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
+app.MapBlinkEndpoints();
 
 app.Run();

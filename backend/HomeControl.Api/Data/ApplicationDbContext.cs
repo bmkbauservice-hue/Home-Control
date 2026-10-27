@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceEvent> DeviceEvents => Set<DeviceEvent>();
+    public DbSet<BlinkCredential> BlinkCredentials => Set<BlinkCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,6 +70,18 @@ public class ApplicationDbContext : DbContext
                 .HasConversion(
                     value => value.ToUnixTimeMilliseconds(),
                     value => DateTimeOffset.FromUnixTimeMilliseconds(value));
+        });
+
+        modelBuilder.Entity<BlinkCredential>(entity =>
+        {
+            entity.Property(c => c.HardwareId)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            // Verschlüsselter Text (Data Protection), deutlich länger als das rohe Token.
+            entity.Property(c => c.EncryptedRefreshToken)
+                .HasMaxLength(4000)
+                .IsRequired();
         });
     }
 }

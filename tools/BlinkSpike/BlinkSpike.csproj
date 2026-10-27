@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UserSecretsId>a8cc534d-5044-4fa2-ad90-29fef9954a14</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Fest auf 1.0.9, wie im Backend (keine offizielle Blink-API, siehe docs/BLINK.md). -->
+    <PackageReference Include="Blink.NET" Version="1.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.*" />
+  </ItemGroup>
+
+</Project>
