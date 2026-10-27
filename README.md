@@ -18,8 +18,10 @@
 ---
 
 Home Control ist mein **Solo-Projekt** aus der Umschulung zum Software-Ingenieur. Von der
-Datenbank über die REST API bis zur responsiven Oberfläche habe ich alles selbst geplant und
-umgesetzt. Die App verwaltet Räume und Geräte, speichert pro Gerät einen Ereignisverlauf,
+Datenbank über die REST API bis zur responsiven Oberfläche habe ich das Projekt geplant,
+Entscheidungen getroffen und jeden Schritt geprüft. Als Werkzeuge habe ich dabei
+KI-Assistenten (Claude, Codex) eingesetzt, deshalb taucht Claude auch bei den Mitwirkenden
+auf. Die App verwaltet Räume und Geräte, speichert pro Gerät einen Ereignisverlauf,
 erstellt Tagesauswertungen und liest den **echten Zustand eines Smart-Home-Geräts** aus der
 Tuya-Cloud.
 
@@ -246,4 +248,4 @@ tuya-secrets-einrichten.sh Tuya-Zugangsdaten verdeckt in die User Secrets eintra
 ## Über das Projekt
 
 Entwickelt von **Mario Kujoth** als Solo-Projekt während der Umschulung zum
-Software-Ingenieur (2026/27).
+Software-Ingenieur (2026/27), mit KI-Assistenten als Werkzeug.
