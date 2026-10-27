@@ -1,53 +1,104 @@
-# Home Control
+<h1 align="center">🏠 Home Control</h1>
 
-Home Control ist eine Web-App, mit der man Räume und Geräte eines Zuhauses verwaltet.
-Zu jedem Gerät kann ein Verlauf von Ereignissen gespeichert werden (zum Beispiel
-„eingeschaltet“ oder „Tür geöffnet“). Eine Tagesauswertung zeigt, was an einem Tag passiert ist.
+<p align="center">
+  <strong>Smart-Home-Web-App zum Verwalten von Räumen, Geräten und ihrem Verlauf –<br>
+  mit echter Anbindung an die Tuya-Cloud.</strong>
+</p>
 
-Das Projekt besteht aus zwei Teilen:
+<p align="center">
+  <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white">
+  <img alt="C#" src="https://img.shields.io/badge/C%23-Minimal%20API-239120?logo=csharp&logoColor=white">
+  <img alt="EF Core" src="https://img.shields.io/badge/EF%20Core-SQLite-003B57?logo=sqlite&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-xUnit-5E1F87">
+  <img alt="Tuya" src="https://img.shields.io/badge/Tuya-Cloud%20API-FF4800">
+</p>
 
-- **Backend:** REST API mit ASP.NET Core (Minimal API), Entity Framework Core und SQLite
-- **Frontend:** React mit TypeScript und Vite
+---
 
-Weitere Dokumentation liegt im Ordner [docs/](docs/):
-[Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) ·
-[API](docs/API.md) · [Tuya](docs/TUYA.md) · [Präsentation](docs/PRAESENTATION.md)
+Home Control ist mein **Solo-Projekt** aus der Umschulung zum Software-Ingenieur. Von der
+Datenbank über die REST API bis zur responsiven Oberfläche habe ich das Projekt geplant,
+Entscheidungen getroffen und jeden Schritt geprüft. Als Werkzeuge habe ich dabei
+KI-Assistenten (Claude, Codex) eingesetzt, deshalb taucht Claude auch bei den Mitwirkenden
+auf. Die App verwaltet Räume und Geräte, speichert pro Gerät einen Ereignisverlauf,
+erstellt Tagesauswertungen und liest den **echten Zustand eines Smart-Home-Geräts** aus der
+Tuya-Cloud.
 
-## Projektübersicht
+## Highlights
+
+- 🔌 **Echte Geräteanbindung:** Ein Tuya-Gerät wird live aus der Cloud gelesen. Ändert sich
+  sein Zustand, landet er automatisch im Geräteverlauf. Geschaltet wird bewusst nichts.
+- 🔐 **Sicherer Umgang mit Zugangsdaten:** Secrets nur in den .NET User Secrets, nie im Code
+  oder im Repository. Das Zugriffstoken wird im Arbeitsspeicher wiederverwendet und
+  rechtzeitig vor Ablauf erneuert, auch bei parallelen Anfragen nur einmal.
+- 🧱 **Saubere API:** Minimal API mit `MapGroup`, DTOs als Contracts, Validierung mit
+  Feldmeldungen, einheitliche Fehler als ProblemDetails und eine OpenAPI-Beschreibung mit
+  Scalar-Oberfläche.
+- ✅ **Automatisierte Tests:** xUnit-Tests für den Token-Cache (mit eigener Fake-Tuya-Cloud)
+  und für den Geräteabgleich (mit SQLite im Arbeitsspeicher). Es geht dabei keine echte
+  Anfrage ins Internet.
+- 📱 **Responsive Oberfläche:** Dunkles „Night-Control“-Design für Handy, Tablet und Desktop,
+  ohne zusätzliches UI-Framework.
+- 📚 **Dokumentiert:** Architektur, Datenmodell, API, Tuya-Anbindung und ein
+  Präsentationsleitfaden liegen im Ordner [docs/](docs/).
+
+## Architektur
 
 ![Home Control – Architektur und Projektidee mit Frontend, Backend, Datenbank und Smart-Home-Geräten](docs/images/home-control-architektur.png)
 
-> Die Infografik zeigt die ursprüngliche Projektidee einschließlich geplanter Erweiterungen.
-> Im aktuellen Code sind IDs vom Typ `Guid` und Ereigniszeitstempel vom Typ `DateTimeOffset`.
-> Dashboard und Reports sind bereits umgesetzt; echte Geräteanbindungen sind noch geplant
-> und werden über das Backend angebunden, nicht direkt über die Datenbank.
-> Das aktuelle Datenmodell steht in [docs/DATENMODELL.md](docs/DATENMODELL.md).
+> Die Infografik zeigt die Projektidee einschließlich geplanter Erweiterungen. Im aktuellen
+> Code sind IDs vom Typ `Guid` und Ereigniszeitstempel vom Typ `DateTimeOffset`.
+> Geräte werden über das Backend angebunden, nicht direkt über die Datenbank. Umgesetzt
+> ist bisher die Tuya-Cloud, Blink ist noch ein Platzhalter.
+> Details: [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md)
 
-## Aktueller Funktionsumfang
+## Technik
+
+| Bereich | Eingesetzt |
+|---|---|
+| Backend | C# · ASP.NET Core Minimal API (.NET 10) · Dependency Injection · globaler Exception Handler |
+| Datenbank | Entity Framework Core · SQLite · Migrationen (beim Start automatisch angewendet) |
+| API | REST · DTOs · Validierung · ProblemDetails · OpenAPI + Scalar |
+| Frontend | React · TypeScript · Vite · reines CSS mit CSS-Variablen |
+| Integration | Tuya Cloud API (HMAC-SHA256-Signatur, Token-Cache, nur lesend) |
+| Qualität | xUnit · oxlint · TypeScript-Prüfung beim Build |
+
+## Funktionen
 
 | Bereich | Was funktioniert |
 |---|---|
-| Übersicht | Begrüßung, Anzahl Räume und Geräte, Räume als Kacheln, ersten Raum direkt anlegen |
+| Übersicht | Anzahl Räume und Geräte, Räume als Kacheln, Lichtkarte mit echtem Tuya-Zustand |
 | Räume | Anlegen, anzeigen, umbenennen, löschen, nach Namen suchen |
 | Geräte | Anlegen, anzeigen, bearbeiten (auch Raum wechseln), löschen; Suche nach Namen, Filter nach Raum und Gerätetyp |
-| Ereignisse | Verlauf pro Gerät anzeigen, manuelle Testeinträge erfassen |
+| Ereignisse | Verlauf pro Gerät, manuelle Einträge und automatische Einträge aus dem Tuya-Abgleich |
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
-| API | Validierung mit Feldmeldungen, einheitliche Fehler (ProblemDetails), OpenAPI-Beschreibung mit Scalar-Oberfläche |
-| Datenbank | Migrationen werden beim Start automatisch angewendet, optionale Demo-Daten |
-| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend; Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis; Karte „Licht Wohnzimmer“ in der Übersicht zeigt EIN/AUS mit Abrufzeitpunkt |
+| Tuya | Status eines Geräts lesen (`GET /api/tuya/test-device/status`); Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis |
 
-**Noch nicht vorhanden:**
+## Stand und nächste Schritte
 
-- Tuya nur lesend und nur für ein Testgerät: kein Schalten; gespeichert wird nur der Zustand des einen verknüpften Geräts
-  (siehe [docs/TUYA.md](docs/TUYA.md)).
-- Keine Anbindung an Blink. Die Blink-Seite ist nur ein Platzhalter.
-- Keine Live-Werte. `IsActive` und `LastValue` werden nicht durch Ereignisse aktualisiert.
-  In der Oberfläche steht deshalb „Noch keine Daten“.
-- Ereignisse werden nur gespeichert, es wird nichts geschaltet. Woher ein Ereignis kommt
-  (manuell oder von einem Gerät), wird noch nicht gespeichert.
-- Keine Anmeldung. Automatisierte Tests gibt es bisher nur für den Tuya-Token-Cache.
+**Bewusste Grenzen des aktuellen Stands:**
 
-## Voraussetzungen
+- Tuya ist **nur lesend** angebunden und bisher für **ein** Gerät eingerichtet.
+- Blink ist ein Platzhalter, eine Anmeldung gibt es noch nicht.
+- Woher ein Ereignis kommt (manuell oder vom Gerät), wird noch nicht gespeichert.
+
+**Geplant:**
+
+- Mehrere Tuya-Geräte über eine Geräteliste verknüpfen, statt über die Konfiguration
+- Weitere Gerätetypen: Steckdose mit Strommessung, Türkontakt, Akku-Ladestand
+- Tests für die Tuya-Signatur und die Endpunkte
+
+Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“.
+
+## Dokumentation
+
+[Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
+[Tuya-Anbindung](docs/TUYA.md) · [Präsentation](docs/PRAESENTATION.md)
+
+## Lokal starten
+
+### Voraussetzungen
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download)
 - [Node.js](https://nodejs.org/) in Version 20.19 oder neuer bzw. 22.12 oder neuer (Vorgabe von Vite 8)
@@ -55,7 +106,7 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
 
 Entwickelt und geprüft mit .NET SDK 10.0.113, Node.js 24.22.1 und npm 11.19.1.
 
-## Installation
+### Installation
 
 Im Projektordner:
 
@@ -70,7 +121,7 @@ npm install
 
 Die NuGet-Pakete des Backends lädt `dotnet run` bzw. `dotnet build` automatisch.
 
-### Tuya-Zugangsdaten (optional)
+#### Tuya-Zugangsdaten (optional)
 
 Nur nötig, wenn der Tuya-Statusabruf genutzt werden soll. Die Zugangsdaten kommen in die
 .NET User Secrets, nicht ins Repository. Im Projektordner:
@@ -85,7 +136,7 @@ läuft die App normal, nur der Tuya-Abruf antwortet mit 503. Details in [docs/TU
 Optional kann der Zustand des Testgeräts auf ein Gerät in der Datenbank übertragen werden
 (`Tuya:LinkedDeviceId`, siehe [docs/TUYA.md](docs/TUYA.md#3-konfiguration)).
 
-## Starten
+### Starten
 
 Backend und Frontend laufen in **zwei getrennten Terminals**.
 
@@ -108,7 +159,7 @@ npm run dev
 
 Die App öffnet man unter **http://localhost:5173**.
 
-### Wie Frontend und Backend zusammenhängen
+#### Wie Frontend und Backend zusammenhängen
 
 Das Frontend ruft nur Adressen wie `/api/rooms` auf. Der Vite-Entwicklungsserver leitet alles,
 was mit `/api` beginnt, an `http://localhost:5111` weiter (siehe `frontend/vite.config.ts`).
@@ -116,7 +167,7 @@ Deshalb braucht das Frontend keine feste Backend-Adresse und es gibt keine CORS-
 
 Ist Port 5173 schon belegt, weicht Vite automatisch auf 5174 usw. aus (steht im Terminal).
 
-### API-Dokumentation (Scalar)
+#### API-Dokumentation (Scalar)
 
 Nur im Development-Modus:
 
@@ -125,7 +176,7 @@ Nur im Development-Modus:
 
 Scalar läuft direkt am Backend (Port 5111), nicht über den Vite-Port.
 
-## Datenbank und Migrationen
+### Datenbank und Migrationen
 
 Die SQLite-Datei `homecontrol.db` liegt in `backend/HomeControl.Api/`. Sie wird beim ersten
 Start angelegt. Fehlende Migrationen wendet das Backend beim Start automatisch an
@@ -143,7 +194,7 @@ dotnet ef database update --project backend/HomeControl.Api
 
 Bisher gibt es eine Migration: `InitialCreate`.
 
-## Demo-Daten (Seeding)
+### Demo-Daten (Seeding)
 
 Das Seeding ist **standardmäßig ausgeschaltet** (`"SeedDemoData": false` in `appsettings.json`).
 Es läuft nur, wenn alle drei Bedingungen erfüllt sind:
@@ -168,7 +219,7 @@ Hat `homecontrol.db` schon Daten, passiert nichts. Für eine getrennte Demo-Date
 dotnet run -- --SeedDemoData=true --ConnectionStrings:DefaultConnection="Data Source=demo.db"
 ```
 
-## Builds und Linter
+### Builds und Linter
 
 ```bash
 # Backend (im Projektordner, baut HomeControl.slnx)
@@ -184,10 +235,17 @@ npm run lint    # Linter oxlint
 
 ```
 backend/HomeControl.Api/   REST API (Details in docs/ARCHITEKTUR.md)
-backend/HomeControl.Api.Tests/  xUnit-Tests (bisher Tuya-Token-Cache)
+backend/HomeControl.Api.Tests/  xUnit-Tests (Tuya-Token-Cache und Tuya-Abgleich)
 frontend/src/              React-Oberfläche
 docs/                      Dokumentation
 HomeControl.slnx           .NET-Lösung
 dotnet-tools.json          lokales Tool dotnet-ef
 tuya-secrets-einrichten.sh Tuya-Zugangsdaten verdeckt in die User Secrets eintragen
 ```
+
+---
+
+## Über das Projekt
+
+Entwickelt von **Mario Kujoth** als Solo-Projekt während der Umschulung zum
+Software-Ingenieur (2026/27), mit KI-Assistenten als Werkzeug.
