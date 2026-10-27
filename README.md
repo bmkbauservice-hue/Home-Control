@@ -34,7 +34,7 @@ Weitere Dokumentation liegt im Ordner [docs/](docs/):
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
 | API | Validierung mit Feldmeldungen, einheitliche Fehler (ProblemDetails), OpenAPI-Beschreibung mit Scalar-Oberfläche |
 | Datenbank | Migrationen werden beim Start automatisch angewendet, optionale Demo-Daten |
-| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend |
+| Tuya | Status eines Testgeräts aus der Tuya-Cloud lesen (`GET /api/tuya/test-device/status`), nur lesend; Karte „Licht Wohnzimmer“ in der Übersicht zeigt EIN/AUS mit Abrufzeitpunkt |
 
 **Noch nicht vorhanden:**
 

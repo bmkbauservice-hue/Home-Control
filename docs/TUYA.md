@@ -116,6 +116,23 @@ Schnelltest:
 curl -i http://localhost:5111/api/tuya/test-device/status
 ```
 
+## Dashboard-Karte „Licht Wohnzimmer“
+
+Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testgerät
+(`components/TuyaLightCard.tsx`, Aufruf in `api/tuya.ts`).
+
+- Angezeigt wird der **zuletzt von Tuya gemeldete Zustand** von `switch_1`:
+  `true` → **EIN**, `false` → **AUS**. Fehlt der Code oder ist der Wert kein Boolean
+  (z. B. `"true"`, `1`, `null`), steht dort **Unbekannt**.
+- Darunter steht der Abrufzeitpunkt (`retrievedAtUtc`) in deutscher Ortszeit
+  (Zeitzone Europe/Berlin, unabhängig von der Zeitzone des Browsers).
+- Abgerufen wird einmal beim Öffnen der Übersicht und danach nur über **Aktualisieren**.
+  Es gibt kein automatisches Polling.
+- Während des Abrufs ist der Button gesperrt („Wird aktualisiert …“).
+- Schlägt eine Aktualisierung fehl, bleibt der alte Zustand stehen, wird abgeschwächt
+  dargestellt und mit **Veraltet** gekennzeichnet. Dazu kommt die Fehlermeldung.
+- Es gibt keinen Schalter und keine Online-Anzeige.
+
 ## Bekannte Grenzen
 
 - **Nur lesend.** Es gibt keinen Endpunkt zum Schalten.
@@ -133,4 +150,9 @@ curl -i http://localhost:5111/api/tuya/test-device/status
   muss `Tuya:BaseUrl` geändert werden.
 - **Zwei Tuya-Aufrufe pro Abruf**, weil das Token jedes Mal neu geholt wird. Das zählt gegen
   das API-Kontingent des Tuya-Projekts.
+- **Karte fest benannt.** „Licht Wohnzimmer“ steht fest im Frontend und wertet nur
+  `switch_1` aus. Die Karte ist nicht mit dem Raum „Wohnzimmer“ oder dessen Geräten in der
+  Datenbank verbunden.
+- **Fehlermeldung ohne Tuya-Code.** Die Karte zeigt nur den `title` der Fehlerantwort. Code
+  und Meldung von Tuya stehen in `detail` und im Server-Log.
 - **Keine automatisierten Tests**, auch nicht für die Signatur.

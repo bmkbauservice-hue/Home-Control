@@ -27,8 +27,8 @@ Ein Leitfaden zum Vorstellen von Home Control. Die Zeiten sind Richtwerte.
 
 > „Home Control ist eine Web-App zum Verwalten von Räumen und Geräten im Zuhause.
 > Zu jedem Gerät gibt es einen Ereignisverlauf, und eine Tagesauswertung fasst zusammen,
-> was an einem Tag passiert ist. Die echte Anbindung an Tuya und Blink ist noch nicht
-> umgesetzt. Die Grundlage dafür steht.“
+> was an einem Tag passiert ist. Von Tuya wird bereits der Zustand eines Testgeräts
+> gelesen und in der Übersicht angezeigt. Schalten und die Blink-Anbindung folgen noch.“
 
 ### 2. Architektur (ca. 1 Minute)
 
@@ -89,7 +89,8 @@ Optional: In Scalar (http://localhost:5111/scalar) die Endpunkt-Gruppen zeigen.
 ### 6. Grenzen und Ausblick (ca. 30 Sekunden)
 
 > „Was noch fehlt:
-> - keine echte Tuya- oder Blink-Anbindung, die Blink-Seite ist ein Platzhalter,
+> - Tuya nur lesend für ein Testgerät, noch kein Schalten; keine Blink-Anbindung,
+>   die Blink-Seite ist ein Platzhalter,
 > - keine Live-Werte: `IsActive` und `LastValue` werden noch nicht aktualisiert,
 > - bei Ereignissen wird noch nicht gespeichert, ob sie manuell erfasst wurden
 >   oder von einem Gerät kommen,

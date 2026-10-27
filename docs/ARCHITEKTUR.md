@@ -61,7 +61,7 @@ Die Endpunkte sind in fünf Gruppen aufgeteilt:
 | `App.tsx` | Merkt sich, welche Seite gerade angezeigt wird (ohne Router) |
 | `api/` | Alle Aufrufe an die API. `http.ts` macht daraus verständliche Fehlermeldungen |
 | `pages/` | Die Seiten: Übersicht, Räume, Geräte, Reports, Blink (Platzhalter) |
-| `components/` | Wiederverwendbare Teile: Kacheln, Formularfelder, Navigation, Icons, Ereignisverlauf |
+| `components/` | Wiederverwendbare Teile: Kacheln, Formularfelder, Navigation, Icons, Ereignisverlauf, Tuya-Lichtkarte |
 | `index.css` | Gesamtes Design (dunkles Navy/Graphit, Cyan-Akzente, responsive) |
 
 Die Navigation ist auf dem Tablet eine Seitenleiste und auf dem Handy eine Leiste unten.

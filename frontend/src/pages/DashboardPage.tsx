@@ -6,6 +6,7 @@ import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
 import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
+import { TuyaLightCard } from '../components/TuyaLightCard'
 
 // Zwei Plätze für die Blink-Kameras. Echte Namen und Bilder kommen erst mit der Blink-Anbindung.
 const cameraSlots = ['Kamera 1', 'Kamera 2']
@@ -147,28 +148,38 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
           )}
         </section>
 
-        <section className="dashboard-section" aria-labelledby="blink-heading">
-          <div className="section-header">
-            <h2 id="blink-heading">Kameras (Blink)</h2>
-          </div>
-
-          <div className="camera-panel">
-            <BlinkStatus />
-            <div className="camera-grid">
-              {cameraSlots.map((name) => (
-                <article key={name} className="camera-card">
-                  {/* Bewusst kein Bild: Ohne Verbindung gibt es noch keine Aufnahmen. */}
-                  <div className="camera-preview">
-                    <CameraIcon size={20} />
-                    <span>Kein Kamerabild</span>
-                  </div>
-                  <h3 className="camera-name">{name}</h3>
-                  <p className="camera-state">Noch nicht verbunden</p>
-                </article>
-              ))}
+        <div className="dashboard-side">
+          <section className="dashboard-section" aria-labelledby="light-heading">
+            <div className="section-header">
+              <h2 id="light-heading">Licht (Tuya)</h2>
             </div>
-          </div>
-        </section>
+
+            <TuyaLightCard />
+          </section>
+
+          <section className="dashboard-section" aria-labelledby="blink-heading">
+            <div className="section-header">
+              <h2 id="blink-heading">Kameras (Blink)</h2>
+            </div>
+
+            <div className="camera-panel">
+              <BlinkStatus />
+              <div className="camera-grid">
+                {cameraSlots.map((name) => (
+                  <article key={name} className="camera-card">
+                    {/* Bewusst kein Bild: Ohne Verbindung gibt es noch keine Aufnahmen. */}
+                    <div className="camera-preview">
+                      <CameraIcon size={20} />
+                      <span>Kein Kamerabild</span>
+                    </div>
+                    <h3 className="camera-name">{name}</h3>
+                    <p className="camera-state">Noch nicht verbunden</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
   )

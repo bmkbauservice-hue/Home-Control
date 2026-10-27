@@ -18,6 +18,8 @@
 
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
   --offline: #8b97ab;
 
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -415,6 +417,11 @@ select {
 .status-online {
   color: var(--accent);
   background: var(--accent-soft);
+}
+
+.status-stale {
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .alert {
@@ -850,6 +857,107 @@ select {
 
 .empty-state .alert {
   margin: 0;
+}
+
+/* Rechte Spalte (ab 1200 px) bzw. Bereich unter den Räumen: Licht und Kameras untereinander */
+.dashboard-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ---- Licht (Tuya): zuletzt gemeldeter Zustand des Testgeräts ---- */
+
+.light-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card-gradient);
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+}
+
+@media (max-width: 1199px) {
+  .light-card {
+    max-width: 440px;
+  }
+}
+
+.light-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.light-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.light-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.light-source {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.light-header .status {
+  align-self: center;
+  margin-left: auto;
+  flex: none;
+}
+
+.light-state {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.light-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.light-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.light-value-on {
+  color: var(--accent);
+}
+
+.light-value-unknown {
+  color: var(--offline);
+  font-style: italic;
+}
+
+/* Veralteter Stand: abgeschwächt, damit er nicht als aktuell gelesen wird */
+.light-value-stale {
+  opacity: 0.5;
+}
+
+.light-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.light-alert {
+  margin: 0;
+}
+
+.light-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 /* ---- Kameras (Blink): eine Karte mit zwei kompakten Platzhaltern ---- */
