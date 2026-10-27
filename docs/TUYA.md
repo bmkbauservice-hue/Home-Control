@@ -84,6 +84,31 @@ dotnet user-secrets set "Tuya:LinkedDeviceId" "<GERAETE-ID-AUS-DER-DATENBANK>"
 Danach das Backend neu starten. Ohne diesen Wert funktioniert alles wie bisher, es wird nur
 nichts gespeichert.
 
+## Geräteliste und Verknüpfung
+
+`GET /api/tuya/devices` holt alle Geräte der App-Konten, die mit dem Cloud-Projekt verknüpft
+sind, über `GET /v1.0/iot-01/associated-users/devices` (Tuya-Doku: „Batch query for the list
+of associated App user dimension devices“). Tuya liefert die Liste seitenweise
+(`size=50`, `last_row_key` für die nächste Seite). Das Backend holt alle Seiten, aus Sicherheit
+aber höchstens 20 (bis zu 1000 Geräte).
+
+- **Nur lesend.** Es wird nichts geschaltet und nichts gespeichert.
+- **Kein `local_key`.** Die Tuya-Antwort enthält pro Gerät den `local_key`, einen Schlüssel für
+  die lokale Steuerung im Heimnetz. Das Backend liest nur Id, Name, Produktname, Kategorie und
+  den Online-Status. Der `local_key` wird nie übernommen, gespeichert, protokolliert oder
+  ausgegeben (dafür gibt es einen eigenen Test).
+- **Verknüpfen in der Oberfläche:** Auf der Geräteseite gibt es beim Anlegen und Bearbeiten
+  das Feld „Tuya-Gerät“. Tuya-Geräte, die schon mit einem anderen Gerät verknüpft sind, sind
+  dort ausgegraut. Ist Tuya nicht eingerichtet, erscheint nur ein Hinweis, alles andere
+  funktioniert normal.
+- **Geräte-Ids in der Datenbank:** Die Tuya-Id steht jetzt am Gerät in der lokalen
+  `homecontrol.db` (Feld `TuyaDeviceId`). Eine Geräte-Id allein erlaubt keinen Zugriff, dafür
+  braucht man ClientId und ClientSecret, die weiter nur in den User Secrets liegen. Die
+  Datenbank ist in `.gitignore` und kommt nicht ins Repository.
+
+Der Abgleich (`POST /api/tuya/test-device/sync`) nutzt vorerst weiter `Tuya:LinkedDeviceId`.
+Der nächste Schritt ist ein Abgleich für alle verknüpften Geräte über `TuyaDeviceId`.
+
 ## Lesender Statusabruf
 
 `GET /api/tuya/test-device/status`
@@ -238,6 +263,10 @@ dotnet test   # im Projektordner, führt HomeControl.Api.Tests aus
 `TuyaTokenCacheTests` prüft unter anderem: Wiederverwendung des Tokens, Erneuern ab 60 Sekunden
 vor Ablauf, nur ein Token-Abruf bei fünf parallelen Abrufen, eine Wiederholung bei Token-Fehler
 im Body, keine Wiederholung bei anderen Fehlern, neues Token bei anderer ClientId.
+
+`TuyaDeviceListTests` prüft die Geräteliste: eine Seite, mehrere Seiten (mit sortierten
+Query-Parametern für die Signatur), Abbruch nach 20 Seiten, leere Liste, Tuya-Fehler und dass der
+`local_key` nirgends im Ergebnis auftaucht.
 
 `TuyaSwitchRecorderTests` prüft mit einer eigenen SQLite-Datenbank im Arbeitsspeicher (die echte
 `homecontrol.db` bleibt unberührt): EIN und AUS beim ersten Abruf, kein zweites Ereignis bei

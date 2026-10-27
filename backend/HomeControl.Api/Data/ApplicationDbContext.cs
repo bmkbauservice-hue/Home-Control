@@ -42,6 +42,14 @@ public class ApplicationDbContext : DbContext
             entity.Property(d => d.LastValue)
                 .HasMaxLength(200);
 
+            // Leer (null) bei Geräten ohne Tuya-Verknüpfung. SQLite erlaubt im eindeutigen
+            // Index beliebig viele null-Werte, aber jede Tuya-Id nur einmal.
+            entity.Property(d => d.TuyaDeviceId)
+                .HasMaxLength(64);
+
+            entity.HasIndex(d => d.TuyaDeviceId)
+                .IsUnique();
+
             entity.HasMany(d => d.Events)
                 .WithOne(e => e.Device)
                 .HasForeignKey(e => e.DeviceId)

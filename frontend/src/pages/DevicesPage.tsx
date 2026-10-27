@@ -11,6 +11,7 @@ import {
   type DeviceInput,
 } from '../api/devices'
 import { getRooms, type Room } from '../api/rooms'
+import { getTuyaDevices, type TuyaCloudDevice } from '../api/tuya'
 import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
 import { PlusIcon } from '../components/Icons'
@@ -26,7 +27,10 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   const [devices, setDevices] = useState<Device[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [filter, setFilter] = useState<DeviceFilter>({ ...emptyDeviceFilter, roomId: initialRoomId })
-  const [newDevice, setNewDevice] = useState<DeviceInput>({ name: '', type: 'Light', roomId: '' })
+  const [newDevice, setNewDevice] = useState<DeviceInput>({ name: '', type: 'Light', roomId: '', tuyaDeviceId: '' })
+  // Geräte aus der Tuya-Cloud für die Auswahl. null = (noch) nicht verfügbar.
+  const [tuyaDevices, setTuyaDevices] = useState<TuyaCloudDevice[] | null>(null)
+  const [tuyaError, setTuyaError] = useState<string | null>(null)
   const [roomsLoading, setRoomsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -42,6 +46,22 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setRoomsLoading(false))
+  }, [])
+
+  // Tuya-Geräte einmal laden. Tuya ist optional: Ein Fehler hier blockiert die Seite nicht,
+  // sondern erscheint nur als Hinweis beim Formular.
+  useEffect(() => {
+    let ignore = false
+    getTuyaDevices()
+      .then((loaded) => {
+        if (!ignore) setTuyaDevices(loaded)
+      })
+      .catch((err: Error) => {
+        if (!ignore) setTuyaError(err.message)
+      })
+    return () => {
+      ignore = true
+    }
   }, [])
 
   // Geräte laden – beim ersten Anzeigen und bei jeder Änderung von Suche oder Filter.
@@ -87,7 +107,8 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       const device = await createDevice(newDevice)
       setDevices((current) => sortByName([...current, device]))
       // Typ und Raum bleiben stehen, so lassen sich mehrere Geräte schnell nacheinander anlegen.
-      setNewDevice((current) => ({ ...current, name: '' }))
+      // Die Tuya-Verknüpfung wird geleert, denn jedes Tuya-Gerät gehört nur zu einem Gerät.
+      setNewDevice((current) => ({ ...current, name: '', tuyaDeviceId: '' }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -155,7 +176,14 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
         <form className="tile create-form" onSubmit={handleCreate}>
           <h2 className="field-label">Neues Gerät anlegen</h2>
           <div className="form-grid">
-            <DeviceFields idPrefix="new-device" value={newDevice} rooms={rooms} onChange={setNewDevice} />
+            <DeviceFields
+              idPrefix="new-device"
+              value={newDevice}
+              rooms={rooms}
+              onChange={setNewDevice}
+              tuyaDevices={tuyaDevices}
+              devices={devices}
+            />
             <button
               type="submit"
               className="button button-primary"
@@ -165,6 +193,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
               Anlegen
             </button>
           </div>
+          {tuyaError && <p className="field-note">Tuya-Geräteliste nicht verfügbar: {tuyaError}</p>}
         </form>
       )}
 
@@ -250,6 +279,8 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
                 key={device.id}
                 device={device}
                 rooms={rooms}
+                tuyaDevices={tuyaDevices}
+                devices={devices}
                 onSave={(input) => handleSave(device.id, input)}
                 onDelete={() => handleDelete(device.id)}
               />

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { getDeviceTypeLabel, type Device, type DeviceInput } from '../api/devices'
 import type { Room } from '../api/rooms'
+import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
 import { DeviceFields } from './DeviceFields'
 import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
@@ -8,6 +9,9 @@ import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
 type DeviceTileProps = {
   device: Device
   rooms: Room[]
+  // Für die Auswahl des Tuya-Geräts beim Bearbeiten (siehe DeviceFields)
+  tuyaDevices: TuyaCloudDevice[] | null
+  devices: Device[]
   // Beide Funktionen geben true zurück, wenn die Aktion geklappt hat.
   onSave: (input: DeviceInput) => Promise<boolean>
   onDelete: () => Promise<boolean>
@@ -16,7 +20,7 @@ type DeviceTileProps = {
 // Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen – zusätzlich den Verlauf zeigen.
 type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
-export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps) {
+export function DeviceTile({ device, rooms, tuyaDevices, devices, onSave, onDelete }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
   const [input, setInput] = useState<DeviceInput>(toInput(device))
   const [busy, setBusy] = useState(false)
@@ -49,7 +53,15 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
   if (mode === 'edit') {
     return (
       <form className="tile device-tile" onSubmit={handleSave}>
-        <DeviceFields idPrefix={`device-${device.id}`} value={input} rooms={rooms} onChange={setInput} />
+        <DeviceFields
+          idPrefix={`device-${device.id}`}
+          value={input}
+          rooms={rooms}
+          onChange={setInput}
+          tuyaDevices={tuyaDevices}
+          devices={devices}
+          currentDeviceId={device.id}
+        />
         <div className="tile-actions">
           <button type="submit" className="button button-primary" disabled={busy || input.name.trim() === ''}>
             Speichern
@@ -110,6 +122,12 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
       <dl className="tile-values">
         <dt>Zustand</dt>
         <dd>{device.lastValue ?? 'Noch keine Daten'}</dd>
+        {device.tuyaDeviceId && (
+          <>
+            <dt>Tuya</dt>
+            <dd>{tuyaNameFor(device.tuyaDeviceId, tuyaDevices)}</dd>
+          </>
+        )}
       </dl>
       <div className="tile-actions">
         <button type="button" className="button button-full" onClick={() => setMode('events')}>
@@ -130,5 +148,10 @@ export function DeviceTile({ device, rooms, onSave, onDelete }: DeviceTileProps)
 }
 
 function toInput(device: Device): DeviceInput {
-  return { name: device.name, type: device.type, roomId: device.roomId }
+  return { name: device.name, type: device.type, roomId: device.roomId, tuyaDeviceId: device.tuyaDeviceId ?? '' }
+}
+
+// Name des verknüpften Tuya-Geräts. Ohne Tuya-Liste steht nur "verknüpft" da (die Id selbst nicht).
+function tuyaNameFor(tuyaId: string, tuyaDevices: TuyaCloudDevice[] | null): string {
+  return tuyaDevices?.find((d) => d.tuyaId === tuyaId)?.name ?? 'verknüpft'
 }

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using HomeControl.Api.Contracts;
+using HomeControl.Api.Data;
 using HomeControl.Api.Tuya;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace HomeControl.Api.Endpoints;
@@ -19,8 +21,49 @@ public static class TuyaEndpoints
     {
         var tuya = app.MapGroup("/api/tuya");
 
+        tuya.MapGet("/devices", GetCloudDevices);
         tuya.MapGet("/test-device/status", GetTestDeviceStatus);
         tuya.MapPost("/test-device/sync", SyncTestDevice);
+    }
+
+    // GET /api/tuya/devices – alle Geräte aus der Tuya-Cloud (verknüpfte App-Konten) und dazu,
+    // mit welchem Gerät in unserer Datenbank sie schon verknüpft sind. Nur lesend.
+    private static async Task<IResult> GetCloudDevices(
+        TuyaClient client,
+        ApplicationDbContext db,
+        IOptionsMonitor<TuyaOptions> options,
+        ILogger<TuyaClient> logger,
+        CancellationToken cancellationToken)
+    {
+        var missing = options.CurrentValue.GetMissingCredentials();
+        if (missing.Count > 0)
+        {
+            return NotConfigured(missing);
+        }
+
+        var (cloudDevices, problem) = await CallTuyaAsync(
+            () => client.GetLinkedAppDevicesAsync(cancellationToken), logger, cancellationToken);
+        if (problem is not null)
+        {
+            return problem;
+        }
+
+        // Welche Tuya-Geräte sind schon mit einem unserer Geräte verknüpft?
+        var links = await db.Devices
+            .Where(d => d.TuyaDeviceId != null)
+            .Select(d => new { d.TuyaDeviceId, d.Id, d.Name })
+            .ToDictionaryAsync(d => d.TuyaDeviceId!, cancellationToken);
+
+        var response = cloudDevices!
+            .OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(d =>
+            {
+                var link = links.GetValueOrDefault(d.Id);
+                return new TuyaCloudDeviceResponse(d.Id, d.Name, d.ProductName, d.Category, d.Online, link?.Id, link?.Name);
+            })
+            .ToList();
+
+        return Results.Ok(response);
     }
 
     // GET /api/tuya/test-device/status – Status des konfigurierten Testgeräts aus der Tuya-Cloud
@@ -73,16 +116,33 @@ public static class TuyaEndpoints
         var missing = settings.GetMissingSettings();
         if (missing.Count > 0)
         {
-            return (null, Results.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "Tuya ist nicht eingerichtet.",
-                detail: $"Es fehlen folgende Einstellungen in den User Secrets: {string.Join(", ", missing)}."));
+            return (null, NotConfigured(missing));
         }
 
+        return await CallTuyaAsync(
+            () => client.GetDeviceStatusAsync(settings.TestDeviceId, cancellationToken), logger, cancellationToken);
+    }
+
+    // 503, wenn Zugangsdaten fehlen. Genannt werden nur die Namen der Einstellungen.
+    private static IResult NotConfigured(List<string> missing)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Tuya ist nicht eingerichtet.",
+            detail: $"Es fehlen folgende Einstellungen in den User Secrets: {string.Join(", ", missing)}.");
+    }
+
+    // Führt einen Aufruf an die Tuya-Cloud aus und übersetzt Fehler in verständliche
+    // ProblemDetails. Liefert entweder das Ergebnis oder die Fehlerantwort, nie beides.
+    private static async Task<(T? Value, IResult? Problem)> CallTuyaAsync<T>(
+        Func<Task<T>> call,
+        ILogger<TuyaClient> logger,
+        CancellationToken cancellationToken)
+        where T : class
+    {
         try
         {
-            var status = await client.GetDeviceStatusAsync(settings.TestDeviceId, cancellationToken);
-            return (status, null);
+            return (await call(), null);
         }
         catch (TuyaApiException ex)
         {

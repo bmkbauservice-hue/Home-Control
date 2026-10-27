@@ -23,6 +23,24 @@ export type TuyaDeviceSync = TuyaDeviceStatus & {
   syncResult: TuyaSyncResult
 }
 
+// Ein Gerät aus der Tuya-Cloud (GET /api/tuya/devices, entspricht TuyaCloudDeviceResponse).
+export type TuyaCloudDevice = {
+  tuyaId: string
+  name: string
+  productName: string
+  category: string
+  // So meldet es Tuya. null = Tuya sagt nichts dazu.
+  online: boolean | null
+  linkedDeviceId: string | null
+  linkedDeviceName: string | null
+}
+
+// Alle Geräte der verknüpften Tuya-App-Konten. Nur lesend.
+export async function getTuyaDevices(): Promise<TuyaCloudDevice[]> {
+  const response = await send('/api/tuya/devices')
+  return (await response.json()) as TuyaCloudDevice[]
+}
+
 export async function getTestDeviceStatus(): Promise<TuyaDeviceStatus> {
   const response = await send('/api/tuya/test-device/status')
   return (await response.json()) as TuyaDeviceStatus

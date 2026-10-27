@@ -19,6 +19,7 @@ erDiagram
         string Type "max. 50, Pflicht"
         bool IsActive
         string LastValue "max. 200, optional"
+        string TuyaDeviceId "max. 64, optional, eindeutig"
         Guid RoomId FK
     }
     DeviceEvent {
@@ -49,6 +50,7 @@ erDiagram
 | `Type` | Gerätetyp, höchstens 50 Zeichen. Neue Geräte: `Light`, `Socket`, `TemperatureSensor`, `DoorSensor`, `Switch` |
 | `IsActive` | Ob das Gerät an ist. Wird nur beim Tuya-Abgleich gesetzt (siehe unten) |
 | `LastValue` | Letzter Wert, z. B. „EIN“/„AUS“. Wird nur beim Tuya-Abgleich gesetzt (siehe unten) |
+| `TuyaDeviceId` | Id des verknüpften Geräts in der Tuya-Cloud, sonst leer. Eindeutiger Index: Jedes Tuya-Gerät gehört zu höchstens einem Gerät. Seit Migration `TuyaGeraeteIdErgaenzt` |
 | `RoomId` / `Room` | Zu welchem Raum das Gerät gehört |
 | `Events` | Ereignisverlauf des Geräts |
 

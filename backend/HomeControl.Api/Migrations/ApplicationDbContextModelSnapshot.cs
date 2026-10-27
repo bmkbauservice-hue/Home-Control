@@ -38,6 +38,10 @@ namespace HomeControl.Api.Migrations
                     b.Property<Guid>("RoomId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("TuyaDeviceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -46,6 +50,9 @@ namespace HomeControl.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId");
+
+                    b.HasIndex("TuyaDeviceId")
+                        .IsUnique();
 
                     b.ToTable("Devices");
                 });

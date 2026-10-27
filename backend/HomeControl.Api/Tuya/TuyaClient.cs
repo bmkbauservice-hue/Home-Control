@@ -8,6 +8,12 @@ namespace HomeControl.Api.Tuya;
 // Value bleibt ein JsonElement, damit nichts umgewandelt oder erraten wird.
 public record TuyaStatusItem(string Code, JsonElement Value);
 
+// Ein Gerät aus der Geräteliste der Tuya-Cloud. Bewusst nur diese Felder:
+// Die Antwort von Tuya enthält auch den local_key (Schlüssel für die lokale Steuerung).
+// Der wird nie übernommen, gespeichert oder weitergegeben.
+// Online ist das, was Tuya meldet (null, wenn Tuya nichts dazu sagt).
+public record TuyaCloudDevice(string Id, string Name, string ProductName, string Category, bool? Online);
+
 // Tuya hat die Anfrage abgelehnt (z. B. falsche Zugangsdaten oder fehlende Berechtigung).
 // Code und Meldung stammen von Tuya und enthalten keine Geheimnisse.
 public class TuyaApiException(string tuyaCode, string tuyaMessage)
@@ -54,6 +60,75 @@ public class TuyaClient(
                 item.GetProperty("code").GetString() ?? string.Empty,
                 item.GetProperty("value").Clone()))
             .ToList();
+    }
+
+    // So viele Geräte holen wir pro Seite. Tuya liefert dann ggf. weitere Seiten.
+    private const int DevicesPageSize = 50;
+
+    // Sicherheitsgrenze gegen eine endlose Seitenschleife (50 × 20 = bis zu 1000 Geräte).
+    private const int MaxDevicePages = 20;
+
+    // Alle Geräte der mit dem Cloud-Projekt verknüpften App-Konten (z. B. Smart Life):
+    // GET /v1.0/iot-01/associated-users/devices?last_row_key=…&size=…
+    // Tuya teilt die Liste in Seiten auf; last_row_key zeigt auf die nächste Seite.
+    public async Task<List<TuyaCloudDevice>> GetLinkedAppDevicesAsync(CancellationToken cancellationToken)
+    {
+        var devices = new List<TuyaCloudDevice>();
+        string? lastRowKey = null;
+
+        for (var page = 0; page < MaxDevicePages; page++)
+        {
+            // Query-Parameter alphabetisch sortiert, weil Tuya die URL so signiert erwartet.
+            var path = lastRowKey is null
+                ? $"/v1.0/iot-01/associated-users/devices?size={DevicesPageSize}"
+                : $"/v1.0/iot-01/associated-users/devices?last_row_key={Uri.EscapeDataString(lastRowKey)}&size={DevicesPageSize}";
+
+            var result = await SendWithTokenAsync(path, cancellationToken);
+            if (result.ValueKind != JsonValueKind.Object)
+            {
+                throw new JsonException("Tuya hat für die Geräteliste kein Objekt geliefert.");
+            }
+
+            if (result.TryGetProperty("devices", out var list) && list.ValueKind == JsonValueKind.Array)
+            {
+                devices.AddRange(list.EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.Object)
+                    .Select(ReadCloudDevice));
+            }
+
+            var hasMore = result.TryGetProperty("has_more", out var more) && more.ValueKind == JsonValueKind.True;
+            lastRowKey = result.TryGetProperty("last_row_key", out var key) && key.ValueKind == JsonValueKind.String
+                ? key.GetString()
+                : null;
+            if (!hasMore || string.IsNullOrEmpty(lastRowKey))
+            {
+                break;
+            }
+        }
+
+        return devices;
+    }
+
+    // Liest nur die Felder, die wir brauchen. Alles andere (z. B. local_key) bleibt unbeachtet.
+    private static TuyaCloudDevice ReadCloudDevice(JsonElement item)
+    {
+        static string Text(JsonElement element, string name) =>
+            element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString() ?? string.Empty
+                : string.Empty;
+
+        bool? online = null;
+        if (item.TryGetProperty("online", out var onlineElement))
+        {
+            online = onlineElement.ValueKind switch
+            {
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                _ => (bool?)null
+            };
+        }
+
+        return new TuyaCloudDevice(Text(item, "id"), Text(item, "name"), Text(item, "product_name"), Text(item, "category"), online);
     }
 
     // Schickt eine GET-Anfrage mit Token aus dem Speicher. Lehnt Tuya das Token ab
