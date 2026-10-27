@@ -39,10 +39,11 @@ Frontend einfach `/api/...` aufrufen kann.
 | `Contracts/` | DTOs: was die API annimmt (`…Request`) und zurückgibt (`…Response`) |
 | `Endpoints/` | Minimal-API-Endpunkte, je Bereich eine Datei mit eigener `MapGroup`; `Search.cs` hilft bei der Textsuche |
 | `ErrorHandling/` | `GlobalExceptionHandler`: einheitliche Antwort bei unerwarteten Fehlern |
+| `Tuya/` | Lesender Zugriff auf die Tuya-Cloud: `TuyaClient` (HTTP), `TuyaTokenStore` (Token-Cache), `TuyaSignature` (HMAC-SHA256), `TuyaOptions` (Einstellungen) |
 | `Properties/launchSettings.json` | Startprofile mit Ports (`http`: 5111) |
-| `appsettings.json` | Connection String und Option `SeedDemoData` |
+| `appsettings.json` | Connection String, Option `SeedDemoData`, `Tuya:BaseUrl` (Zugangsdaten stehen in den User Secrets) |
 
-Die Endpunkte sind in vier Gruppen aufgeteilt:
+Die Endpunkte sind in fünf Gruppen aufgeteilt:
 
 | Datei | Gruppe |
 |---|---|
@@ -50,6 +51,7 @@ Die Endpunkte sind in vier Gruppen aufgeteilt:
 | `DeviceEndpoints.cs` | `/api/devices` |
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
+| `TuyaEndpoints.cs` | `/api/tuya` (nur lesend, ohne Datenbank, siehe [TUYA.md](TUYA.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
 
@@ -59,7 +61,7 @@ Die Endpunkte sind in vier Gruppen aufgeteilt:
 | `App.tsx` | Merkt sich, welche Seite gerade angezeigt wird (ohne Router) |
 | `api/` | Alle Aufrufe an die API. `http.ts` macht daraus verständliche Fehlermeldungen |
 | `pages/` | Die Seiten: Übersicht, Räume, Geräte, Reports, Blink (Platzhalter) |
-| `components/` | Wiederverwendbare Teile: Kacheln, Formularfelder, Navigation, Icons, Ereignisverlauf |
+| `components/` | Wiederverwendbare Teile: Kacheln, Formularfelder, Navigation, Icons, Ereignisverlauf, Tuya-Lichtkarte |
 | `index.css` | Gesamtes Design (dunkles Navy/Graphit, Cyan-Akzente, responsive) |
 
 Die Navigation ist auf dem Tablet eine Seitenleiste und auf dem Handy eine Leiste unten.
@@ -124,6 +126,31 @@ using (var scope = app.Services.CreateScope())
 
 Auch der `GlobalExceptionHandler` bekommt seinen Logger und den `IProblemDetailsService`
 per DI.
+
+**TuyaClient:**
+
+```csharp
+builder.Services.Configure<TuyaOptions>(builder.Configuration.GetSection(TuyaOptions.SectionName));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TuyaTokenStore>();
+builder.Services.AddHttpClient<TuyaClient>(...);
+```
+
+`Configure` bindet den Abschnitt `Tuya` (aus `appsettings.json` und den User Secrets) an
+`TuyaOptions`. `AddHttpClient` registriert den `TuyaClient` mit einem eigenen `HttpClient`
+(BaseUrl, 10 Sekunden Timeout).
+
+Lebensdauer: Ein typisierter HttpClient wie `TuyaClient` ist **transient**, er wird pro Anfrage
+neu erzeugt. Deshalb liegt das Tuya-Token im `TuyaTokenStore`, einem **Singleton**, das für
+die ganze Laufzeit der App einmal existiert. `TimeProvider.System` liefert die echte Uhrzeit.
+In Tests wird stattdessen eine steuerbare Uhr übergeben. Nach einem Wechsel der Zugangsdaten
+wird das Backend neu gestartet (siehe [TUYA.md](TUYA.md)).
+
+## Tests (`backend/HomeControl.Api.Tests`)
+
+xUnit-Projekt, eingetragen in `HomeControl.slnx`, Start mit `dotnet test`. Bisher gibt es Tests
+für den Tuya-Token-Cache. Statt eines Mocking-Frameworks gibt es kleine eigene Fakes im Ordner
+`Fakes/`: Ein `HttpMessageHandler` ersetzt die Tuya-Cloud, ein `TimeProvider` lässt sich vorspulen.
 
 ## Fehlerbehandlung (Middleware-Reihenfolge)
 

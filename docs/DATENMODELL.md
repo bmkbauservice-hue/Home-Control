@@ -102,8 +102,9 @@ ausdrücklich darauf hin.
 
 `IsActive` und `LastValue` gibt es im Modell, sie werden aber **nicht** durch Ereignisse
 aktualisiert. Ein Ereignis wie `turned_on` wird nur gespeichert. Das Gerät bleibt dabei
-unverändert. Es gibt noch keine echte Geräteanbindung (Tuya/Blink), die diese Werte liefern
-könnte.
+unverändert. Die Tuya-Anbindung liest bisher nur den Status eines einzelnen Testgeräts und
+schreibt nichts in die Datenbank (siehe [TUYA.md](TUYA.md)). Eine Geräteanbindung, die diese
+Werte liefert, gibt es noch nicht.
 
 Deshalb:
 

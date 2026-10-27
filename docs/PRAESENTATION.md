@@ -27,8 +27,8 @@ Ein Leitfaden zum Vorstellen von Home Control. Die Zeiten sind Richtwerte.
 
 > „Home Control ist eine Web-App zum Verwalten von Räumen und Geräten im Zuhause.
 > Zu jedem Gerät gibt es einen Ereignisverlauf, und eine Tagesauswertung fasst zusammen,
-> was an einem Tag passiert ist. Die echte Anbindung an Tuya und Blink ist noch nicht
-> umgesetzt. Die Grundlage dafür steht.“
+> was an einem Tag passiert ist. Von Tuya wird bereits der Zustand eines Testgeräts
+> gelesen und in der Übersicht angezeigt. Schalten und die Blink-Anbindung folgen noch.“
 
 ### 2. Architektur (ca. 1 Minute)
 
@@ -89,7 +89,8 @@ Optional: In Scalar (http://localhost:5111/scalar) die Endpunkt-Gruppen zeigen.
 ### 6. Grenzen und Ausblick (ca. 30 Sekunden)
 
 > „Was noch fehlt:
-> - keine echte Tuya- oder Blink-Anbindung, die Blink-Seite ist ein Platzhalter,
+> - Tuya nur lesend für ein Testgerät, noch kein Schalten; keine Blink-Anbindung,
+>   die Blink-Seite ist ein Platzhalter,
 > - keine Live-Werte: `IsActive` und `LastValue` werden noch nicht aktualisiert,
 > - bei Ereignissen wird noch nicht gespeichert, ob sie manuell erfasst wurden
 >   oder von einem Gerät kommen,
@@ -124,6 +125,14 @@ keine Duplikate.
 Ein Standardformat (RFC 9457) für Fehlerantworten mit `status`, `title` und bei
 Validierungsfehlern `errors`. Alle Fehler der API haben dieses Format. Bei einem 500er sieht
 der Client nur eine allgemeine Meldung, die Details stehen im Server-Log.
+
+**Wie funktioniert der Token-Cache?**
+Für Anfragen an die Tuya-Cloud braucht das Backend ein Zugriffstoken, dessen Laufzeit Tuya in
+`expire_time` mitschickt. Weil der `TuyaClient` pro Anfrage neu erzeugt wird, merkt sich ein
+eigener Singleton, der `TuyaTokenStore`, dieses Token im Arbeitsspeicher. Ab 60 Sekunden vor
+Ablauf holt er automatisch ein neues Token. Laufen mehrere Abrufe gleichzeitig, sorgt ein
+`SemaphoreSlim` dafür, dass nur einer das Token holt und die anderen es mitbenutzen. Lehnt Tuya
+das Token trotzdem ab, wird genau einmal mit einem neuen Token wiederholt.
 
 **Minimal API und MapGroup**
 Endpunkte werden direkt mit `MapGet`, `MapPost` usw. definiert, ohne Controller-Klassen.

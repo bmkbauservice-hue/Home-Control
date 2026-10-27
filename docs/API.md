@@ -23,6 +23,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | GET | `/api/devices/{id}/events/{eventId}` | Ein einzelnes Ereignis dieses Geräts | 200 | 404 |
 | POST | `/api/devices/{id}/events` | Ereignis speichern | 201 | 400, 404 |
 | GET | `/api/reports/daily?date=JJJJ-MM-TT` | Tagesauswertung (UTC-Tag) | 200 | 400 |
+| GET | `/api/tuya/test-device/status` | Status des Tuya-Testgeräts aus der Tuya-Cloud (nur lesend) | 200 | 502, 503, 504 |
 
 Zusätzlich antwortet `GET /` mit dem Text „Hello World!“ (Überbleibsel aus der Projektvorlage).
 
@@ -89,6 +90,18 @@ Unbekanntes Gerät, unbekanntes Ereignis oder ein Ereignis eines anderen Geräts
 }
 ```
 
+### Tuya-Testgerät
+
+```jsonc
+// TuyaDeviceStatusResponse
+{ "retrievedAtUtc": "2026-10-27T08:21:11.921+00:00",
+  "status": [ { "code": "switch_1", "value": false } ],
+  "note": "Werte, die die Tuya-Cloud zum Abrufzeitpunkt für das Gerät kennt. …" }
+```
+
+`value` wird unverändert von Tuya übernommen und kann je nach Code ein Boolean, eine Zahl
+oder ein Text sein. Einrichtung, Fehlerfälle und Grenzen stehen in [TUYA.md](TUYA.md).
+
 ## Validierung
 
 | Feld | Regel |
@@ -114,6 +127,7 @@ Alle Fehler kommen im Format **ProblemDetails** (`Content-Type: application/prob
 | 404 | Unbekannter Raum, unbekanntes Gerät oder Ereignis | „Raum nicht gefunden.“ / „Gerät nicht gefunden.“ / „Ereignis nicht gefunden.“ |
 | 404 | Unbekannte Route oder ungültige GUID in der URL | „Not Found“ |
 | 500 | Unerwarteter Fehler im Server | „Ein unerwarteter Fehler ist aufgetreten.“ |
+| 502, 503, 504 | Nur Tuya: nicht eingerichtet, abgelehnt, nicht erreichbar (siehe [TUYA.md](TUYA.md)) | „Tuya ist nicht eingerichtet.“ / „Tuya hat die Anfrage abgelehnt.“ |
 
 Bei 500 bekommt der Client keine internen Details. Die vollständige Fehlermeldung mit
 Stacktrace steht nur im Server-Log.
@@ -215,6 +229,9 @@ curl http://localhost:5111/api/devices/<DEVICE-ID>/events
 
 # Tagesauswertung
 curl "http://localhost:5111/api/reports/daily?date=2026-10-26"
+
+# Status des Tuya-Testgeräts lesen (schaltet nichts)
+curl -i http://localhost:5111/api/tuya/test-device/status
 
 # Validierungsfehler ansehen (-i zeigt Status und Header)
 curl -i -X POST http://localhost:5111/api/rooms \

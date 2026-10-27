@@ -18,10 +18,17 @@
 
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
   --offline: #8b97ab;
 
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-accent: 0 10px 30px rgba(34, 211, 238, 0.1);
+
+  /* Night-Control-Karten: dunkle Blauverläufe mit feiner Cyan-Kante */
+  --card-gradient: linear-gradient(160deg, #1a2b47 0%, #141e31 55%, #121a2a 100%);
+  --card-border: rgba(34, 211, 238, 0.14);
+  --blue-glow: rgba(59, 130, 246, 0.3);
 
   --radius: 20px;
   --radius-small: 12px;
@@ -412,6 +419,11 @@ select {
   background: var(--accent-soft);
 }
 
+.status-stale {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
 .alert {
   margin-bottom: 16px;
   padding: 14px 16px;
@@ -457,24 +469,148 @@ select {
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
-.dashboard-header h1 {
-  font-size: 2.2rem;
-  font-weight: 700;
+/* Kopfbereich mit dezentem blauem Hintergrundlicht (nur Verlauf, keine Animation) */
+.dashboard-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse 55% 140% at 8% 0%, var(--blue-glow), transparent 70%),
+    var(--card-gradient);
+  box-shadow: var(--shadow);
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.hero-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 28px var(--blue-glow);
+}
+
+.hero-title {
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
-.eyebrow {
-  color: var(--accent);
-  font-size: 0.85rem;
+.hero-greeting {
+  font-size: 1.4rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
-/* Handy: eine Spalte, ab etwa Tablet-Breite drei Karten nebeneinander */
+/* Kompakte Statistik-Karten: Symbol, Text, Pfeil in einer Zeile */
+/* Handy: untereinander. Tablet: zwei Spalten, die Kamerakarte bekommt eine eigene Zeile,
+   damit der Verbindungsstatus nicht umbricht. Ab 1000 px: drei nebeneinander. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 600px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1000px) {
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stat-card:last-child {
+    grid-column: auto;
+  }
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-small);
+  background: var(--card-gradient);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stat-card:hover {
+  border-color: var(--accent);
+}
+
+.stat-card > svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-muted);
+}
+
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-text .status {
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Reports nutzen weiterhin die größeren Übersichtskarten */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
@@ -506,7 +642,7 @@ select {
 /* Breiter Bildschirm: Räume links, Kameras rechts */
 .dashboard-columns {
   display: grid;
-  gap: 32px;
+  gap: 24px;
 }
 
 @media (min-width: 1200px) {
@@ -519,7 +655,7 @@ select {
 .dashboard-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .section-header {
@@ -540,14 +676,161 @@ select {
   font-weight: 700;
 }
 
+/* ---- Raumkarten ---- */
+
 .room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  /* Jede Karte so hoch wie ihr Inhalt, keine leeren Flächen */
+  align-items: start;
   gap: 16px;
 }
 
 .room-card {
-  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card-gradient);
+  /* feine Cyan-Kante oben */
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+}
+
+/* Der Kopf ist der Link zur Geräteseite mit Raumfilter */
+.room-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.room-card-header:hover {
+  background: rgba(34, 211, 238, 0.06);
+}
+
+.room-card-header > svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-muted);
+}
+
+.room-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.room-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.room-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.room-count {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.room-empty {
+  margin: 0 16px 16px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-small);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Geräte als kleine Kacheln, zwei nebeneinander wenn Platz ist */
+.room-devices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0 16px 16px;
+  list-style: none;
+}
+
+.room-device {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-small);
+  background: rgba(15, 20, 32, 0.55);
+}
+
+.room-device-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.room-device-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Lange Namen einzeilig mit "…" kürzen statt mitten im Wort umzubrechen.
+   Der volle Name steht im Tooltip (title). */
+.room-device-name,
+.room-device-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-device-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.room-device-type {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.room-device-value {
+  margin-top: 2px;
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.room-device-value.no-data {
+  color: var(--offline);
+  font-style: italic;
+}
+
+.room-device-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-small);
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 .empty-state {
@@ -576,14 +859,140 @@ select {
   margin: 0;
 }
 
+/* Rechte Spalte (ab 1200 px) bzw. Bereich unter den Räumen: Licht und Kameras untereinander */
+.dashboard-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ---- Licht (Tuya): zuletzt gemeldeter Zustand des Testgeräts ---- */
+
+.light-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card-gradient);
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+}
+
+@media (max-width: 1199px) {
+  .light-card {
+    max-width: 440px;
+  }
+}
+
+.light-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.light-heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.light-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.light-source {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.light-header .status {
+  align-self: center;
+  margin-left: auto;
+  flex: none;
+}
+
+.light-state {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.light-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.light-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.light-value-on {
+  color: var(--accent);
+}
+
+.light-value-unknown {
+  color: var(--offline);
+  font-style: italic;
+}
+
+/* Veralteter Stand: abgeschwächt, damit er nicht als aktuell gelesen wird */
+.light-value-stale {
+  opacity: 0.5;
+}
+
+.light-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.light-alert {
+  margin: 0;
+}
+
+.light-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ---- Kameras (Blink): eine Karte mit zwei kompakten Platzhaltern ---- */
+
+.camera-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card-gradient);
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+}
+
+/* Unterhalb von 1200 px steht der Bereich unter den Räumen: Breite begrenzen,
+   damit die Platzhalter klein bleiben */
+@media (max-width: 1199px) {
+  .camera-panel {
+    max-width: 440px;
+  }
+}
+
+/* Auch auf dem Handy zwei Kameras nebeneinander – die Platzhalter sind klein genug */
 .camera-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .camera-card {
-  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 /* Platzhalter statt Kamerabild, im Seitenverhältnis 16:9 */
@@ -592,14 +1001,25 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   aspect-ratio: 16 / 9;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-small);
   background: var(--bg);
   color: var(--offline);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.camera-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.camera-state {
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 /* ---------- Geräte ---------- */
