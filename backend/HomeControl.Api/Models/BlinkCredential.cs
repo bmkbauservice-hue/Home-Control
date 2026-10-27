@@ -13,5 +13,11 @@ public class BlinkCredential
     // Verschlüsselt über die ASP.NET Data Protection API (nie im Klartext in der Datenbank).
     public string EncryptedRefreshToken { get; set; } = string.Empty;
 
+    // Hash (SHA-256) des zuletzt aus den User Secrets übernommenen Blink:InitialRefreshToken.
+    // Dient nur dem Vergleich: Weicht der aktuelle Secrets-Wert davon ab, ist er neu (z. B.
+    // nach einem erneuten Lauf von tools/BlinkSpike) und wird ohne Neustart übernommen.
+    // Kein Geheimnis, aber auch kein Klartext-Token – ein Hash reicht für den Vergleich.
+    public string? InitialRefreshTokenHash { get; set; }
+
     public DateTimeOffset UpdatedAtUtc { get; set; }
 }

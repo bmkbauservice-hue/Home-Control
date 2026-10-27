@@ -82,6 +82,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(c => c.EncryptedRefreshToken)
                 .HasMaxLength(4000)
                 .IsRequired();
+
+            // SHA-256 als Hex-Zeichenkette (64 Zeichen).
+            entity.Property(c => c.InitialRefreshTokenHash)
+                .HasMaxLength(64);
         });
     }
 }
