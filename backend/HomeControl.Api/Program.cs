@@ -97,7 +97,9 @@ builder.Services
         options.MapInboundClaims = false;
         options.TokenValidationParameters = TokenService.CreateValidationParameters(jwtOptions);
     });
-builder.Services.AddAuthorization();
+// Berechtigungsregeln: "AdminOnly" verlangt die Rolle Admin (siehe Auth/AuthPolicies.cs).
+// Schreibende Endpunkte (Anlegen, Ändern, Löschen) benutzen diese Regel.
+builder.Services.AddAuthorizationBuilder().AddHomeControlPolicies();
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
@@ -166,3 +168,6 @@ app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 
 app.Run();
+
+// Für die Endpunkt-Tests (WebApplicationFactory<Program> in HomeControl.Api.Tests).
+public partial class Program { }

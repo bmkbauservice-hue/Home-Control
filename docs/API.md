@@ -11,21 +11,33 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 |---|---|---|---|---|
 | GET | `/api/rooms?q=` | Räume auflisten, optional suchen | 200 | – |
 | GET | `/api/rooms/{id}` | Einen Raum lesen | 200 | 404 |
-| POST | `/api/rooms` | Raum anlegen | 201 | 400 |
-| PUT | `/api/rooms/{id}` | Raum umbenennen | 200 | 400, 404 |
-| DELETE | `/api/rooms/{id}` | Raum löschen (mit Geräten und Ereignissen) | 204 | 404 |
+| POST | `/api/rooms` | Raum anlegen (**Admin**) | 201 | 400, 401, 403 |
+| PUT | `/api/rooms/{id}` | Raum umbenennen (**Admin**) | 200 | 400, 401, 403, 404 |
+| DELETE | `/api/rooms/{id}` | Raum löschen (mit Geräten und Ereignissen, **Admin**) | 204 | 401, 403, 404 |
 | GET | `/api/devices?q=&roomId=&type=` | Geräte auflisten, suchen, filtern | 200 | 400 |
 | GET | `/api/devices/{id}` | Ein Gerät lesen | 200 | 404 |
-| POST | `/api/devices` | Gerät anlegen | 201 | 400 |
-| PUT | `/api/devices/{id}` | Gerät ändern (Name, Typ, Raum) | 200 | 400, 404 |
-| DELETE | `/api/devices/{id}` | Gerät löschen (mit Ereignissen) | 204 | 404 |
+| POST | `/api/devices` | Gerät anlegen (**Admin**) | 201 | 400, 401, 403 |
+| PUT | `/api/devices/{id}` | Gerät ändern (Name, Typ, Raum, **Admin**) | 200 | 400, 401, 403, 404 |
+| DELETE | `/api/devices/{id}` | Gerät löschen (mit Ereignissen, **Admin**) | 204 | 401, 403, 404 |
 | GET | `/api/devices/{id}/events` | Ereignisverlauf, neueste zuerst | 200 | 404 |
 | GET | `/api/devices/{id}/events/{eventId}` | Ein einzelnes Ereignis dieses Geräts | 200 | 404 |
-| POST | `/api/devices/{id}/events` | Ereignis speichern | 201 | 400, 404 |
+| POST | `/api/devices/{id}/events` | Ereignis speichern (**Admin**) | 201 | 400, 401, 403, 404 |
 | GET | `/api/reports/daily?date=JJJJ-MM-TT` | Tagesauswertung (UTC-Tag) | 200 | 400 |
 | GET | `/api/tuya/devices` | Alle Geräte aus der Tuya-Cloud mit Verknüpfung zu unseren Geräten (nur lesend) | 200 | 502, 503, 504 |
 | GET | `/api/tuya/test-device/status` | Status des Tuya-Testgeräts aus der Tuya-Cloud (nur lesend) | 200 | 502, 503, 504 |
 | POST | `/api/tuya/test-device/sync` | Status lesen und `switch_1` auf das verknüpfte Gerät übertragen (schaltet nichts) | 200 | 502, 503, 504 |
+| POST | `/api/auth/register` | Benutzer anlegen (erster Benutzer: offen und wird Admin, danach nur **Admin**) | 201 | 400, 401, 403 |
+| POST | `/api/auth/login` | Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie | 200 | 400, 401 |
+| POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
+| POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
+| GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
+
+**Wer darf was:** Alle `GET`-Endpunkte sind ohne Anmeldung erreichbar (Frontend und n8n-Agent
+lesen weiter wie bisher). Anlegen, Ändern und Löschen von Räumen, Geräten und Ereignissen
+verlangt ein Access Token mit der Rolle **Admin** (`Authorization: Bearer <token>`). Ohne
+gültiges Token antwortet die API mit **401**, als angemeldeter User mit **403**.
+`POST /api/tuya/test-device/sync` ist bewusst noch offen, bis das Frontend-Login steht
+(siehe [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md)).
 
 Zusätzlich antwortet `GET /` mit dem Text „Hello World!“ (Überbleibsel aus der Projektvorlage).
 
@@ -160,6 +172,8 @@ Alle Fehler kommen im Format **ProblemDetails** (`Content-Type: application/prob
 | 400 | Ungültige Eingabe, mit Meldung pro Feld unter `errors` | „One or more validation errors occurred.“ |
 | 400 | Kaputtes JSON oder fehlender Body | „Ungültige Anfrage.“ |
 | 404 | Unbekannter Raum, unbekanntes Gerät oder Ereignis | „Raum nicht gefunden.“ / „Gerät nicht gefunden.“ / „Ereignis nicht gefunden.“ |
+| 401 | Schreibender Endpunkt ohne gültiges Access Token (fehlt, abgelaufen, falsch signiert) | „Unauthorized“ |
+| 403 | Angemeldet, aber nicht Admin | „Forbidden“ |
 | 404 | Unbekannte Route oder ungültige GUID in der URL | „Not Found“ |
 | 500 | Unerwarteter Fehler im Server | „Ein unerwarteter Fehler ist aufgetreten.“ |
 | 502, 503, 504 | Nur Tuya: nicht eingerichtet, abgelehnt, nicht erreichbar (siehe [TUYA.md](TUYA.md)) | „Tuya ist nicht eingerichtet.“ / „Tuya hat die Anfrage abgelehnt.“ |

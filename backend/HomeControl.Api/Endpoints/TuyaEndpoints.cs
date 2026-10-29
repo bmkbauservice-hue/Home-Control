@@ -23,6 +23,9 @@ public static class TuyaEndpoints
 
         tuya.MapGet("/devices", GetCloudDevices);
         tuya.MapGet("/test-device/status", GetTestDeviceStatus);
+        // Bewusst noch offen: Die Dashboard-Karte ruft den Abgleich beim Öffnen auf, und es gibt
+        // noch kein Frontend-Login. Der Abgleich nimmt keine Eingaben an, er überträgt nur den
+        // Zustand aus der Tuya-Cloud. Wird mit dem Frontend-Login auf Admin umgestellt.
         tuya.MapPost("/test-device/sync", SyncTestDevice);
     }
 

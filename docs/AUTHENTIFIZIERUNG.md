@@ -27,6 +27,39 @@ Grenzen, Kurzantworten für Rückfragen, Merksätze).
 >   regeln vorerst, wer Räume und Geräte in Home Control anlegen, ändern und löschen darf
 >   (Admin) und wer nur lesen darf (User).
 
+## Wer darf was (Stand jetzt)
+
+| Bereich | Ohne Anmeldung | User | Admin |
+|---|---|---|---|
+| Räume, Geräte, Ereignisse, Reports, Tuya, Blink lesen (`GET`) | ja | ja | ja |
+| Räume und Geräte anlegen, ändern, löschen | 401 | 403 | ja |
+| Ereignis speichern (manueller Testeintrag) | 401 | 403 | ja |
+| Weitere Benutzer anlegen (`POST /api/auth/register`) | 401* | 403 | ja |
+| Eigenes Profil (`GET /api/auth/profile`) | 401 | ja | ja |
+| Tuya-Abgleich (`POST /api/tuya/test-device/sync`) | ja | ja | ja |
+
+\* Nur solange es noch keinen Benutzer gibt, ist die Registrierung offen. Der erste Benutzer
+wird automatisch Admin.
+
+Umsetzung: Die Regel `AdminOnly` (`Auth/AuthPolicies.cs`, verlangt die Rolle Admin) wird in
+`Program.cs` registriert und an den schreibenden Endpunkten mit
+`.RequireAuthorization(AuthPolicies.AdminOnly)` angehängt.
+
+**Bewusst noch offen:**
+
+- **Lesen ohne Anmeldung**, damit der n8n-Agent weiterläuft. Der bekommt später einen
+  eigenen API-Schlüssel, dann wird auch Lesen geschützt.
+- **Tuya-Abgleich.** Die Dashboard-Karte ruft ihn beim Öffnen auf. Er nimmt keine Eingaben an
+  und überträgt nur den Zustand aus der Tuya-Cloud. Wird mit dem Frontend-Login auf Admin
+  umgestellt.
+- **Frontend noch ohne Login.** Bis das Frontend-Login fertig ist, schlagen Anlegen, Ändern und
+  Löschen in der Oberfläche mit 401 fehl. Deshalb bleibt alles auf dem Branch
+  `feature/authentication`, bis das Frontend nachgezogen ist.
+
+Getestet in `AdminOnlyEndpointTests` (echte API im Arbeitsspeicher über
+`WebApplicationFactory`, eigene SQLite-Datei im Temp-Ordner): 401 ohne Token und mit
+ungültigem Token, 403 als User, Lesen ohne Anmeldung, Admin darf alles.
+
 ## Merksätze
 
 - **Authentifizierung** = Wer bist du? **Autorisierung** = Was darfst du?

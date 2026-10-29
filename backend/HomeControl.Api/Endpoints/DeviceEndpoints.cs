@@ -1,3 +1,4 @@
+using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
@@ -18,9 +19,10 @@ public static class DeviceEndpoints
 
         devices.MapGet("/", GetAllDevices);
         devices.MapGet("/{id:guid}", GetDeviceById);
-        devices.MapPost("/", CreateDevice);
-        devices.MapPut("/{id:guid}", UpdateDevice);
-        devices.MapDelete("/{id:guid}", DeleteDevice);
+        // Lesen ist offen (Frontend, n8n-Agent). Anlegen, Ändern, Löschen nur für Admin.
+        devices.MapPost("/", CreateDevice).RequireAuthorization(AuthPolicies.AdminOnly);
+        devices.MapPut("/{id:guid}", UpdateDevice).RequireAuthorization(AuthPolicies.AdminOnly);
+        devices.MapDelete("/{id:guid}", DeleteDevice).RequireAuthorization(AuthPolicies.AdminOnly);
     }
 
     // GET /api/devices?q=...&roomId=...&type=... – alle Geräte, sortiert nach Raum und Name.
