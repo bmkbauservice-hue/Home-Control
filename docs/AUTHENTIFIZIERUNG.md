@@ -4,6 +4,10 @@
 > (JWT, Refresh-Token-Rotation, Passwort-Hashing, XSS, CSRF, Auth-Flow) folgt, sobald der
 > Code steht.
 
+**Zum Lernen:** [Lernunterlage-Authentifizierung.pdf](Lernunterlage-Authentifizierung.pdf)
+(11 Seiten: Grundbegriffe, JWT, Rotation, Passwort-Hashing, Rollen, XSS/CSRF, Ablauf, Code,
+Grenzen, Kurzantworten für Rückfragen, Merksätze).
+
 ## Überblick in Bildern
 
 ![Home Control – Login mit JWT: Anmeldung, Prüfung in der Datenbank, Access- und Refresh-Token, geschützte Endpunkte, Refresh, 401 und 403](images/auth-login-mit-jwt.png)
