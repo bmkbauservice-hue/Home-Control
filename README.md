@@ -96,7 +96,18 @@ Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“
 ## Dokumentation
 
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
-[Tuya-Anbindung](docs/TUYA.md) · [Blink-Anbindung](docs/BLINK.md) · [Präsentation](docs/PRAESENTATION.md)
+[Authentifizierung](docs/AUTHENTIFIZIERUNG.md) · [Tuya-Anbindung](docs/TUYA.md) ·
+[Blink-Anbindung](docs/BLINK.md) · [Präsentation](docs/PRAESENTATION.md)
+
+### Lernunterlagen (PDF)
+
+Zu jedem größeren Thema gibt es eine Lernunterlage zum Nachlesen: Begriffe, Ablauf, Code-Landkarte,
+Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/images/](docs/images/).
+
+| Thema | PDF |
+|---|---|
+| Authentifizierung und Autorisierung (JWT, Refresh-Token, Rollen, XSS/CSRF) | [Lernunterlage-Authentifizierung.pdf](docs/Lernunterlage-Authentifizierung.pdf) |
+| API-Schlüssel für den KI-Agenten (Anmeldeverfahren, Fallback-Regel, Schalter) | [Lernunterlage-API-Schluessel.pdf](docs/Lernunterlage-API-Schluessel.pdf) |
 
 ## Lokal starten
 
@@ -241,7 +252,8 @@ backend/HomeControl.Api/   REST API (Details in docs/ARCHITEKTUR.md)
 backend/HomeControl.Api.Tests/  xUnit-Tests (Tuya-Token-Cache, Tuya-Abgleich, Blink-Zugangsdaten)
 tools/BlinkSpike/          Konsolenprojekt für den Blink-Erst-Login mit 2FA (siehe docs/BLINK.md)
 frontend/src/              React-Oberfläche
-docs/                      Dokumentation
+docs/                      Dokumentation, Lernunterlagen (PDF) und Zeichnungen (docs/images/)
+tools/lernpdf/             Erzeugt die Lern-PDFs (Python, reportlab)
 HomeControl.slnx           .NET-Lösung
 dotnet-tools.json          lokales Tool dotnet-ef
 tuya-secrets-einrichten.sh Tuya-Zugangsdaten verdeckt in die User Secrets eintragen

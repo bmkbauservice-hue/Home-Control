@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -26,10 +27,16 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
 
     private Task<(string AdminToken, string UserToken)>? tokens;
 
+    // Zusätzliche Einstellungen für diese Factory (z. B. Auth:RequireLoginForReading).
+    // Unterklassen überschreiben das; im Standard ändert sich nichts.
+    protected virtual Dictionary<string, string?> Settings => [];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Development: Ohne Jwt:SigningKey nimmt die App dann einen zufälligen Schlüssel.
         builder.UseEnvironment("Development");
+
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(Settings));
 
         // Läuft nach Program.cs und hängt eine weitere Einstellung an den DbContext an.
         // Das zweite UseSqlite ersetzt den Connection String aus appsettings.json.
@@ -91,5 +98,26 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
         {
             // Liegt nur im Temp-Ordner. Bleibt sie liegen, stört das keinen Test.
         }
+    }
+}
+
+// Wie HomeControlApiFactory, aber mit eingeschaltetem "Auth:RequireLoginForReading" und einem
+// API-Schlüssel für den Agenten. Damit lässt sich prüfen, dass Lesen dann eine Anmeldung verlangt.
+public class LoginRequiredApiFactory : HomeControlApiFactory
+{
+    public const string AgentApiKey = "test-agent-schluessel-nur-fuer-tests-0123456789";
+
+    protected override Dictionary<string, string?> Settings => new()
+    {
+        ["Auth:RequireLoginForReading"] = "true",
+        ["Agent:ApiKey"] = AgentApiKey,
+    };
+
+    // Neuer Client, der den API-Schlüssel als Header "X-Api-Key" mitschickt.
+    public HttpClient CreateClientWithApiKey(string apiKey)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+        return client;
     }
 }

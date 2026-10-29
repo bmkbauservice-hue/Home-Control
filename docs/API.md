@@ -32,8 +32,9 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
 | GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
 
-**Wer darf was:** Alle `GET`-Endpunkte sind ohne Anmeldung erreichbar (Frontend und n8n-Agent
-lesen weiter wie bisher). Anlegen, Ändern und Löschen von Räumen, Geräten und Ereignissen
+**Wer darf was:** Alle `GET`-Endpunkte sind standardmäßig ohne Anmeldung erreichbar (Frontend und
+n8n-Agent lesen weiter wie bisher). Ist `Auth:RequireLoginForReading` an, verlangen sie ein Access
+Token oder den Header `X-Api-Key` des Agenten (sonst 401); der Schlüssel erlaubt nur Lesen. Anlegen, Ändern und Löschen von Räumen, Geräten und Ereignissen
 verlangt ein Access Token mit der Rolle **Admin** (`Authorization: Bearer <token>`). Ohne
 gültiges Token antwortet die API mit **401**, als angemeldeter User mit **403**.
 `POST /api/tuya/test-device/sync` verlangt nur eine Anmeldung (kein Admin), weil es den Gerätezustand in der Datenbank aktualisiert.

@@ -26,10 +26,13 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
-        auth.MapPost("/register", Register);
-        auth.MapPost("/login", Login);
-        auth.MapPost("/refresh", Refresh);
-        auth.MapPost("/logout", Logout);
+        // Diese vier sind immer offen (auch mit "Auth:RequireLoginForReading"): Wer sich erst
+        // anmelden will, hat noch kein Token. register prüft die Rolle selbst, refresh und logout
+        // arbeiten mit dem Refresh-Cookie.
+        auth.MapPost("/register", Register).AllowAnonymous();
+        auth.MapPost("/login", Login).AllowAnonymous();
+        auth.MapPost("/refresh", Refresh).AllowAnonymous();
+        auth.MapPost("/logout", Logout).AllowAnonymous();
         // Nur mit gültigem Access Token (Authorization: Bearer ...), sonst 401.
         auth.MapGet("/profile", GetProfile).RequireAuthorization();
     }
