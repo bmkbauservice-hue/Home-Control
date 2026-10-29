@@ -18,29 +18,37 @@ danach über ein Refresh-Token.
 ## 2. Einrichtung (Erst-Login mit 2FA)
 
 Der Erst-Login läuft **nicht** im Backend, sondern über das separate Konsolenprojekt
-`tools/BlinkSpike`. Nur hier kommen E-Mail/Passwort kurzzeitig vor, und nur ein Mensch kann
-die PIN eingeben.
+`tools/BlinkSpike`. Nur hier kommt E-Mail/Passwort kurzzeitig vor, und nur ein Mensch kann
+die PIN eingeben. Das **Passwort wird nirgends gespeichert**: Der Spike fragt es bei jedem
+Lauf verdeckt im Terminal ab (Eingabe erscheint als `*`), nie in User Secrets oder einer Datei.
 
 ```bash
-# E-Mail und Passwort für den Spike setzen (nur lokal, in den User Secrets des Spikes)
+# Nur die E-Mail vorher setzen (nur lokal, in den User Secrets des Spikes)
 dotnet user-secrets set "Blink:Email" "<deine-email>" --project tools/BlinkSpike
-dotnet user-secrets set "Blink:Password" "<dein-passwort>" --project tools/BlinkSpike
 
-# Spike starten
+# Spike starten – fragt das Passwort verdeckt im Terminal ab
 dotnet run --project tools/BlinkSpike
 ```
 
+> Aus einer früheren Version könnte noch ein gespeichertes Passwort in den Spike-User-Secrets
+> stehen. Falls vorhanden, bitte entfernen:
+> ```bash
+> dotnet user-secrets remove "Blink:Password" --project tools/BlinkSpike
+> ```
+
 Ablauf:
 
-1. Login mit E-Mail/Passwort.
+1. Login mit E-Mail (User Secrets) und Passwort (verdeckte Eingabe im Terminal).
 2. Blink verlangt eine PIN (SMS oder E-Mail) – im Terminal eingeben.
 3. Bei Erfolg schreibt der Spike **HardwareId** und **Refresh-Token** direkt in die User
    Secrets (nie als Textausgabe):
    - Backend (`backend/HomeControl.Api`): `Blink:HardwareId`, `Blink:InitialRefreshToken`
    - Spike selbst (`tools/BlinkSpike`): `Blink:HardwareId`, `Blink:RefreshToken` (für einen
      künftigen Lauf ohne erneute PIN-Abfrage)
-4. Danach listet der Spike Netzwerke und Kameras auf, inklusive Rohdaten je Kamera (siehe
-   Abschnitt 5, „Bekannte Grenzen“).
+4. Danach listet der Spike Netzwerke und Kameras auf. Je Kamera werden die vorhandenen
+   Feldnamen und die Werte einiger ausgewählter Felder ausgegeben (`battery`, `battery_state`,
+   `temp`, `temperature`, `status`, `enabled`, `armed`, `wifi_strength`) – bewusst nicht die
+   vollständigen Rohdaten, siehe Abschnitt 5, „Bekannte Grenzen“.
 
 Die **HardwareId** ist eine UUID und muss stabil bleiben – ändert sie sich, verlangt Blink
 beim nächsten Login wieder eine neue PIN. Der Spike verwendet deshalb bei einem erneuten
@@ -71,11 +79,22 @@ dotnet user-secrets remove "Blink:InitialRefreshToken" --project backend/HomeCon
 
 `Blink:HardwareId` bleibt stehen (wird bei jedem Login gebraucht, ist aber kein Geheimnis).
 
+### Neu-Login nach einem Fehler (ohne Neustart)
+
+Zeigt `GET /api/blink/status` `loginRequired`, reicht es, `tools/BlinkSpike` erneut
+auszuführen (es verwendet automatisch dieselbe HardwareId weiter). Der neue
+`Blink:InitialRefreshToken` wird **ohne Neustart des Backends** übernommen: Beim nächsten
+Aufruf von `/api/blink/status` oder `/api/blink/cameras` erkennt `BlinkCredentialStore` am
+Hash, dass sich der Wert in den User Secrets geändert hat, übernimmt ihn in die Datenbank und
+versucht den Login erneut. Ein unveränderter Bootstrap-Wert überschreibt dabei nie ein
+zwischenzeitlich über `OnTokenRefreshed` rotiertes, neueres Token.
+
 ## 3. Wo Zugangsdaten liegen
 
 | Wert | Ort | Warum |
 |---|---|---|
-| E-Mail, Passwort | Nur User Secrets von `tools/BlinkSpike`, nie im Backend | Werden nur für den Erst-Login gebraucht |
+| E-Mail | User Secrets von `tools/BlinkSpike`, nie im Backend | Nur für den Login im Spike gebraucht |
+| Passwort | **Nirgends.** Verdeckte Eingabe im Terminal bei jedem Spike-Lauf | Wird nur für den Moment des Logins gebraucht, nie gespeichert |
 | HardwareId | User Secrets von `backend/HomeControl.Api` (`Blink:HardwareId`) | Muss stabil bleiben, ist aber kein Geheimnis |
 | Refresh-Token (Bootstrap) | User Secrets von `backend/HomeControl.Api` (`Blink:InitialRefreshToken`), nur bis zur ersten Übernahme in die Datenbank | Startwert für `BlinkCredentialStore` |
 | Refresh-Token (laufend) | SQLite, Tabelle `BlinkCredentials`, **verschlüsselt** über die ASP.NET Data Protection API | Rotiert bei jedem Login/Refresh (`OnTokenRefreshed`), gehört deshalb in eine beschreibbare, nicht ins Repo eingecheckte Stelle |
@@ -99,30 +118,41 @@ Nur lesend, beide unter `/api/blink`:
 | Endpunkt | Zweck |
 |---|---|
 | `GET /api/blink/status` | `state`: `connected`, `loginRequired` oder `notConfigured`, plus Zeitpunkt des letzten erfolgreichen Abrufs |
-| `GET /api/blink/cameras` | Liste der Kameras: Name, Akku, Temperatur (falls vorhanden), Online-Status |
+| `GET /api/blink/cameras` | Liste der Kameras: Name, Akku (falls vorhanden). Online-Status und Temperatur stehen vorerst immer auf `null`, siehe Abschnitt 5 |
 
 Ein Thumbnail-Endpunkt (`GET /api/blink/cameras/{id}/thumbnail`) ist **bewusst noch nicht**
 gebaut: Home Control ist über Tailscale erreichbar, und ohne eigenen API-Schlüssel für
 Home Control könnte jedes Gerät im Tailnet Kamerabilder abrufen. Das folgt erst, wenn es
 eine Authentifizierung für die Home-Control-API selbst gibt.
 
-Beide Endpunkte rufen Blink höchstens alle zwei Minuten wirklich ab (siehe
-`BlinkNetCameraClient.MinPollInterval`); häufigere Klicks auf „Aktualisieren“ bekommen den
-zwischengespeicherten Stand. Das schützt vor einer Sperrung durch Blink.
+**Beide Endpunkte lösen einen echten Abruf bei Blink aus**, auch `GET /api/blink/status` (er
+ruft intern dieselbe Netzwerk-/Kameraliste ab, nur ohne die Kameras zurückzugeben). Das
+passiert höchstens alle zwei Minuten (siehe `BlinkNetCameraClient.MinPollInterval`);
+häufigere Aufrufe bekommen den zwischengespeicherten Stand. Das schützt vor einer Sperrung
+durch Blink. Ist die Blink-Cloud nicht erreichbar oder antwortet nicht rechtzeitig, liefern
+beide Endpunkte `502` bzw. `504` (ProblemDetails) statt eines allgemeinen Serverfehlers.
 
 ## 5. Bekannte Grenzen
 
 - **Kein offizielles Feldformat.** Blink.NET liefert Kameradaten teils als rohes
   `Dictionary<string, JsonElement>` ohne festes Schema. `BlinkNetCameraClient.MapCameras`
-  liest Akku, Temperatur und Online-Status über plausible, aus öffentlichen Quellen (u. a.
-  `blinkpy`) bekannte Feldnamen – das ist **„best effort“ und noch nicht gegen einen echten
-  Account geprüft**. Der Spike (`tools/BlinkSpike`) gibt zusätzlich zur kurzen Zusammenfassung
-  die Rohdaten jeder Kamera aus, damit sich die Zuordnung bei Bedarf korrigieren lässt.
+  liest Id, Name und Akku über plausible, aus öffentlichen Quellen (u. a. `blinkpy`) bekannte
+  Feldnamen – das ist **„best effort“ und noch nicht gegen einen echten Account geprüft**.
+  **Online-Status und Temperatur liefert `GET /api/blink/cameras` deshalb vorerst immer als
+  `null`**: Die naheliegenden Felder `enabled`/`armed` sind bei Blink Einstellungen
+  (Bewegungserkennung bzw. scharf/unscharf), kein Verbindungsstatus der Kamera – sie als
+  „online“ auszugeben wäre irreführend. Der Spike (`tools/BlinkSpike`) gibt je Kamera die
+  vorhandenen Feldnamen sowie die Werte einiger Kandidaten aus (`battery`, `battery_state`,
+  `temp`, `temperature`, `status`, `enabled`, `armed`, `wifi_strength`), damit sich
+  `MapCameras` anhand echter Daten korrigieren lässt.
 - **Kein HTTP-Statuscode von Blink.NET.** Die Bibliothek wirft bei Fehlern nur eine
   `BlinkClientException` mit Text, ohne Statuscode. Ein echtes 401 lässt sich deshalb nicht
   sicher von einem kurzen Netzwerkfehler unterscheiden. Home Control behandelt beides gleich:
-  Status `loginRequired`, **keine automatische Wiederholung**. Erst ein neuer Lauf von
-  `tools/BlinkSpike` (mit 2FA) behebt das.
+  Status `loginRequired`, **keine automatische Wiederholung bei Blink**. Ein neuer Lauf von
+  `tools/BlinkSpike` (mit 2FA) behebt das – **ohne dass das Backend neu gestartet werden muss**,
+  siehe „Neu-Login nach einem Fehler“ in Abschnitt 2. Auch ein nicht mehr entschlüsselbares
+  Token (z. B. fehlender Data-Protection-Schlüssel, `CryptographicException`) führt zu
+  `loginRequired` statt zu einem Serverfehler.
 - **Kein Thumbnail-Endpunkt.** Siehe Abschnitt 4 – folgt erst mit einem API-Schlüssel für
   Home Control. Ohnehin gilt: Ein neues Bild anfordern (`RequestNewImageAsync`) weckt
   Akku-Kameras auf und kostet Batterie; ein künftiger Thumbnail-Endpunkt soll deshalb nur das

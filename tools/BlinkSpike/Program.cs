@@ -58,13 +58,20 @@ if (!string.IsNullOrWhiteSpace(savedRefreshToken))
 if (!loggedIn)
 {
     var email = config["Blink:Email"];
-    var password = config["Blink:Password"];
-
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+    if (string.IsNullOrWhiteSpace(email))
     {
-        Console.WriteLine("Fehlende Zugangsdaten. Bitte vorher setzen (Werte werden nirgends ausgegeben):");
+        Console.WriteLine("Fehlende E-Mail. Bitte vorher setzen (wird nirgends ausgegeben):");
         Console.WriteLine("  dotnet user-secrets set \"Blink:Email\" \"<deine-email>\" --project tools/BlinkSpike");
-        Console.WriteLine("  dotnet user-secrets set \"Blink:Password\" \"<dein-passwort>\" --project tools/BlinkSpike");
+        return 1;
+    }
+
+    // Das Passwort wird NIE gespeichert (weder in User Secrets noch sonst irgendwo) –
+    // jedes Mal verdeckt neu abfragen.
+    Console.Write("Blink-Passwort eingeben (wird nirgends gespeichert): ");
+    var password = ReadMaskedLine();
+    if (string.IsNullOrWhiteSpace(password))
+    {
+        Console.WriteLine("Abgebrochen.");
         return 1;
     }
 
@@ -163,6 +170,38 @@ return 0;
 
 static string Mask(string value) => value.Length <= 4 ? "····" : $"····{value[^4..]}";
 
+// Liest eine Zeile verdeckt ein (zeigt "*" statt der eingegebenen Zeichen), ohne die Eingabe
+// zwischenzuspeichern. Backspace löscht das zuletzt eingegebene Zeichen.
+static string ReadMaskedLine()
+{
+    var input = new System.Text.StringBuilder();
+    while (true)
+    {
+        var key = Console.ReadKey(intercept: true);
+        if (key.Key == ConsoleKey.Enter)
+        {
+            Console.WriteLine();
+            return input.ToString();
+        }
+
+        if (key.Key == ConsoleKey.Backspace)
+        {
+            if (input.Length > 0)
+            {
+                input.Length--;
+                Console.Write("\b \b");
+            }
+            continue;
+        }
+
+        if (!char.IsControl(key.KeyChar))
+        {
+            input.Append(key.KeyChar);
+            Console.Write('*');
+        }
+    }
+}
+
 // Schreibt einen Wert in die User Secrets eines Projekts, ohne ihn jemals über die eigene
 // Konsolenausgabe laufen zu lassen (gleiches Vorgehen wie tuya-secrets-einrichten.sh).
 static async Task SetUserSecretAsync(string projectPath, string key, string value)
@@ -189,11 +228,14 @@ static async Task SetUserSecretAsync(string projectPath, string key, string valu
     }
 }
 
-// Die genauen Feldnamen je Kamera sind bei Blink nicht dokumentiert. Deshalb zusätzlich zur
-// kurzen Zusammenfassung die Rohdaten ausgeben (keine Tokens darin) – damit lässt sich
-// HomeControl.Api.Blink.BlinkNetCameraClient.MapCameras bei Bedarf korrigieren.
 static void PrintCameras(Dictionary<string, JsonElement> raw)
 {
+    // Felder, deren Werte HomeControl.Api.Blink.BlinkNetCameraClient.MapCameras bei Bedarf
+    // auswerten könnte (Akku, Temperatur, Online-/Scharfstatus, Signalstärke). Nicht die
+    // vollständigen Rohdaten ausgeben, nur diese gezielten Werte – weniger Angriffsfläche beim
+    // Mitlesen/Kopieren und trotzdem genug, um die Zuordnung in MapCameras zu prüfen.
+    string[] interestingFields = ["battery", "battery_state", "temp", "temperature", "status", "enabled", "armed", "wifi_strength"];
+
     foreach (var value in raw.Values)
     {
         if (value.ValueKind != JsonValueKind.Array)
@@ -205,7 +247,15 @@ static void PrintCameras(Dictionary<string, JsonElement> raw)
         {
             var name = camera.TryGetProperty("name", out var n) ? n.GetString() : "(ohne Namen)";
             Console.WriteLine($"  - Kamera \"{name}\"");
-            Console.WriteLine($"    Rohdaten: {camera.GetRawText()}");
+            Console.WriteLine($"    Feldnamen: {string.Join(", ", camera.EnumerateObject().Select(p => p.Name))}");
+
+            foreach (var field in interestingFields)
+            {
+                if (camera.TryGetProperty(field, out var fieldValue))
+                {
+                    Console.WriteLine($"    {field} = {fieldValue.GetRawText()}");
+                }
+            }
         }
     }
 }
