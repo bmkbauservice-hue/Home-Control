@@ -47,14 +47,46 @@ Umsetzung: Die Regel `AdminOnly` (`Auth/AuthPolicies.cs`, verlangt die Rolle Adm
 
 **Bewusst noch offen:**
 
-- **Lesen ohne Anmeldung**, damit der n8n-Agent weiterläuft. Der bekommt später einen
-  eigenen API-Schlüssel, dann wird auch Lesen geschützt.
+- **Lesen ohne Anmeldung** ist standardmäßig noch erlaubt, damit der n8n-Agent weiterläuft.
+  Mit dem Schalter `Auth:RequireLoginForReading` (siehe unten) wird auch Lesen geschützt.
 - **Alles andere im Frontend** wird bei der Anmeldung nur ausgeblendet (Buttons für Admins), das
   Backend prüft die Rolle aber immer selbst. Ausgeblendete Buttons sind Komfort, kein Schutz.
 
 Getestet in `AdminOnlyEndpointTests` (echte API im Arbeitsspeicher über
 `WebApplicationFactory`, eigene SQLite-Datei im Temp-Ordner): 401 ohne Token und mit
 ungültigem Token, 403 als User, Lesen ohne Anmeldung, Admin darf alles.
+
+## Schlüssel für den KI-Agenten (n8n)
+
+Der Agent hat kein Passwort und keinen Browser. Er schickt bei jedem Aufruf den Header
+`X-Api-Key: <Schlüssel>`. Der Schlüssel steht nur in den User Secrets (`Agent:ApiKey`).
+
+| Teil | Aufgabe |
+|---|---|
+| `agent-schluessel-einrichten.sh` | Erzeugt einen zufälligen Schlüssel, speichert ihn in den User Secrets und zeigt ihn **einmal** an |
+| `Auth/ApiKeyAuthenticationHandler.cs` | Prüft den Header in konstanter Zeit (SHA-256 beider Seiten, `FixedTimeEquals`) |
+| `Auth/AuthPolicies.cs` | `CreateReadingPolicy`: angemeldet per JWT **oder** API-Schlüssel |
+| `Auth:RequireLoginForReading` | Schalter in `appsettings.json` (Standard `false`) |
+
+**Was der Schlüssel darf:** nur lesen. Schreibende Endpunkte prüfen die Rolle Admin im JWT, ein
+Schlüssel öffnet sie nie (401). So kann ein gestohlener Agent-Schlüssel nichts löschen.
+
+**Einschalten, ohne den Agenten zu verlieren:**
+
+1. `./agent-schluessel-einrichten.sh` ausführen, Schlüssel kopieren, Backend neu starten.
+2. In n8n bei den HTTP-Request-Knoten für Home Control den Header `X-Api-Key` setzen, am besten
+   als wiederverwendbare Zugangsdaten (Header Auth) und nicht im Workflow-Text.
+3. Prüfen, dass der Agent weiter Daten bekommt.
+4. Erst dann `Auth:RequireLoginForReading` auf `true` setzen (z. B. `dotnet user-secrets set
+   "Auth:RequireLoginForReading" true`) und das Backend neu starten.
+
+Mit dem Schalter an gilt für jeden Endpunkt ohne eigene Regel (alle `GET`) eine Anmeldung. Offen
+bleiben nur `register`, `login`, `refresh`, `logout`, `GET /` und im Development die
+API-Dokumentation. Die Frontend-Anmeldeseite funktioniert unverändert, weil es hinter dem Login
+mit dem JWT liest.
+
+Getestet in `ReadingProtectionTests`: Lesen ohne Anmeldung 401, mit Schlüssel 200, falscher
+Schlüssel 401, Schreiben mit Schlüssel 401, Lesen mit Benutzer-Token 200, Anmeldung bleibt offen.
 
 ## Frontend-Login
 

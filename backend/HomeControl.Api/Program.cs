@@ -6,7 +6,9 @@ using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
 using HomeControl.Api.Tuya;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -96,10 +98,27 @@ builder.Services
         // lange Microsoft-Bezeichnungen umzubenennen.
         options.MapInboundClaims = false;
         options.TokenValidationParameters = TokenService.CreateValidationParameters(jwtOptions);
-    });
+    })
+    // Zweites Verfahren für den KI-Agenten: Header "X-Api-Key" (siehe Auth/ApiKeyAuthenticationHandler.cs).
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyDefaults.AuthenticationScheme, _ => { });
+builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
+
 // Berechtigungsregeln: "AdminOnly" verlangt die Rolle Admin (siehe Auth/AuthPolicies.cs).
 // Schreibende Endpunkte (Anlegen, Ändern, Löschen) benutzen diese Regel.
 builder.Services.AddAuthorizationBuilder().AddHomeControlPolicies();
+
+// Schalter "Auth:RequireLoginForReading" (Standard: aus). Ist er an, verlangt jeder Endpunkt ohne
+// eigene Regel eine Anmeldung (JWT oder API-Schlüssel), also auch alle GET-Aufrufe. Erst einschalten,
+// wenn der Agent seinen Schlüssel hat, sonst bekommt er 401. Der Schalter wird erst beim ersten
+// Gebrauch gelesen, damit auch Einstellungen aus den Tests ankommen.
+builder.Services.AddOptions<AuthorizationOptions>().Configure<IConfiguration>((options, configuration) =>
+{
+    if (configuration.GetValue<bool>("Auth:RequireLoginForReading"))
+    {
+        options.FallbackPolicy = AuthPolicies.CreateReadingPolicy();
+    }
+});
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
@@ -153,11 +172,12 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     // API-Dokumentation unter /scalar
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    // Die Dokumentation bleibt auch mit "RequireLoginForReading" erreichbar (nur im Development).
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
 }
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World!").AllowAnonymous();
 
 app.MapRoomEndpoints();
 app.MapDeviceEndpoints();
