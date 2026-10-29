@@ -12,6 +12,7 @@ import {
 } from '../api/devices'
 import { getRooms, type Room } from '../api/rooms'
 import { getTuyaDevices, type TuyaCloudDevice } from '../api/tuya'
+import { useAuth } from '../auth/authContext'
 import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
 import { PlusIcon } from '../components/Icons'
@@ -24,6 +25,7 @@ type DevicesPageProps = {
 }
 
 export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps) {
+  const { isAdmin } = useAuth()
   const [devices, setDevices] = useState<Device[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [filter, setFilter] = useState<DeviceFilter>({ ...emptyDeviceFilter, roomId: initialRoomId })
@@ -165,14 +167,20 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       {!roomsLoading && !error && rooms.length === 0 && (
         <div className="empty-state">
           <h2 className="tile-title">Zuerst einen Raum anlegen</h2>
-          <p className="tile-text">Jedes Gerät gehört zu einem Raum. Lege deshalb zuerst einen Raum an.</p>
-          <button type="button" className="button button-primary" onClick={() => onNavigate('rooms')}>
-            Zu den Räumen
-          </button>
+          <p className="tile-text">
+            {isAdmin
+              ? 'Jedes Gerät gehört zu einem Raum. Lege deshalb zuerst einen Raum an.'
+              : 'Jedes Gerät gehört zu einem Raum. Ein Admin muss zuerst einen Raum anlegen.'}
+          </p>
+          {isAdmin && (
+            <button type="button" className="button button-primary" onClick={() => onNavigate('rooms')}>
+              Zu den Räumen
+            </button>
+          )}
         </div>
       )}
 
-      {rooms.length > 0 && (
+      {isAdmin && rooms.length > 0 && (
         <form className="tile create-form" onSubmit={handleCreate}>
           <h2 className="field-label">Neues Gerät anlegen</h2>
           <div className="form-grid">
@@ -263,7 +271,9 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       )}
 
       {!loading && !error && rooms.length > 0 && devices.length === 0 && !hasFilter && (
-        <p className="empty">Noch keine Geräte. Lege oben dein erstes Gerät an.</p>
+        <p className="empty">
+          {isAdmin ? 'Noch keine Geräte. Lege oben dein erstes Gerät an.' : 'Noch keine Geräte. Ein Admin kann Geräte anlegen.'}
+        </p>
       )}
 
       {!loading && !error && rooms.length > 0 && devices.length === 0 && hasFilter && (
@@ -281,6 +291,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
                 rooms={rooms}
                 tuyaDevices={tuyaDevices}
                 devices={devices}
+                canEdit={isAdmin}
                 onSave={(input) => handleSave(device.id, input)}
                 onDelete={() => handleDelete(device.id)}
               />

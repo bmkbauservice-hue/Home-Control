@@ -50,15 +50,46 @@ Umsetzung: Die Regel `AdminOnly` (`Auth/AuthPolicies.cs`, verlangt die Rolle Adm
 - **Lesen ohne Anmeldung**, damit der n8n-Agent weiterläuft. Der bekommt später einen
   eigenen API-Schlüssel, dann wird auch Lesen geschützt.
 - **Tuya-Abgleich.** Die Dashboard-Karte ruft ihn beim Öffnen auf. Er nimmt keine Eingaben an
-  und überträgt nur den Zustand aus der Tuya-Cloud. Wird mit dem Frontend-Login auf Admin
-  umgestellt.
-- **Frontend noch ohne Login.** Bis das Frontend-Login fertig ist, schlagen Anlegen, Ändern und
-  Löschen in der Oberfläche mit 401 fehl. Deshalb bleibt alles auf dem Branch
-  `feature/authentication`, bis das Frontend nachgezogen ist.
+  und überträgt nur den Zustand aus der Tuya-Cloud. Da nun jeder Benutzer angemeldet ist, kann
+  er als Nächstes auf „angemeldet“ umgestellt werden.
+- **Alles andere im Frontend** wird bei der Anmeldung nur ausgeblendet (Buttons für Admins), das
+  Backend prüft die Rolle aber immer selbst. Ausgeblendete Buttons sind Komfort, kein Schutz.
 
 Getestet in `AdminOnlyEndpointTests` (echte API im Arbeitsspeicher über
 `WebApplicationFactory`, eigene SQLite-Datei im Temp-Ordner): 401 ohne Token und mit
 ungültigem Token, 403 als User, Lesen ohne Anmeldung, Admin darf alles.
+
+## Frontend-Login
+
+| Datei | Aufgabe |
+|---|---|
+| `src/api/tokenStore.ts` | Access Token merken (Local Storage), Refresh mit Sperre: immer nur **ein** Refresh gleichzeitig |
+| `src/api/http.ts` | `send()` hängt `Authorization: Bearer ...` an. Bei 401 einmal Refresh, dann Aufruf wiederholen |
+| `src/api/auth.ts` | login, register, logout, Profil, Sitzung beim Start wiederherstellen |
+| `src/auth/AuthProvider.tsx`, `authContext.ts` | Wer ist angemeldet? Context mit `useAuth()` (`user`, `isAdmin`, `signIn`, `signOut`) |
+| `src/pages/LoginPage.tsx` | Anmeldeformular, beim ersten Start auch „Erstes Konto anlegen“ (wird Admin) |
+
+Ablauf:
+
+1. **Start:** Liegt ein Access Token im Local Storage, fragt die App das Profil ab. Ist es
+   abgelaufen (401), holt `send()` per Refresh-Cookie ein neues. Ohne Token wird direkt ein
+   Refresh versucht. Klappt nichts, erscheint die Anmeldeseite.
+2. **Normaler Betrieb:** Jeder Aufruf geht mit dem Access Token raus. Wird es während der Nutzung
+   ungültig, merkt der Benutzer nichts: Refresh, dann derselbe Aufruf noch einmal.
+3. **Refresh abgelehnt** (Cookie abgelaufen, Logout in einem anderen Tab, Reuse Detection):
+   Sitzung beendet, Anmeldeseite.
+4. **Abmelden:** Der Server widerruft das Refresh-Token und löscht das Cookie, das Frontend
+   vergisst das Access Token.
+
+**Warum nur ein Refresh gleichzeitig?** Das Backend tauscht das Refresh-Token bei jedem Refresh
+aus (Rotation). Zwei gleichzeitige Refreshs mit demselben Token sähen aus wie ein gestohlenes,
+wiederverwendetes Token (Reuse Detection) und würden den Benutzer ausloggen. React StrictMode
+startet Effekte im Development doppelt, und mehrere Aufrufe können gleichzeitig mit abgelaufenem
+Token ankommen. Deshalb teilen sich alle Aufrufer dasselbe Refresh-Versprechen
+(`refreshInFlight`).
+
+**Bekannte Grenze:** Das Access Token im Local Storage könnte bei einer XSS-Lücke gelesen werden.
+Es gilt nur 15 Minuten, das gefährlichere Refresh-Token liegt im HTTP-only Cookie.
 
 ## Merksätze
 

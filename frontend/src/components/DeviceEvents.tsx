@@ -10,11 +10,13 @@ import {
 
 type DeviceEventsProps = {
   deviceId: string
+  // Das Formular für Testeinträge zeigen wir nur Admins (das Backend verlangt ebenfalls Admin).
+  canAdd: boolean
 }
 
 // Verlauf eines Geräts plus kleines Formular für manuelle Testeinträge.
 // Es gibt noch keine Geräteverbindung: Ein Eintrag wird nur gespeichert, nichts wird geschaltet.
-export function DeviceEvents({ deviceId }: DeviceEventsProps) {
+export function DeviceEvents({ deviceId, canAdd }: DeviceEventsProps) {
   const [events, setEvents] = useState<DeviceEvent[]>([])
   const [input, setInput] = useState<DeviceEventInput>({ action: 'turned_on', value: '' })
   const [loading, setLoading] = useState(true)
@@ -53,8 +55,8 @@ export function DeviceEvents({ deviceId }: DeviceEventsProps) {
 
         {!loading && events.length === 0 && !error && (
           <p className="empty">
-            Noch keine Ereignisse. Sobald das Gerät verbunden ist, erscheinen sie hier. Zum Ausprobieren
-            kannst du einen manuellen Testeintrag erfassen.
+            Noch keine Ereignisse. Sobald das Gerät verbunden ist, erscheinen sie hier.
+            {canAdd && ' Zum Ausprobieren kannst du einen manuellen Testeintrag erfassen.'}
           </p>
         )}
 
@@ -73,6 +75,7 @@ export function DeviceEvents({ deviceId }: DeviceEventsProps) {
         )}
       </section>
 
+      {canAdd && (
       <form className="events-form" onSubmit={handleSubmit}>
         <h4 className="events-form-title">Manueller Testeintrag</h4>
         <p className="tile-text events-hint">
@@ -122,6 +125,7 @@ export function DeviceEvents({ deviceId }: DeviceEventsProps) {
           Testeintrag speichern
         </button>
       </form>
+      )}
     </div>
   )
 }

@@ -12,6 +12,8 @@ type DeviceTileProps = {
   // Für die Auswahl des Tuya-Geräts beim Bearbeiten (siehe DeviceFields)
   tuyaDevices: TuyaCloudDevice[] | null
   devices: Device[]
+  // Bearbeiten, Löschen und manuelle Testeinträge nur für Admins.
+  canEdit: boolean
   // Beide Funktionen geben true zurück, wenn die Aktion geklappt hat.
   onSave: (input: DeviceInput) => Promise<boolean>
   onDelete: () => Promise<boolean>
@@ -20,7 +22,7 @@ type DeviceTileProps = {
 // Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen – zusätzlich den Verlauf zeigen.
 type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
-export function DeviceTile({ device, rooms, tuyaDevices, devices, onSave, onDelete }: DeviceTileProps) {
+export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSave, onDelete }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
   const [input, setInput] = useState<DeviceInput>(toInput(device))
   const [busy, setBusy] = useState(false)
@@ -107,7 +109,7 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, onSave, onDele
             Schließen
           </button>
         </div>
-        <DeviceEvents deviceId={device.id} />
+        <DeviceEvents deviceId={device.id} canAdd={canEdit} />
       </div>
     )
   }
@@ -134,14 +136,18 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, onSave, onDele
           <HistoryIcon size={20} />
           Ereignisse
         </button>
-        <button type="button" className="button" onClick={() => setMode('edit')}>
-          <EditIcon size={20} />
-          Bearbeiten
-        </button>
-        <button type="button" className="button button-ghost-danger" onClick={() => setMode('confirmDelete')}>
-          <TrashIcon size={20} />
-          Löschen
-        </button>
+        {canEdit && (
+          <>
+            <button type="button" className="button" onClick={() => setMode('edit')}>
+              <EditIcon size={20} />
+              Bearbeiten
+            </button>
+            <button type="button" className="button button-ghost-danger" onClick={() => setMode('confirmDelete')}>
+              <TrashIcon size={20} />
+              Löschen
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

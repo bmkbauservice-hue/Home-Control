@@ -1259,3 +1259,83 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   min-height: 0;
   margin-bottom: 16px;
 }
+
+/* ---------- Anmeldung ---------- */
+
+.login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  gap: 16px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+}
+
+.login-brand h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Textknopf ohne Rahmen, z. B. "Erstes Konto anlegen" */
+.button-link {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---------- Angemeldeter Benutzer in der Navigation ---------- */
+
+/* Handy: nur der Abmelden-Knopf in der Leiste, die Angaben zum Benutzer passen dort nicht hin. */
+.nav-user {
+  display: contents;
+}
+
+.nav-user-info {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-user {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+  }
+
+  .nav-user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .nav-user-email {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+  }
+
+  .nav-user-role {
+    font-weight: 700;
+    color: var(--accent);
+  }
+}

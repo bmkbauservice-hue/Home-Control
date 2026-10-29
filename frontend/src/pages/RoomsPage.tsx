@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { createRoom, deleteRoom, getRooms, updateRoom, type Room } from '../api/rooms'
+import { useAuth } from '../auth/authContext'
 import { PlusIcon } from '../components/Icons'
 import { RoomTile } from '../components/RoomTile'
 
 export function RoomsPage() {
+  const { isAdmin } = useAuth()
   const [rooms, setRooms] = useState<Room[]>([])
   const [search, setSearch] = useState('')
   const [newName, setNewName] = useState('')
@@ -96,6 +98,7 @@ export function RoomsPage() {
         </p>
       </header>
 
+      {isAdmin && (
       <form className="tile create-form" onSubmit={handleCreate}>
         <label className="field-label" htmlFor="new-room">
           Neuen Raum anlegen
@@ -115,6 +118,7 @@ export function RoomsPage() {
           </button>
         </div>
       </form>
+      )}
 
       <div className="tile filter-bar">
         <div className="field">
@@ -142,7 +146,7 @@ export function RoomsPage() {
       )}
 
       {!loading && rooms.length === 0 && !error && !isSearching && (
-        <p className="empty">Noch keine Räume. Lege oben deinen ersten Raum an.</p>
+        <p className="empty">{isAdmin ? 'Noch keine Räume. Lege oben deinen ersten Raum an.' : 'Noch keine Räume. Ein Admin kann Räume anlegen.'}</p>
       )}
 
       {!loading && rooms.length === 0 && !error && isSearching && (
@@ -155,6 +159,7 @@ export function RoomsPage() {
             // Der Name im key sorgt dafür, dass die Kachel nach dem Speichern neu startet.
             key={`${room.id}-${room.name}`}
             room={room}
+            canEdit={isAdmin}
             onRename={(name) => handleRename(room.id, name)}
             onDelete={() => handleDelete(room.id)}
           />
