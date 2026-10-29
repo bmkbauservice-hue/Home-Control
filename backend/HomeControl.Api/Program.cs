@@ -40,6 +40,8 @@ builder.Services.AddHttpClient<TuyaClient>((services, client) =>
 });
 // Scoped wie der DbContext: überträgt den Tuya-Zustand auf ein Gerät in der Datenbank.
 builder.Services.AddScoped<TuyaSwitchRecorder>();
+// Liest und überträgt den Zustand aller mit Tuya verknüpften Geräte.
+builder.Services.AddScoped<TuyaDeviceSyncer>();
 
 // Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).
 // SetApplicationName hält den Schlüssel unabhängig vom Pfad des Checkouts gleich – sonst

@@ -30,3 +30,10 @@ public record TuyaDeviceSyncResponse(
     List<TuyaStatusItem> Status,
     string Note,
     string SyncResult);
+
+// Antwort von GET /api/tuya/linked-devices/status und POST /api/tuya/sync: ein Eintrag pro Gerät,
+// das mit einem Tuya-Gerät verknüpft ist. Die Tuya-Geräte-Id steht bewusst nicht drin.
+public record TuyaLinkedDevicesResponse(
+    DateTimeOffset RetrievedAtUtc,
+    List<TuyaLinkedDeviceResult> Devices,
+    string Note);

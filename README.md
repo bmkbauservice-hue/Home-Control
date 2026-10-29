@@ -107,6 +107,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Thema | PDF |
 |---|---|
 | Authentifizierung und Autorisierung (JWT, Refresh-Token, Rollen, XSS/CSRF) | [Lernunterlage-Authentifizierung.pdf](docs/Lernunterlage-Authentifizierung.pdf) |
+| Smart-Home-Geräte verbinden (Tuya-Cloud, Statuscodes, Skalierung, Abgleich) | [Lernunterlage-Tuya-Geraete.pdf](docs/Lernunterlage-Tuya-Geraete.pdf) |
 | API-Schlüssel für den KI-Agenten (Anmeldeverfahren, Fallback-Regel, Schalter) | [Lernunterlage-API-Schluessel.pdf](docs/Lernunterlage-API-Schluessel.pdf) |
 
 ## Lokal starten
@@ -257,6 +258,7 @@ tools/lernpdf/             Erzeugt die Lern-PDFs (Python, reportlab)
 HomeControl.slnx           .NET-Lösung
 dotnet-tools.json          lokales Tool dotnet-ef
 tuya-secrets-einrichten.sh Tuya-Zugangsdaten verdeckt in die User Secrets eintragen
+tuya-rohwerte-anzeigen.sh  Rohwerte (Statuscodes) aller mit Tuya verknüpften Geräte anzeigen
 ```
 
 ---

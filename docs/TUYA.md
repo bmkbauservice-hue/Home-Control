@@ -193,6 +193,48 @@ curl -i http://localhost:5111/api/tuya/test-device/status
 - Warum POST und nicht GET? Ein GET soll nichts verändern. Weil hier etwas in die Datenbank
   geschrieben wird, ist es ein POST. Der reine GET-Endpunkt bleibt unverändert bestehen.
 
+## Alle verknüpften Geräte
+
+**Zum Lernen:** [Lernunterlage-Tuya-Geraete.pdf](Lernunterlage-Tuya-Geraete.pdf)
+(4 Seiten: Weg eines Messwerts, Begriffe, Statuscodes und Skalierung, Geräte verbinden, was nicht
+Tuya ist, Grenzen, Kurzantworten, Merksätze).
+
+Neben dem Testgerät kann das Backend alle Geräte lesen, die auf der Geräteseite im Feld
+„Tuya-Gerät“ verknüpft wurden (`Device.TuyaDeviceId`). Zwei Endpunkte, beide nur für angemeldete
+Benutzer, weil **jedes Gerät einen Aufruf im Tuya-Kontingent** kostet (höchstens 50 pro Aufruf):
+
+| Endpunkt | Wirkung |
+|---|---|
+| `GET /api/tuya/linked-devices/status` | Rohwerte (Codes und Werte unverändert) aller verknüpften Geräte. Speichert nichts. |
+| `POST /api/tuya/sync` | Wie oben, überträgt aber zusätzlich bekannte Zustände auf unsere Geräte. |
+
+Umsetzung: `Tuya/TuyaDeviceSyncer.cs`. Pro Gerät passiert Folgendes:
+
+| Statuscode | Bedeutung | Gespeichert als |
+|---|---|---|
+| `switch_1` = `true` / `false` | Steckdose, Licht | `LastValue` EIN / AUS, `IsActive`, Ereignis `turned_on` / `turned_off` |
+| `doorcontact_state` = `true` / `false` | Türkontakt | `LastValue` OFFEN / ZU, Ereignis `door_opened` / `door_closed` |
+
+- Es wird nur bei einer **Änderung** ein Ereignis gespeichert (wie beim Testgerät).
+- Kein echter Boolean oder kein bekannter Code: `unknownValue`, nichts wird gespeichert.
+- Ein Fehler bei einem Gerät (Tuya lehnt ab, Gerät unbekannt) stoppt die anderen nicht. Ist die
+  Tuya-Cloud insgesamt nicht erreichbar, wird nach dem ersten Fehler abgebrochen, statt bei jedem
+  Gerät auf eine Zeitüberschreitung zu warten.
+- Ein Abgleich gleichzeitig (`SemaphoreSlim`), damit keine doppelten Ereignisse entstehen.
+
+**Temperatur, Leistung (Watt) und Akku werden noch nicht gespeichert.** Tuya liefert dort ganze
+Zahlen mit einem Skalierungsfaktor, der je Gerät verschieden sein kann (zum Beispiel
+`va_temperature = 215` für 21,5 °C, aber bei einem anderen Gerät `21`). Welcher Faktor gilt, steht
+in der Gerätebeschreibung bei Tuya. Damit nichts falsch angezeigt wird, schauen wir zuerst die
+echten Rohwerte der eigenen Geräte an:
+
+```bash
+./tuya-rohwerte-anzeigen.sh
+```
+
+Das Skript meldet sich an, ruft `GET /api/tuya/linked-devices/status` auf und listet pro Gerät
+alle Codes mit Wert. Danach legen wir pro Code fest, wie er umgerechnet und angezeigt wird.
+
 ## Dashboard-Karte „Licht Wohnzimmer“
 
 Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testgerät
@@ -214,9 +256,9 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 ## Bekannte Grenzen
 
 - **Nur lesend.** Es gibt keinen Endpunkt zum Schalten.
-- **Nur ein Testgerät.** Die Geräte-ID kommt aus der Konfiguration. Die Verknüpfung mit einem
-  Gerät in der Datenbank läuft ebenfalls über die Konfiguration (`Tuya:LinkedDeviceId`), nicht
-  über die Oberfläche.
+- **Testgerät über die Konfiguration.** Der Abgleich des Testgeräts (`/test-device/sync`) nutzt
+  `Tuya:LinkedDeviceId`. Alle anderen Geräte werden über das Feld „Tuya-Gerät“ in der Oberfläche
+  verknüpft und mit `POST /api/tuya/sync` abgeglichen (siehe „Alle verknüpften Geräte“).
 - **Kein Online-Status.** Gelesen wird, was die Cloud zuletzt über das Gerät weiß. Ein
   erfolgreicher Abruf heißt nicht, dass das Gerät gerade erreichbar ist oder dass der Wert
   noch stimmt. Den Online-Zustand fragt das Backend nicht ab.
