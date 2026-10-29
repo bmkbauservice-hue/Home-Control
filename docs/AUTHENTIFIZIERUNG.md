@@ -1,8 +1,9 @@
 # Authentifizierung und Autorisierung
 
-> **In Arbeit** auf dem Branch `feature/authentication`. Die ausführliche Erklärung
-> (JWT, Refresh-Token-Rotation, Passwort-Hashing, XSS, CSRF, Auth-Flow) folgt, sobald der
-> Code steht.
+> **Neu:** Benutzer, Passwörter und Rollen laufen jetzt über **ASP.NET Core Identity**
+> (`UserManager`, `IdentityUser<Guid>`, Rollen, Sperre nach Fehlversuchen).
+> Siehe [IDENTITY.md](IDENTITY.md) und [Lernunterlage-Identity.pdf](Lernunterlage-Identity.pdf).
+> Die Texte unten zu JWT, Refresh-Token und Cookies gelten unverändert.
 
 **Zum Lernen:** [Lernunterlage-Authentifizierung.pdf](Lernunterlage-Authentifizierung.pdf)
 (11 Seiten: Grundbegriffe, JWT, Rotation, Passwort-Hashing, Rollen, XSS/CSRF, Ablauf, Code,
@@ -19,7 +20,7 @@ Grenzen, Kurzantworten für Rückfragen, Merksätze).
 > - **Refresh-Token ist kein JWT.** Nur das Access Token ist ein JWT. Das Refresh-Token ist
 >   eine lange Zufallszeichenkette. In der Datenbank steht nur ihr SHA-256-Hash.
 > - **Passwort-Hashing mit PBKDF2, nicht bcrypt.** Home Control nutzt den `PasswordHasher`
->   von ASP.NET Core (PBKDF2 mit Salt). Das Prinzip ist dasselbe: langsamer Hash, nie Klartext.
+>   von ASP.NET Core Identity (PBKDF2 mit Salt), aufgerufen über `UserManager`. Das Prinzip ist dasselbe: langsamer Hash, nie Klartext.
 > - **Nur das Refresh-Token liegt im HTTP-only Cookie.** Das Access Token speichert das
 >   Frontend im Local Storage und schickt es als `Authorization: Bearer <token>` mit.
 > - **Anmeldung mit E-Mail**, nicht mit Benutzername.

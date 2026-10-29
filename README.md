@@ -95,7 +95,7 @@ Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“
 ## Dokumentation
 
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
-[Authentifizierung](docs/AUTHENTIFIZIERUNG.md) · [Tuya-Anbindung](docs/TUYA.md) ·
+[Authentifizierung](docs/AUTHENTIFIZIERUNG.md) · [Identity](docs/IDENTITY.md) · [Tuya-Anbindung](docs/TUYA.md) ·
 [Blink-Anbindung](docs/BLINK.md) · [Betrieb (Handy, Server)](docs/BETRIEB.md) · [Präsentation](docs/PRAESENTATION.md)
 
 ### Lernunterlagen (PDF)
@@ -106,6 +106,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Thema | PDF |
 |---|---|
 | Authentifizierung und Autorisierung (JWT, Refresh-Token, Rollen, XSS/CSRF) | [Lernunterlage-Authentifizierung.pdf](docs/Lernunterlage-Authentifizierung.pdf) |
+| ASP.NET Core Identity (UserManager, IdentityUser, Rollen, Passwort-Hashing, Lockout) | [Lernunterlage-Identity.pdf](docs/Lernunterlage-Identity.pdf) |
 | Smart-Home-Geräte verbinden (Tuya-Cloud, Statuscodes, Skalierung, Abgleich) | [Lernunterlage-Tuya-Geraete.pdf](docs/Lernunterlage-Tuya-Geraete.pdf) |
 | API-Schlüssel für den KI-Agenten (Anmeldeverfahren, Fallback-Regel, Schalter) | [Lernunterlage-API-Schluessel.pdf](docs/Lernunterlage-API-Schluessel.pdf) |
 

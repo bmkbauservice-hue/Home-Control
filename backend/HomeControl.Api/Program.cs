@@ -88,8 +88,9 @@ if (jwtOptions.SigningKey.Length < JwtOptions.MinimumSigningKeyLength)
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<AuthService>();
-// Passwort-Hashing aus ASP.NET Core Identity (PBKDF2 mit Salt), ohne den Rest von Identity.
-builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+// ASP.NET Core Identity: Benutzer, Passwort-Hashing (PBKDF2 mit Salt), Rollen, Sperre nach Fehlversuchen.
+// Details und Regeln in Auth/IdentityRegistration.cs, Erklärung in docs/IDENTITY.md.
+builder.Services.AddHomeControlIdentity();
 
 // JWT-Bearer-Middleware: liest bei jeder Anfrage den Header "Authorization: Bearer <token>",
 // prüft Signatur, Aussteller, Empfänger und Ablaufzeit und setzt daraus HttpContext.User.

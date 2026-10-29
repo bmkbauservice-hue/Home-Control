@@ -2,6 +2,7 @@ using System.Security.Claims;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace HomeControl.Api.Endpoints;
@@ -68,6 +69,8 @@ public static class AuthEndpoints
             {
                 ["email"] = ["Diese E-Mail-Adresse ist schon registriert."]
             }),
+            // Identity hat abgelehnt (z. B. Passwortregeln): IdentityResult.Errors als ValidationProblem.
+            RegisterStatus.Invalid => Results.ValidationProblem(ToValidationErrors(result.Errors)),
             // 401: gar nicht angemeldet. 403: angemeldet, aber kein Admin.
             _ when caller.Identity?.IsAuthenticated == true => Results.Problem(
                 statusCode: StatusCodes.Status403Forbidden,
@@ -94,16 +97,23 @@ public static class AuthEndpoints
             return Results.ValidationProblem(errors);
         }
 
-        var tokens = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
-        if (tokens is null)
+        var login = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
+        if (login.Status == LoginStatus.LockedOut)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status429TooManyRequests,
+                title: "Zu viele Fehlversuche. Das Konto ist kurz gesperrt, bitte in ein paar Minuten erneut versuchen.");
+        }
+
+        if (login.Tokens is null)
         {
             return Results.Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
                 title: "E-Mail oder Passwort ist falsch.");
         }
 
-        SetRefreshCookie(http, environment, tokens);
-        return Results.Ok(ToLoginResponse(tokens));
+        SetRefreshCookie(http, environment, login.Tokens);
+        return Results.Ok(ToLoginResponse(login.Tokens));
     }
 
     // POST /api/auth/refresh – mit dem Refresh-Token aus dem Cookie ein neues Access Token holen.
@@ -220,7 +230,13 @@ public static class AuthEndpoints
         return errors;
     }
 
-    private static UserResponse ToUserResponse(User user) => new(user.Id, user.Email, user.Role);
+    private static UserResponse ToUserResponse(AuthUser user) => new(user.Id, user.Email, user.Role);
+
+    // Identity-Fehler dem passenden Eingabefeld zuordnen: Passwortfehler → "password", Rest → "email".
+    private static Dictionary<string, string[]> ToValidationErrors(IEnumerable<IdentityError> errors) =>
+        errors
+            .GroupBy(e => e.Code.StartsWith("Password", StringComparison.Ordinal) ? "password" : "email")
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
 
     private static LoginResponse ToLoginResponse(AuthTokens tokens) =>
         new(tokens.AccessToken.Token, tokens.AccessToken.ExpiresAtUtc, ToUserResponse(tokens.User));

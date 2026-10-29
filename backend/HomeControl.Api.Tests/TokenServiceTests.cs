@@ -18,13 +18,10 @@ public class TokenServiceTests
         AccessTokenMinutes = 15,
     };
 
-    private static readonly User TestUser = new()
-    {
-        Id = Guid.Parse("11111111-2222-3333-4444-555555555555"),
-        Email = "mario@example.de",
-        PasswordHash = "darf-nie-im-token-stehen",
-        Role = Roles.User,
-    };
+    private static readonly AuthUser TestUser = new(
+        Guid.Parse("11111111-2222-3333-4444-555555555555"),
+        "mario@example.de",
+        Roles.User);
 
     private static Task<TokenValidationResult> ValidateAsync(string token, JwtOptions options) =>
         new JsonWebTokenHandler().ValidateTokenAsync(token, TokenService.CreateValidationParameters(options));
@@ -41,8 +38,8 @@ public class TokenServiceTests
         Assert.Equal(TestUser.Id.ToString(), result.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
         Assert.Equal("mario@example.de", result.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Email)?.Value);
         Assert.Equal(Roles.User, result.ClaimsIdentity.FindFirst(TokenService.RoleClaim)?.Value);
-        // Der Passwort-Hash darf nicht im Token stehen: Ein JWT ist nur signiert, nicht verschlüsselt.
-        Assert.DoesNotContain("darf-nie-im-token-stehen", Base64UrlEncoder.Decode(accessToken.Token.Split('.')[1]));
+        // Ein JWT ist nur signiert, nicht verschlüsselt: Außer Id, E-Mail und Rolle darf nichts drinstehen.
+        Assert.DoesNotContain("password", Base64UrlEncoder.Decode(accessToken.Token.Split('.')[1]), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -70,7 +70,7 @@ export function LoginPage() {
             maxLength={128}
             onChange={(event) => setPassword(event.target.value)}
           />
-          {firstAccount && <p className="field-note">Mindestens 8 Zeichen.</p>}
+          {firstAccount && <p className="field-note">Mindestens 8 Zeichen, mit Groß- und Kleinbuchstaben und einer Ziffer.</p>}
         </div>
 
         {error && (

@@ -5,6 +5,7 @@ using HomeControl.Api.Tests.Fakes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HomeControl.Api.Tests;
@@ -27,6 +28,7 @@ public class AuthServiceTests : IDisposable
         RefreshTokenDays = 30,
     };
     private readonly AuthService service;
+    private readonly ServiceProvider provider;
 
     public AuthServiceTests()
     {
@@ -39,9 +41,17 @@ public class AuthServiceTests : IDisposable
         db = new ApplicationDbContext(dbOptions);
         db.Database.EnsureCreated();
 
+        // Identity genauso einrichten wie in Program.cs (gleiche Regeln), nur mit unserer Test-Datenbank.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(db);
+        services.AddHomeControlIdentity();
+        provider = services.BuildServiceProvider();
+
         service = new AuthService(
             db,
-            new PasswordHasher<User>(),
+            provider.GetRequiredService<UserManager<User>>(),
+            provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(),
             new TokenService(options, time),
             options,
             time,
@@ -50,6 +60,7 @@ public class AuthServiceTests : IDisposable
 
     public void Dispose()
     {
+        provider.Dispose();
         db.Dispose();
         connection.Dispose();
     }
@@ -60,9 +71,9 @@ public class AuthServiceTests : IDisposable
     private async Task<AuthTokens> LoginAdminAsync()
     {
         await RegisterFirstAdminAsync();
-        var tokens = await service.LoginAsync(AdminEmail, AdminPassword, CancellationToken.None);
-        Assert.NotNull(tokens);
-        return tokens;
+        var login = await service.LoginAsync(AdminEmail, AdminPassword, CancellationToken.None);
+        Assert.Equal(LoginStatus.Success, login.Status);
+        return login.Tokens!;
     }
 
     // --- Registrieren ---
@@ -75,9 +86,13 @@ public class AuthServiceTests : IDisposable
         Assert.Equal(RegisterStatus.Created, result.Status);
         var user = await db.Users.SingleAsync();
         Assert.Equal(AdminEmail, user.Email);
-        Assert.Equal(Roles.Admin, user.Role);
+        Assert.Equal(AdminEmail, user.UserName);
         Assert.NotEqual(AdminPassword, user.PasswordHash);
         Assert.DoesNotContain(AdminPassword, user.PasswordHash);
+        // Die Rolle liegt in den Identity-Tabellen, nicht im Benutzer.
+        Assert.Equal(Roles.Admin, result.User!.Role);
+        var userManager = provider.GetRequiredService<UserManager<User>>();
+        Assert.True(await userManager.IsInRoleAsync(user, Roles.Admin));
     }
 
     [Fact]
@@ -134,9 +149,10 @@ public class AuthServiceTests : IDisposable
     {
         await RegisterFirstAdminAsync();
 
-        var tokens = await service.LoginAsync(AdminEmail, "falsches-Passwort", CancellationToken.None);
+        var login = await service.LoginAsync(AdminEmail, "falsches-Passwort", CancellationToken.None);
 
-        Assert.Null(tokens);
+        Assert.Equal(LoginStatus.InvalidCredentials, login.Status);
+        Assert.Null(login.Tokens);
         Assert.Equal(0, await db.RefreshTokens.CountAsync());
     }
 
@@ -145,9 +161,37 @@ public class AuthServiceTests : IDisposable
     {
         await RegisterFirstAdminAsync();
 
-        var tokens = await service.LoginAsync("unbekannt@example.de", AdminPassword, CancellationToken.None);
+        var login = await service.LoginAsync("unbekannt@example.de", AdminPassword, CancellationToken.None);
 
-        Assert.Null(tokens);
+        Assert.Equal(LoginStatus.InvalidCredentials, login.Status);
+        Assert.Null(login.Tokens);
+    }
+
+    [Fact]
+    public async Task Login_nach_fuenf_Fehlversuchen_ist_das_Konto_gesperrt()
+    {
+        await RegisterFirstAdminAsync();
+
+        for (var i = 0; i < 5; i++)
+        {
+            await service.LoginAsync(AdminEmail, "falsches-Passwort-1", CancellationToken.None);
+        }
+
+        // Jetzt hilft auch das richtige Passwort nicht, bis die Sperre (5 Minuten) abgelaufen ist.
+        // (Identity misst die Sperrzeit mit der echten Uhr, deshalb prüfen wir den Ablauf hier nicht.)
+        var locked = await service.LoginAsync(AdminEmail, AdminPassword, CancellationToken.None);
+        Assert.Equal(LoginStatus.LockedOut, locked.Status);
+        Assert.Null(locked.Tokens);
+    }
+
+    [Fact]
+    public async Task Register_mit_zu_schwachem_Passwort_liefert_Identity_Fehler()
+    {
+        var result = await service.RegisterAsync("schwach@example.de", "kurz", null, callerIsAdmin: false, CancellationToken.None);
+
+        Assert.Equal(RegisterStatus.Invalid, result.Status);
+        Assert.Contains(result.Errors, e => e.Code == "PasswordTooShort");
+        Assert.Equal(0, await db.Users.CountAsync());
     }
 
     // --- Refresh ---

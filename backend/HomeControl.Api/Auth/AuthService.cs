@@ -8,9 +8,14 @@ namespace HomeControl.Api.Auth;
 // Die eigentliche Logik der Anmeldung: Registrieren, Einloggen, Token erneuern, Abmelden.
 // Die Endpunkte (Endpoints/AuthEndpoints.cs) kümmern sich nur um HTTP: Eingaben prüfen,
 // Cookie setzen, Statuscode wählen. So lässt sich diese Klasse ohne HTTP testen.
+//
+// Benutzer, Passwörter und Rollen verwaltet ASP.NET Core Identity (UserManager, RoleManager).
+// Hier steht nur, was Home Control selbst dazu beiträgt: wer der erste Admin wird, und die
+// Refresh-Tokens (JWT-Teil), die Identity nicht kennt.
 public class AuthService(
     ApplicationDbContext db,
-    IPasswordHasher<User> passwordHasher,
+    UserManager<User> userManager,
+    RoleManager<IdentityRole<Guid>> roleManager,
     TokenService tokenService,
     JwtOptions options,
     TimeProvider timeProvider,
@@ -30,64 +35,82 @@ public class AuthService(
         bool callerIsAdmin,
         CancellationToken cancellationToken)
     {
-        var isFirstUser = !await db.Users.AnyAsync(cancellationToken);
+        var isFirstUser = !await userManager.Users.AnyAsync(cancellationToken);
         if (!isFirstUser && !callerIsAdmin)
         {
-            return new RegisterResult(RegisterStatus.AdminRequired, null);
+            return new RegisterResult(RegisterStatus.AdminRequired, null, []);
         }
 
         var normalizedEmail = NormalizeEmail(email);
-        if (await db.Users.AnyAsync(u => u.Email == normalizedEmail, cancellationToken))
-        {
-            return new RegisterResult(RegisterStatus.EmailTaken, null);
-        }
-
         var user = new User
         {
+            Id = Guid.NewGuid(),
+            // Die E-Mail-Adresse ist zugleich der Benutzername.
+            UserName = normalizedEmail,
             Email = normalizedEmail,
-            // Erster Benutzer: immer Admin. Sonst: was der Admin gewählt hat, Standard "User".
-            Role = isFirstUser || requestedRole == Roles.Admin ? Roles.Admin : Roles.User,
             CreatedAtUtc = timeProvider.GetUtcNow(),
         };
 
-        // PasswordHasher von ASP.NET Core: PBKDF2 mit zufälligem Salt und vielen Durchläufen.
-        // Das Ergebnis enthält Verfahren, Salt und Hash in einem Text. Das Passwort selbst
-        // wird nirgends gespeichert.
-        user.PasswordHash = passwordHasher.HashPassword(user, password);
+        // Identity prüft die Passwortregeln, erzeugt Salt und Hash (PBKDF2), speichert den Benutzer
+        // und achtet auf doppelte E-Mail-Adressen. Fehler kommen als IdentityResult zurück.
+        var created = await userManager.CreateAsync(user, password);
+        if (!created.Succeeded)
+        {
+            var emailTaken = created.Errors.Any(e => e.Code is "DuplicateUserName" or "DuplicateEmail");
+            return new RegisterResult(
+                emailTaken ? RegisterStatus.EmailTaken : RegisterStatus.Invalid,
+                null,
+                created.Errors.ToList());
+        }
 
-        db.Users.Add(user);
-        await db.SaveChangesAsync(cancellationToken);
+        // Erster Benutzer: immer Admin. Sonst: was der Admin gewählt hat, Standard "User".
+        var role = isFirstUser || requestedRole == Roles.Admin ? Roles.Admin : Roles.User;
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole<Guid>(role));
+        }
 
-        return new RegisterResult(RegisterStatus.Created, user);
+        var roleAdded = await userManager.AddToRoleAsync(user, role);
+        if (!roleAdded.Succeeded)
+        {
+            // Kein Benutzer ohne Rolle zurücklassen.
+            await userManager.DeleteAsync(user);
+            throw new InvalidOperationException(
+                "Rolle konnte nicht zugewiesen werden: " + string.Join("; ", roleAdded.Errors.Select(e => e.Description)));
+        }
+
+        return new RegisterResult(RegisterStatus.Created, new AuthUser(user.Id, normalizedEmail, role), []);
     }
 
-    // Prüft E-Mail und Passwort. Liefert null, wenn eins von beiden nicht stimmt. Bewusst ohne
-    // Unterschied, damit niemand herausfinden kann, welche E-Mail-Adressen es gibt.
-    public async Task<AuthTokens?> LoginAsync(string email, string password, CancellationToken cancellationToken)
+    // Prüft E-Mail und Passwort. Bei unbekannter E-Mail oder falschem Passwort gibt es bewusst
+    // dieselbe Antwort, damit niemand herausfinden kann, welche E-Mail-Adressen es gibt.
+    // Nach zu vielen Fehlversuchen sperrt Identity das Konto für kurze Zeit (Lockout).
+    public async Task<LoginResult> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
-        var normalizedEmail = NormalizeEmail(email);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+        var user = await userManager.FindByEmailAsync(NormalizeEmail(email));
         if (user is null)
         {
-            return null;
+            return new LoginResult(LoginStatus.InvalidCredentials, null);
+        }
+
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return new LoginResult(LoginStatus.LockedOut, null);
         }
 
         // Das eingegebene Passwort wird mit demselben Salt gehasht und mit dem gespeicherten
-        // Hash verglichen. Zurückrechnen aus dem Hash geht nicht.
-        var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
-        if (result == PasswordVerificationResult.Failed)
+        // Hash verglichen. Zurückrechnen aus dem Hash geht nicht. Stammt der Hash von einem
+        // älteren Verfahren, hasht Identity bei dieser Gelegenheit selbst neu.
+        if (!await userManager.CheckPasswordAsync(user, password))
         {
-            return null;
+            await userManager.AccessFailedAsync(user);
+            return await userManager.IsLockedOutAsync(user)
+                ? new LoginResult(LoginStatus.LockedOut, null)
+                : new LoginResult(LoginStatus.InvalidCredentials, null);
         }
 
-        // Passwort stimmt, aber der Hash stammt von einem älteren Verfahren (z. B. weniger
-        // Durchläufe): bei dieser Gelegenheit mit dem aktuellen Verfahren neu hashen.
-        if (result == PasswordVerificationResult.SuccessRehashNeeded)
-        {
-            user.PasswordHash = passwordHasher.HashPassword(user, password);
-        }
-
-        return await IssueTokensAsync(user, cancellationToken);
+        await userManager.ResetAccessFailedCountAsync(user);
+        return new LoginResult(LoginStatus.Success, await IssueTokensAsync(user, cancellationToken));
     }
 
     // Refresh-Token-Rotation: Das alte Refresh-Token wird widerrufen und durch ein neues ersetzt.
@@ -153,15 +176,27 @@ public class AuthService(
         }
     }
 
-    public Task<User?> FindUserAsync(Guid userId, CancellationToken cancellationToken) =>
-        db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+    public async Task<AuthUser?> FindUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user is null ? null : new AuthUser(user.Id, user.Email!, await GetRoleAsync(user));
+    }
+
+    // Identity kennt pro Benutzer eine Liste von Rollen. Home Control benutzt genau eine:
+    // Admin, sonst User.
+    private async Task<string> GetRoleAsync(User user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        return roles.Contains(Roles.Admin) ? Roles.Admin : Roles.User;
+    }
 
     // Neues Access Token und neues Refresh-Token. Vom Refresh-Token wird nur der Hash gespeichert,
     // das Token selbst geht einmal an den Client (im Cookie) und dann nie wieder.
     private async Task<AuthTokens> IssueTokensAsync(User user, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
-        var accessToken = tokenService.CreateAccessToken(user);
+        var authUser = new AuthUser(user.Id, user.Email!, await GetRoleAsync(user));
+        var accessToken = tokenService.CreateAccessToken(authUser);
         var refreshToken = TokenService.CreateRefreshToken();
         var refreshTokenExpiresAt = now.AddDays(options.RefreshTokenDays);
 
@@ -174,7 +209,7 @@ public class AuthService(
         });
         await db.SaveChangesAsync(cancellationToken);
 
-        return new AuthTokens(accessToken, refreshToken, refreshTokenExpiresAt, user);
+        return new AuthTokens(accessToken, refreshToken, refreshTokenExpiresAt, authUser);
     }
 
     private async Task RevokeAllAsync(Guid userId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -197,9 +232,21 @@ public enum RegisterStatus
     Created,
     EmailTaken,
     AdminRequired,
+    // Identity hat Eingabe oder Passwort abgelehnt (z. B. Passwort zu kurz). Siehe Errors.
+    Invalid,
 }
 
-public record RegisterResult(RegisterStatus Status, User? User);
+public record RegisterResult(RegisterStatus Status, AuthUser? User, IReadOnlyList<IdentityError> Errors);
+
+public enum LoginStatus
+{
+    Success,
+    InvalidCredentials,
+    // Zu viele Fehlversuche, das Konto ist kurz gesperrt.
+    LockedOut,
+}
+
+public record LoginResult(LoginStatus Status, AuthTokens? Tokens);
 
 // Alles, was nach Login oder Refresh an den Client geht. RefreshToken landet im Cookie,
 // der Rest im JSON der Antwort.
@@ -207,4 +254,4 @@ public record AuthTokens(
     AccessToken AccessToken,
     string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAtUtc,
-    User User);
+    AuthUser User);
