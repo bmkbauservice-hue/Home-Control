@@ -95,6 +95,17 @@ d.p("<b>Warum nur für angemeldete Benutzer?</b> Jedes Gerät ist ein Aufruf bei
     "Polling: Zwischen zwei Abgleichen verpasste Wechsel (kurz auf, wieder zu) sieht Home Control nicht.")
 
 # ------------------------------------------------------------------ 5
+d.h2("Der Knopf „Mit Tuya abgleichen“ (Geräteseite)")
+d.table([
+    ["Schritt", "Was passiert"],
+    ["1  Klick", "Das Frontend ruft POST /api/tuya/sync auf (mit Bearer-Token, nur angemeldete Benutzer)."],
+    ["2  Backend", "TuyaDeviceSyncer fragt jedes verknüpfte Gerät einzeln bei Tuya ab und überträgt bekannte Codes."],
+    ["3  Antwort", "Pro Gerät: changed, unchanged, unknownValue … oder ein Fehlertext, falls nur dieses Gerät nicht antwortet."],
+    ["4  Anzeige", "Kurzmeldung (X abgeglichen, Y geändert) und die Geräteliste wird neu geladen."],
+], [0.2, 0.8])
+d.p("Der Abgleich läuft <b>nur auf Knopfdruck</b>, nie automatisch: Jedes Gerät ist ein Aufruf im Tuya-Kontingent. "
+    "Ein einzelner Fehler stoppt die anderen Geräte nicht.")
+
 d.h1("5  Nicht alles ist Tuya")
 d.table([
     ["Gerät", "Kann Home Control es lesen?", "Warum / nächster Schritt"],
