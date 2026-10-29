@@ -11,7 +11,7 @@ import {
   type DeviceInput,
 } from '../api/devices'
 import { getRooms, type Room } from '../api/rooms'
-import { getTuyaDevices, type TuyaCloudDevice } from '../api/tuya'
+import { getTuyaDevices, syncLinkedDevices, type TuyaCloudDevice } from '../api/tuya'
 import { useAuth } from '../auth/authContext'
 import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
@@ -37,6 +37,11 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Abgleich mit Tuya: läuft gerade? Ergebnis als kurzer Text.
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  // Wird hochgezählt, um die Geräteliste nach dem Abgleich neu zu laden.
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Räume einmal laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
   useEffect(() => {
@@ -91,7 +96,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       ignore = true
       clearTimeout(timer)
     }
-  }, [filter])
+  }, [filter, reloadKey])
 
   function changeFilter(next: DeviceFilter) {
     setFilter(next)
@@ -100,6 +105,28 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   }
 
   const hasFilter = filter.q.trim() !== '' || filter.roomId !== '' || filter.type !== ''
+
+  // Liest alle verknüpften Geräte bei Tuya und lädt danach die Liste neu.
+  async function handleSync() {
+    setSyncing(true)
+    setError(null)
+    setSyncMessage(null)
+    try {
+      const result = await syncLinkedDevices()
+      const changed = result.devices.filter((d) => d.syncResult === 'changed').length
+      const failed = result.devices.filter((d) => d.error !== null).length
+      setSyncMessage(
+        `${result.devices.length} verknüpfte Geräte abgeglichen, ${changed} geändert` +
+          (failed > 0 ? `, ${failed} ohne Antwort von Tuya` : '') +
+          '.',
+      )
+      setReloadKey((key) => key + 1)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault()
@@ -163,6 +190,15 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
           {error}
         </p>
       )}
+
+      <div className="tile">
+        <button type="button" className="button" onClick={handleSync} disabled={syncing}>
+          {syncing ? 'Gleiche ab …' : 'Mit Tuya abgleichen'}
+        </button>
+        <p className="field-note">
+          {syncMessage ?? 'Liest den aktuellen Zustand aller verknüpften Tuya-Geräte. Es wird nichts geschaltet.'}
+        </p>
+      </div>
 
       {!roomsLoading && !error && rooms.length === 0 && (
         <div className="empty-state">

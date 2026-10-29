@@ -73,7 +73,7 @@ Tuya-Cloud.
 | Geräte | Anlegen, anzeigen, bearbeiten (auch Raum wechseln), löschen; Suche nach Namen, Filter nach Raum und Gerätetyp; Verknüpfung mit einem Tuya-Gerät per Auswahlliste |
 | Ereignisse | Verlauf pro Gerät, manuelle Einträge und automatische Einträge aus dem Tuya-Abgleich |
 | Reports | Tagesauswertung für einen UTC-Tag: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
-| Tuya | Geräteliste aller verknüpften Tuya-App-Geräte (`GET /api/tuya/devices`); Status eines Geräts lesen (`GET /api/tuya/test-device/status`); Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis |
+| Tuya | Geräteliste aller verknüpften Tuya-App-Geräte (`GET /api/tuya/devices`); Status eines Geräts lesen (`GET /api/tuya/test-device/status`); Abgleich (`POST /api/tuya/test-device/sync`) überträgt EIN/AUS auf ein verknüpftes Gerät und speichert Änderungen als Ereignis; `POST /api/tuya/sync` gleicht alle verknüpften Geräte ab (Knopf „Mit Tuya abgleichen“ auf der Geräteseite) |
 
 ## Stand und nächste Schritte
 
@@ -87,8 +87,7 @@ Tuya-Cloud.
 
 **Geplant:**
 
-- Alle verknüpften Tuya-Geräte gemeinsam abgleichen (die Verknüpfung per Geräteliste gibt es schon)
-- Weitere Gerätetypen: Steckdose mit Strommessung, Türkontakt, Akku-Ladestand
+- Weitere Gerätetypen: Temperatur, Steckdose mit Strommessung (Watt), Akku-Ladestand – dafür brauchen wir zuerst die echten Rohwerte (`./tuya-rohwerte-anzeigen.sh`)
 - Tests für die Tuya-Signatur und die Endpunkte
 
 Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“.
