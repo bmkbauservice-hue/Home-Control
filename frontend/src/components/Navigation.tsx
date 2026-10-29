@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, RoomsIcon } from './Icons'
+import { useAuth } from '../auth/authContext'
+import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, LogoutIcon, RoomsIcon } from './Icons'
 
 // Die Seiten der App. Neue Seiten werden hier ergänzt.
 export type Page = 'dashboard' | 'rooms' | 'devices' | 'reports' | 'blink'
@@ -20,6 +21,8 @@ type NavigationProps = {
 // Auf dem Tablet links als Seitenleiste, auf dem Handy unten als Leiste.
 // Das Umschalten passiert nur über CSS (siehe .nav in index.css).
 export function Navigation({ currentPage, onNavigate }: NavigationProps) {
+  const { user, signOut } = useAuth()
+
   return (
     <nav className="nav" aria-label="Hauptnavigation">
       <div className="nav-brand" aria-hidden="true">
@@ -38,6 +41,18 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
           <span>{item.label}</span>
         </button>
       ))}
+      <div className="nav-user">
+        {user && (
+          <p className="nav-user-info" title={user.email}>
+            <span className="nav-user-email">{user.email}</span>
+            <span className="nav-user-role">{user.role === 'Admin' ? 'Admin' : 'Nur lesen'}</span>
+          </p>
+        )}
+        <button type="button" className="nav-item" onClick={() => void signOut()}>
+          <LogoutIcon />
+          <span>Abmelden</span>
+        </button>
+      </div>
     </nav>
   )
 }

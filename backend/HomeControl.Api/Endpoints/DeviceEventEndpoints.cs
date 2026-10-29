@@ -1,3 +1,4 @@
+using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
@@ -22,7 +23,8 @@ public static class DeviceEventEndpoints
 
         events.MapGet("/", GetEvents);
         events.MapGet("/{eventId:guid}", GetEventById);
-        events.MapPost("/", CreateEvent);
+        // Manuelle Testeinträge nur für Admin.
+        events.MapPost("/", CreateEvent).RequireAuthorization(AuthPolicies.AdminOnly);
     }
 
     // GET /api/devices/{id}/events – Verlauf eines Geräts, neueste Ereignisse zuerst

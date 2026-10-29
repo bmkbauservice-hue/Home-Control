@@ -4,6 +4,8 @@ import { EditIcon, TrashIcon } from './Icons'
 
 type RoomTileProps = {
   room: Room
+  // Bearbeiten und Löschen nur für Admins; andere sehen die Kachel nur zum Lesen.
+  canEdit: boolean
   // Beide Funktionen geben true zurück, wenn die Aktion geklappt hat.
   onRename: (name: string) => Promise<boolean>
   onDelete: () => Promise<boolean>
@@ -12,7 +14,7 @@ type RoomTileProps = {
 // Eine Kachel kann drei Zustände haben: anzeigen, bearbeiten, Löschen bestätigen.
 type Mode = 'view' | 'edit' | 'confirmDelete'
 
-export function RoomTile({ room, onRename, onDelete }: RoomTileProps) {
+export function RoomTile({ room, canEdit, onRename, onDelete }: RoomTileProps) {
   const [mode, setMode] = useState<Mode>('view')
   const [name, setName] = useState(room.name)
   const [busy, setBusy] = useState(false)
@@ -91,16 +93,18 @@ export function RoomTile({ room, onRename, onDelete }: RoomTileProps) {
       <p className="tile-text">
         {room.deviceCount === 1 ? '1 Gerät' : `${room.deviceCount} Geräte`}
       </p>
-      <div className="tile-actions">
-        <button type="button" className="button" onClick={() => setMode('edit')}>
-          <EditIcon size={20} />
-          Bearbeiten
-        </button>
-        <button type="button" className="button button-ghost-danger" onClick={() => setMode('confirmDelete')}>
-          <TrashIcon size={20} />
-          Löschen
-        </button>
-      </div>
+      {canEdit && (
+        <div className="tile-actions">
+          <button type="button" className="button" onClick={() => setMode('edit')}>
+            <EditIcon size={20} />
+            Bearbeiten
+          </button>
+          <button type="button" className="button button-ghost-danger" onClick={() => setMode('confirmDelete')}>
+            <TrashIcon size={20} />
+            Löschen
+          </button>
+        </div>
+      )}
     </div>
   )
 }

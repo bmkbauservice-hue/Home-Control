@@ -23,7 +23,10 @@ public static class TuyaEndpoints
 
         tuya.MapGet("/devices", GetCloudDevices);
         tuya.MapGet("/test-device/status", GetTestDeviceStatus);
-        tuya.MapPost("/test-device/sync", SyncTestDevice);
+        // Schreibt in die Datenbank (Gerätezustand), deshalb nur für angemeldete Benutzer. Die
+        // Dashboard-Karte ruft ihn nach dem Frontend-Login auf. Kein Admin nötig: Es werden keine
+        // Eingaben angenommen, nur der Zustand aus der Tuya-Cloud übertragen.
+        tuya.MapPost("/test-device/sync", SyncTestDevice).RequireAuthorization();
     }
 
     // GET /api/tuya/devices – alle Geräte aus der Tuya-Cloud (verknüpfte App-Konten) und dazu,

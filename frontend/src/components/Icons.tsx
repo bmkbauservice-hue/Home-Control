@@ -203,3 +203,13 @@ export function TrashIcon(props: IconProps) {
     </Icon>
   )
 }
+
+export function LogoutIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9 4H5v16h4" />
+      <path d="M16 8l4 4-4 4" />
+      <path d="M20 12H9" />
+    </Icon>
+  )
+}

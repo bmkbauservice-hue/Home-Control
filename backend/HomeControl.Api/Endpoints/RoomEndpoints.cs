@@ -1,3 +1,4 @@
+using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
@@ -16,9 +17,10 @@ public static class RoomEndpoints
 
         rooms.MapGet("/", GetAllRooms);
         rooms.MapGet("/{id:guid}", GetRoomById);
-        rooms.MapPost("/", CreateRoom);
-        rooms.MapPut("/{id:guid}", UpdateRoom);
-        rooms.MapDelete("/{id:guid}", DeleteRoom);
+        // Lesen ist offen (Frontend, n8n-Agent). Anlegen, Ändern, Löschen nur für Admin.
+        rooms.MapPost("/", CreateRoom).RequireAuthorization(AuthPolicies.AdminOnly);
+        rooms.MapPut("/{id:guid}", UpdateRoom).RequireAuthorization(AuthPolicies.AdminOnly);
+        rooms.MapDelete("/{id:guid}", DeleteRoom).RequireAuthorization(AuthPolicies.AdminOnly);
     }
 
     // GET /api/rooms?q=... – alle Räume, alphabetisch sortiert, optional mit Suche im Namen

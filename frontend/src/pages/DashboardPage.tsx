@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getDevices, getDeviceTypeLabel, type Device } from '../api/devices'
 import { createRoom, getRooms, type Room } from '../api/rooms'
+import { useAuth } from '../auth/authContext'
 import { BlinkStatus } from '../components/BlinkStatus'
 import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
 import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
@@ -21,6 +22,7 @@ type DashboardPageProps = {
 }
 
 export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
+  const { isAdmin } = useAuth()
   const [rooms, setRooms] = useState<Room[]>([])
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +121,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
         <section className="dashboard-section" aria-labelledby="rooms-heading">
           <div className="section-header">
             <h2 id="rooms-heading">Räume</h2>
-            {rooms.length > 0 && (
+            {rooms.length > 0 && isAdmin && (
               <button type="button" className="button" onClick={() => onNavigate('rooms')}>
                 Verwalten
               </button>
@@ -131,7 +133,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
           {!loading && error && <p className="empty">Räume konnten nicht geladen werden.</p>}
 
           {!loading && !error && rooms.length === 0 && (
-            <EmptyRooms onCreated={(room) => setRooms([room])} />
+            <EmptyRooms canCreate={isAdmin} onCreated={(room) => setRooms([room])} />
           )}
 
           {!loading && rooms.length > 0 && (
@@ -240,11 +242,13 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
 }
 
 type EmptyRoomsProps = {
+  // Nur Admins dürfen Räume anlegen.
+  canCreate: boolean
   onCreated: (room: Room) => void
 }
 
 // Leerzustand, wenn noch kein Raum existiert. Der Button öffnet ein kleines Formular.
-function EmptyRooms({ onCreated }: EmptyRoomsProps) {
+function EmptyRooms({ canCreate, onCreated }: EmptyRoomsProps) {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
@@ -269,11 +273,12 @@ function EmptyRooms({ onCreated }: EmptyRoomsProps) {
       </span>
       <h3 className="tile-title">Noch keine Räume</h3>
       <p className="tile-text">
-        Lege deinen ersten Raum an, zum Beispiel Wohnzimmer oder Küche. Er erscheint dann hier als
-        Kachel.
+        {canCreate
+          ? 'Lege deinen ersten Raum an, zum Beispiel Wohnzimmer oder Küche. Er erscheint dann hier als Kachel.'
+          : 'Ein Admin kann Räume anlegen. Sie erscheinen dann hier als Kacheln.'}
       </p>
 
-      {showForm ? (
+      {!canCreate ? null : showForm ? (
         <form className="create-row empty-form" onSubmit={handleSubmit}>
           <label className="visually-hidden" htmlFor="first-room">
             Name des Raums

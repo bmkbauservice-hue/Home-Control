@@ -11,6 +11,8 @@
     <!-- Fest auf 1.0.9 (keine offizielle Blink-API, siehe docs/BLINK.md): ein automatisches
          Update könnte die inoffiziellen Endpunkte unbemerkt ändern. -->
     <PackageReference Include="Blink.NET" Version="1.0.9" />
+    <!-- Prüft das Access Token (JWT) im Header "Authorization: Bearer ...". -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.*" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

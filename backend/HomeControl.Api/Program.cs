@@ -1,11 +1,16 @@
+using System.Security.Cryptography;
+using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
 using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
+using HomeControl.Api.Models;
 using HomeControl.Api.Tuya;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +58,49 @@ builder.Services.AddScoped<BlinkCredentialStore>();
 // Für die Datenbank holt er sich bei Bedarf über IServiceScopeFactory einen eigenen Scope.
 builder.Services.AddSingleton<IBlinkCameraClient, BlinkNetCameraClient>();
 
+// Anmeldung mit JWT (siehe docs/AUTHENTIFIZIERUNG.md). Issuer, Audience und Laufzeiten stehen
+// in appsettings.json, der geheime Signaturschlüssel in den User Secrets (Jwt:SigningKey).
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+var usesTemporaryJwtKey = false;
+if (jwtOptions.SigningKey.Length < JwtOptions.MinimumSigningKeyLength)
+{
+    // Außerhalb von Development: lieber gar nicht starten als mit einem unsicheren Schlüssel.
+    if (!builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            $"Jwt:SigningKey fehlt oder ist kürzer als {JwtOptions.MinimumSigningKeyLength} Zeichen.");
+    }
+
+    // Development ohne Schlüssel: Die App soll trotzdem starten (Tuya, Blink usw. laufen weiter).
+    // Ein zufälliger Schlüssel nur für diesen Start. Nach einem Neustart sind alle Access Tokens
+    // ungültig, das Frontend holt sich dann per Refresh einfach ein neues.
+    jwtOptions.SigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    usesTemporaryJwtKey = true;
+}
+
+// Singleton: Alle Teile (TokenService, JWT-Middleware) benutzen dieselben Einstellungen,
+// auch denselben zufälligen Ersatzschlüssel.
+builder.Services.AddSingleton(jwtOptions);
+builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<AuthService>();
+// Passwort-Hashing aus ASP.NET Core Identity (PBKDF2 mit Salt), ohne den Rest von Identity.
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+
+// JWT-Bearer-Middleware: liest bei jeder Anfrage den Header "Authorization: Bearer <token>",
+// prüft Signatur, Aussteller, Empfänger und Ablaufzeit und setzt daraus HttpContext.User.
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Claim-Namen so lassen, wie sie im Token stehen ("sub", "email", "role"), statt sie in
+        // lange Microsoft-Bezeichnungen umzubenennen.
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = TokenService.CreateValidationParameters(jwtOptions);
+    });
+// Berechtigungsregeln: "AdminOnly" verlangt die Rolle Admin (siehe Auth/AuthPolicies.cs).
+// Schreibende Endpunkte (Anlegen, Ändern, Löschen) benutzen diese Regel.
+builder.Services.AddAuthorizationBuilder().AddHomeControlPolicies();
+
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
 
@@ -73,6 +121,19 @@ app.UseExceptionHandler();
 // Antworten mit Fehlercode, aber ohne Inhalt (z. B. 404 für eine unbekannte Route
 // oder eine ungültige GUID in der URL), bekommen ebenfalls ProblemDetails.
 app.UseStatusCodePages();
+
+// Erst authentifizieren (Wer bist du? Token lesen und prüfen), dann autorisieren (Was darfst
+// du? z. B. RequireAuthorization, Rolle Admin). Beide nach dem Exception Handler, damit auch
+// ihre Fehler einheitlich als ProblemDetails ankommen (401 und 403 über UseStatusCodePages).
+app.UseAuthentication();
+app.UseAuthorization();
+
+if (usesTemporaryJwtKey)
+{
+    app.Logger.LogWarning(
+        "Kein Jwt:SigningKey in den User Secrets. Es wird ein zufälliger Schlüssel nur für diesen Start benutzt. " +
+        "Einrichten mit ./jwt-schluessel-einrichten.sh (siehe docs/AUTHENTIFIZIERUNG.md).");
+}
 
 // Beim Start fehlende Migrationen automatisch anwenden.
 // So wird die SQLite-Datei angelegt und passt immer zum aktuellen Modell.
@@ -104,5 +165,9 @@ app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapBlinkEndpoints();
+app.MapAuthEndpoints();
 
 app.Run();
+
+// Für die Endpunkt-Tests (WebApplicationFactory<Program> in HomeControl.Api.Tests).
+public partial class Program { }

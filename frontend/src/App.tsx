@@ -5,8 +5,25 @@ import { DashboardPage } from './pages/DashboardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { RoomsPage } from './pages/RoomsPage'
+import { LoginPage } from './pages/LoginPage'
+import { useAuth } from './auth/authContext'
 
 export default function App() {
+  const { status } = useAuth()
+
+  // Ohne Anmeldung sieht man nur die Anmeldeseite. Solange noch geprüft wird, ob eine Sitzung
+  // besteht, bleibt der Bildschirm leer, damit die Anmeldeseite nicht kurz aufblitzt.
+  if (status === 'loading') {
+    return null
+  }
+  if (status === 'anonymous') {
+    return <LoginPage />
+  }
+  return <AppShell />
+}
+
+// Die eigentliche App für angemeldete Benutzer.
+function AppShell() {
   // Welche Seite gerade angezeigt wird. Ein Router ist für fünf Seiten noch nicht nötig.
   const [page, setPage] = useState<Page>('dashboard')
   // Raum, mit dem die Geräteseite gefiltert starten soll ('' = alle Räume).
