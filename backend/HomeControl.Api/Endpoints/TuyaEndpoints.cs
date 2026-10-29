@@ -27,6 +27,45 @@ public static class TuyaEndpoints
         // Dashboard-Karte ruft ihn nach dem Frontend-Login auf. Kein Admin nötig: Es werden keine
         // Eingaben angenommen, nur der Zustand aus der Tuya-Cloud übertragen.
         tuya.MapPost("/test-device/sync", SyncTestDevice).RequireAuthorization();
+
+        // Alle Geräte, die mit einem Tuya-Gerät verknüpft sind. Jedes Gerät ist ein Aufruf bei
+        // Tuya (Kontingent des Cloud-Projekts), deshalb nur für angemeldete Benutzer.
+        tuya.MapGet("/linked-devices/status", GetLinkedDevicesStatus).RequireAuthorization();
+        tuya.MapPost("/sync", SyncLinkedDevices).RequireAuthorization();
+    }
+
+    // GET /api/tuya/linked-devices/status – Rohwerte aller verknüpften Geräte, nichts wird gespeichert.
+    // Dient dazu, die echten Statuscodes der eigenen Geräte zu sehen (Temperatur, Watt, Akku ...).
+    private static async Task<IResult> GetLinkedDevicesStatus(
+        TuyaDeviceSyncer syncer,
+        IOptionsMonitor<TuyaOptions> options,
+        CancellationToken cancellationToken)
+    {
+        var missing = options.CurrentValue.GetMissingCredentials();
+        if (missing.Count > 0)
+        {
+            return NotConfigured(missing);
+        }
+
+        var results = await syncer.ReadAllAsync(apply: false, cancellationToken);
+        return Results.Ok(new TuyaLinkedDevicesResponse(DateTimeOffset.UtcNow, results, StatusNote));
+    }
+
+    // POST /api/tuya/sync – liest alle verknüpften Geräte und überträgt bekannte Zustände
+    // (switch_1, doorcontact_state) auf unsere Geräte. Schaltet nichts.
+    private static async Task<IResult> SyncLinkedDevices(
+        TuyaDeviceSyncer syncer,
+        IOptionsMonitor<TuyaOptions> options,
+        CancellationToken cancellationToken)
+    {
+        var missing = options.CurrentValue.GetMissingCredentials();
+        if (missing.Count > 0)
+        {
+            return NotConfigured(missing);
+        }
+
+        var results = await syncer.ReadAllAsync(apply: true, cancellationToken);
+        return Results.Ok(new TuyaLinkedDevicesResponse(DateTimeOffset.UtcNow, results, StatusNote));
     }
 
     // GET /api/tuya/devices – alle Geräte aus der Tuya-Cloud (verknüpfte App-Konten) und dazu,
