@@ -1,5 +1,6 @@
 using HomeControl.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HomeControl.Api.Data;
 
@@ -15,6 +16,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceEvent> DeviceEvents => Set<DeviceEvent>();
     public DbSet<BlinkCredential> BlinkCredentials => Set<BlinkCredential>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    // Zeitpunkte als Millisekunden seit 1970 (UTC) speichern, wie bei DeviceEvent.Timestamp.
+    // Grund: SQLite kann DateTimeOffset nicht vergleichen oder sortieren, Zahlen schon.
+    // Bei Feldern, die null sein dürfen (RevokedAtUtc), bleibt null einfach null.
+    private static readonly ValueConverter<DateTimeOffset, long> UnixMillisecondsConverter = new(
+        value => value.ToUnixTimeMilliseconds(),
+        value => DateTimeOffset.FromUnixTimeMilliseconds(value));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,6 +96,55 @@ public class ApplicationDbContext : DbContext
             // SHA-256 als Hex-Zeichenkette (64 Zeichen).
             entity.Property(c => c.InitialRefreshTokenHash)
                 .HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.Property(u => u.Email)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            // Jede E-Mail-Adresse nur einmal. Klein geschrieben wird vorher im Code,
+            // denn der eindeutige Index in SQLite unterscheidet Groß- und Kleinschreibung.
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+
+            entity.Property(u => u.PasswordHash)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(u => u.Role)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(u => u.CreatedAtUtc)
+                .HasConversion(UnixMillisecondsConverter);
+
+            // Benutzer löschen → seine Refresh-Tokens werden mitgelöscht.
+            entity.HasMany(u => u.RefreshTokens)
+                .WithOne(t => t.User)
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            // SHA-256 als Hex-Zeichenkette (64 Zeichen), eindeutig für die Suche beim Refresh.
+            entity.Property(t => t.TokenHash)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.HasIndex(t => t.TokenHash)
+                .IsUnique();
+
+            entity.Property(t => t.CreatedAtUtc)
+                .HasConversion(UnixMillisecondsConverter);
+
+            entity.Property(t => t.ExpiresAtUtc)
+                .HasConversion(UnixMillisecondsConverter);
+
+            entity.Property(t => t.RevokedAtUtc)
+                .HasConversion(UnixMillisecondsConverter);
         });
     }
 }
