@@ -58,6 +58,10 @@ ungültigem Token, 403 als User, Lesen ohne Anmeldung, Admin darf alles.
 
 ## Schlüssel für den KI-Agenten (n8n)
 
+**Zum Lernen:** [Lernunterlage-API-Schluessel.pdf](Lernunterlage-API-Schluessel.pdf)
+(5 Seiten: API-Schlüssel, mehrere Anmeldeverfahren in ASP.NET Core, Vergleich in konstanter Zeit,
+Fallback-Regel und Schalter, Grenzen, Kurzantworten, Merksätze).
+
 Der Agent hat kein Passwort und keinen Browser. Er schickt bei jedem Aufruf den Header
 `X-Api-Key: <Schlüssel>`. Der Schlüssel steht nur in den User Secrets (`Agent:ApiKey`).
 
