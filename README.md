@@ -96,7 +96,7 @@ Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“
 
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
 [Authentifizierung](docs/AUTHENTIFIZIERUNG.md) · [Tuya-Anbindung](docs/TUYA.md) ·
-[Blink-Anbindung](docs/BLINK.md) · [Präsentation](docs/PRAESENTATION.md)
+[Blink-Anbindung](docs/BLINK.md) · [Betrieb (Handy, Server)](docs/BETRIEB.md) · [Präsentation](docs/PRAESENTATION.md)
 
 ### Lernunterlagen (PDF)
 
