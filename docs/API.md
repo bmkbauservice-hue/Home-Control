@@ -25,7 +25,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | GET | `/api/reports/daily?date=JJJJ-MM-TT` | Tagesauswertung (UTC-Tag) | 200 | 400 |
 | GET | `/api/tuya/devices` | Alle Geräte aus der Tuya-Cloud mit Verknüpfung zu unseren Geräten (nur lesend) | 200 | 502, 503, 504 |
 | GET | `/api/tuya/test-device/status` | Status des Tuya-Testgeräts aus der Tuya-Cloud (nur lesend) | 200 | 502, 503, 504 |
-| POST | `/api/tuya/test-device/sync` | Status lesen und `switch_1` auf das verknüpfte Gerät übertragen (schaltet nichts) | 200 | 502, 503, 504 |
+| POST | `/api/tuya/test-device/sync` | Status lesen und `switch_1` auf das verknüpfte Gerät übertragen (schaltet nichts, **angemeldet**) | 200 | 401, 502, 503, 504 |
 | POST | `/api/auth/register` | Benutzer anlegen (erster Benutzer: offen und wird Admin, danach nur **Admin**) | 201 | 400, 401, 403 |
 | POST | `/api/auth/login` | Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie | 200 | 400, 401 |
 | POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
@@ -36,8 +36,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 lesen weiter wie bisher). Anlegen, Ändern und Löschen von Räumen, Geräten und Ereignissen
 verlangt ein Access Token mit der Rolle **Admin** (`Authorization: Bearer <token>`). Ohne
 gültiges Token antwortet die API mit **401**, als angemeldeter User mit **403**.
-`POST /api/tuya/test-device/sync` ist bewusst noch offen, bis das Frontend-Login steht
-(siehe [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md)).
+`POST /api/tuya/test-device/sync` verlangt nur eine Anmeldung (kein Admin), weil es den Gerätezustand in der Datenbank aktualisiert.
 
 Zusätzlich antwortet `GET /` mit dem Text „Hello World!“ (Überbleibsel aus der Projektvorlage).
 

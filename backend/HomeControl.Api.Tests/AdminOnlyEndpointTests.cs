@@ -59,6 +59,16 @@ public class AdminOnlyEndpointTests(HomeControlApiFactory factory) : IClassFixtu
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Tuya_Abgleich_ohne_Anmeldung_gibt_401()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsync("/api/tuya/test-device/sync", content: null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("/api/rooms")]
     [InlineData("/api/devices")]

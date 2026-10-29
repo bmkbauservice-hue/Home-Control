@@ -36,7 +36,7 @@ Grenzen, Kurzantworten für Rückfragen, Merksätze).
 | Ereignis speichern (manueller Testeintrag) | 401 | 403 | ja |
 | Weitere Benutzer anlegen (`POST /api/auth/register`) | 401* | 403 | ja |
 | Eigenes Profil (`GET /api/auth/profile`) | 401 | ja | ja |
-| Tuya-Abgleich (`POST /api/tuya/test-device/sync`) | ja | ja | ja |
+| Tuya-Abgleich (`POST /api/tuya/test-device/sync`) | 401 | ja | ja |
 
 \* Nur solange es noch keinen Benutzer gibt, ist die Registrierung offen. Der erste Benutzer
 wird automatisch Admin.
@@ -49,9 +49,6 @@ Umsetzung: Die Regel `AdminOnly` (`Auth/AuthPolicies.cs`, verlangt die Rolle Adm
 
 - **Lesen ohne Anmeldung**, damit der n8n-Agent weiterläuft. Der bekommt später einen
   eigenen API-Schlüssel, dann wird auch Lesen geschützt.
-- **Tuya-Abgleich.** Die Dashboard-Karte ruft ihn beim Öffnen auf. Er nimmt keine Eingaben an
-  und überträgt nur den Zustand aus der Tuya-Cloud. Da nun jeder Benutzer angemeldet ist, kann
-  er als Nächstes auf „angemeldet“ umgestellt werden.
 - **Alles andere im Frontend** wird bei der Anmeldung nur ausgeblendet (Buttons für Admins), das
   Backend prüft die Rolle aber immer selbst. Ausgeblendete Buttons sind Komfort, kein Schutz.
 
