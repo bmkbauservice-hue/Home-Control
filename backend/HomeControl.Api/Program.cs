@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
@@ -143,6 +144,22 @@ app.UseExceptionHandler();
 // oder eine ungültige GUID in der URL), bekommen ebenfalls ProblemDetails.
 app.UseStatusCodePages();
 
+// Gebautes Frontend ausliefern (ein Port, ein Link, kein CORS). Nur aktiv, wenn dort eine index.html liegt:
+// Frontend:Path (z. B. ../../frontend/dist) oder standardmäßig der Ordner wwwroot neben dem Backend.
+// Ohne gebautes Frontend ändert sich nichts (Entwicklung läuft weiter über den Vite-Server).
+var frontendPath = Path.GetFullPath(
+    app.Configuration["Frontend:Path"] ?? "wwwroot", app.Environment.ContentRootPath);
+var servesFrontend = File.Exists(Path.Combine(frontendPath, "index.html"));
+PhysicalFileProvider? frontendFiles = null;
+if (servesFrontend)
+{
+    frontendFiles = new PhysicalFileProvider(frontendPath);
+    // Statische Dateien stehen vor der Authentifizierung: Die Anmeldeseite muss auch ohne Login laden.
+    // Geschützt sind die Daten unter /api, nicht die Oberfläche selbst.
+    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = frontendFiles });
+    app.UseStaticFiles(new StaticFileOptions { FileProvider = frontendFiles });
+}
+
 // Erst authentifizieren (Wer bist du? Token lesen und prüfen), dann autorisieren (Was darfst
 // du? z. B. RequireAuthorization, Rolle Admin). Beide nach dem Exception Handler, damit auch
 // ihre Fehler einheitlich als ProblemDetails ankommen (401 und 403 über UseStatusCodePages).
@@ -179,7 +196,10 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference().AllowAnonymous();
 }
 
-app.MapGet("/", () => "Hello World!").AllowAnonymous();
+if (!servesFrontend)
+{
+    app.MapGet("/", () => "Hello World!").AllowAnonymous();
+}
 
 app.MapRoomEndpoints();
 app.MapDeviceEndpoints();
@@ -188,6 +208,24 @@ app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
+
+if (frontendFiles is not null)
+{
+    var files = frontendFiles;
+    // Alles, was keine Datei und keine API-Route ist, bekommt die index.html (React-Oberfläche).
+    // Unbekannte Adressen unter /api bleiben ein echter 404 und werden nicht mit HTML beantwortet.
+    app.MapFallback(async context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.SendFileAsync(files.GetFileInfo("index.html"));
+    }).AllowAnonymous();
+}
 
 app.Run();
 
