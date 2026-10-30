@@ -1,10 +1,14 @@
 using HomeControl.Api.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HomeControl.Api.Data;
 
-public class ApplicationDbContext : DbContext
+// IdentityDbContext bringt die Tabellen von ASP.NET Core Identity mit (AspNetUsers, AspNetRoles,
+// AspNetUserRoles ...) und das DbSet "Users". Unsere eigenen Tabellen bleiben unverändert.
+public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 {
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options)
@@ -16,7 +20,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceEvent> DeviceEvents => Set<DeviceEvent>();
     public DbSet<BlinkCredential> BlinkCredentials => Set<BlinkCredential>();
-    public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // Zeitpunkte als Millisekunden seit 1970 (UTC) speichern, wie bei DeviceEvent.Timestamp.
@@ -28,6 +31,9 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Zuerst die Identity-Tabellen aufbauen lassen, dann unsere eigenen Einstellungen.
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Room>(entity =>
         {
             entity.Property(r => r.Name)
@@ -100,23 +106,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.Property(u => u.Email)
-                .HasMaxLength(256)
-                .IsRequired();
-
-            // Jede E-Mail-Adresse nur einmal. Klein geschrieben wird vorher im Code,
-            // denn der eindeutige Index in SQLite unterscheidet Groß- und Kleinschreibung.
-            entity.HasIndex(u => u.Email)
-                .IsUnique();
-
-            entity.Property(u => u.PasswordHash)
-                .HasMaxLength(500)
-                .IsRequired();
-
-            entity.Property(u => u.Role)
-                .HasMaxLength(20)
-                .IsRequired();
-
+            // E-Mail, Passwort-Hash und Rolle verwaltet Identity (eigene Indizes, eindeutiger Benutzername).
             entity.Property(u => u.CreatedAtUtc)
                 .HasConversion(UnixMillisecondsConverter);
 

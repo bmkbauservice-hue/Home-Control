@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using HomeControl.Api.Models;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
@@ -21,7 +20,7 @@ public class TokenService(JwtOptions options, TimeProvider timeProvider)
     // Erstellt ein signiertes JWT mit genau drei Angaben über den Benutzer: Id, E-Mail, Rolle.
     // Kein Passwort, kein Hash, keine Zugangsdaten zu Tuya oder Blink: Ein JWT ist nur
     // signiert, nicht verschlüsselt. Jeder, der es hat, kann den Inhalt lesen (z. B. auf jwt.io).
-    public AccessToken CreateAccessToken(User user)
+    public AccessToken CreateAccessToken(AuthUser user)
     {
         var now = timeProvider.GetUtcNow();
         var expiresAt = now.AddMinutes(options.AccessTokenMinutes);
