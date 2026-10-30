@@ -8,6 +8,10 @@
 (11 Seiten: Grundbegriffe, JWT, Rotation, Passwort-Hashing, Rollen, XSS/CSRF, Ablauf, Code,
 Grenzen, Kurzantworten für Rückfragen, Merksätze).
 
+**Abgleich mit dem Unterricht:** [Vergleich-Unterricht-Authentifizierung.pdf](Vergleich-Unterricht-Authentifizierung.pdf)
+(7 Seiten: Zusammenfassung der Stunde vom 30.10. inkl. Filter und Validierung, Vergleich Punkt für
+Punkt, was Home Control übernehmen sollte, was für die Präsentation zählt).
+
 ## Überblick in Bildern
 
 ![Home Control – Login mit JWT: Anmeldung, Prüfung in der Datenbank, Access- und Refresh-Token, geschützte Endpunkte, Refresh, 401 und 403](images/auth-login-mit-jwt.png)
