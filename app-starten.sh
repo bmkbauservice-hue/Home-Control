@@ -13,4 +13,7 @@ echo "==> Backend starten (Oberfläche + API auf http://localhost:5111)"
 export ASPNETCORE_ENVIRONMENT="${ASPNETCORE_ENVIRONMENT:-Development}"
 export ASPNETCORE_URLS="${ASPNETCORE_URLS:-http://127.0.0.1:5111}"
 export Frontend__Path="$PWD/frontend/dist"
+# Immer dieselbe Datenbank wie bei "dotnet run" im Backend-Ordner. SQLite legt relative Pfade
+# relativ zum aktuellen Ordner an; ohne diese Zeile entstünde im Hauptordner eine neue, leere Datenbank.
+export ConnectionStrings__DefaultConnection="${ConnectionStrings__DefaultConnection:-Data Source=$PWD/backend/HomeControl.Api/homecontrol.db}"
 exec dotnet run --project backend/HomeControl.Api --no-launch-profile
