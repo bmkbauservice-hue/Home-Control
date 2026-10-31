@@ -88,25 +88,32 @@ d.bullets([
 ])
 
 d.h2("Lint-Warnung: setState direkt im Effekt")
-d.p("oxlint meldete <font name='Mono'>react(set-state-in-effect)</font>: <font name='Mono'>loadStatus()</font> setzte "
-    "gleich am Anfang <font name='Mono'>setRefreshing(true)</font>, und das <b>synchron</b> im "
-    "<font name='Mono'>useEffect</font>. Dadurch rendert React sofort ein zweites Mal, bevor überhaupt eine Antwort da ist.")
-d.code("""// vorher: setState sofort im Effekt
+d.p("oxlint meldete <font name='Mono'>react(set-state-in-effect)</font>. Der Effekt rief "
+    "<font name='Mono'>loadStatus()</font> auf, und die Funktion setzte State. Der erste Versuch, nur "
+    "<font name='Mono'>setRefreshing(true)</font> zu entfernen, reichte nicht: Bei einer "
+    "<font name='Mono'>async</font>-Funktion erkennt der Linter nicht sicher, dass das setState erst nach dem "
+    "<font name='Mono'>await</font> passiert. Erst das Muster aus der React-Doku hat geholfen: State nur in "
+    "<font name='Mono'>.then()</font> bzw. <font name='Mono'>.catch()</font> setzen.")
+d.code("""// vorher (Warnung): async-Funktion mit setState
 const loadStatus = useCallback(async () => {
-  setRefreshing(true)            // ← synchron, löst sofort einen neuen Render aus
-  try { const next = await getStatus(); setStatus(next) } ...
+  setRefreshing(true)                       // synchron → sofort neuer Render
+  try { setStatus(await getStatus()) } ...
 }, [])
 
-// nachher: State erst nach dem await, "refreshing" nur beim Klick
-const loadStatus = useCallback(async () => {
-  try { const next = await getStatus(); setStatus(next) } ...   // nach await: in Ordnung
-}, [])
+// nachher (0 Warnungen): State erst, wenn die Antwort da ist
+const loadStatus = useCallback(() =>
+  getStatus()
+    .then((next) => { setStatus(next); setServerUnreachable(false) })
+    .catch(() => setServerUnreachable(true))
+    .finally(() => setRefreshing(false)), [])
+
 const refresh = useCallback(() => {
-  setRefreshing(true)            // Klick = Ereignis, hier ist setState richtig
+  setRefreshing(true)                       // Klick = Ereignis, hier ist setState richtig
   loadStatus(); loadBlink()
 }, [loadStatus, loadBlink])""")
-d.merksatz("<b>Merksatz:</b> Effekte synchronisieren mit der Außenwelt (Server, Timer). State, der aus einer "
-           "Benutzeraktion folgt, gehört in den Event-Handler. setState nach einem await im Effekt ist in Ordnung.")
+d.merksatz("<b>Merksatz:</b> Effekte synchronisieren mit der Außenwelt (Server, Timer). State aus einer "
+           "Benutzeraktion gehört in den Event-Handler, State aus einer Server-Antwort in den Promise-Callback. "
+           "Und: Erst prüfen (Linter erneut laufen lassen), dann „behoben“ sagen.")
 
 # ------------------------------------------------------------------ 5
 d.h1("5  CSS: die LED leuchtet")

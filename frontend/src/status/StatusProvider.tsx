@@ -17,32 +17,39 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   // Verhindert, dass nach dem Verlassen der App noch ein State gesetzt wird.
   const active = useRef(true)
 
-  // Setzt keinen State, bevor die Antwort da ist: Der Aufruf im useEffect darf nicht sofort
-  // (synchron) einen weiteren Render auslösen. "refreshing" setzt nur der Knopf (refresh unten).
-  const loadStatus = useCallback(async () => {
-    try {
-      const next = await getStatus()
-      if (active.current) {
-        setStatus(next)
-        setServerUnreachable(false)
-      }
-    } catch {
-      if (active.current) setServerUnreachable(true)
-    } finally {
-      if (active.current) setRefreshing(false)
-    }
-  }, [])
+  // State wird erst in .then()/.catch() gesetzt, also wenn die Antwort da ist, nicht schon beim
+  // Aufruf. So löst der Aufruf im useEffect keinen sofortigen zweiten Render aus (Lint-Regel
+  // react/set-state-in-effect). "refreshing" setzt nur der Knopf (refresh unten).
+  const loadStatus = useCallback(
+    () =>
+      getStatus()
+        .then((next) => {
+          if (!active.current) return
+          setStatus(next)
+          setServerUnreachable(false)
+        })
+        .catch(() => {
+          if (active.current) setServerUnreachable(true)
+        })
+        .finally(() => {
+          if (active.current) setRefreshing(false)
+        }),
+    [],
+  )
 
   // Blink nur beim Start und auf Knopfdruck, nicht jede Minute: Blink hat keine offizielle API,
   // und jeder Abruf dort soll selten bleiben (siehe docs/BLINK.md).
-  const loadBlink = useCallback(async () => {
-    try {
-      const next = await getBlinkStatus()
-      if (active.current) setBlink(next)
-    } catch {
-      // Ohne Antwort bleibt die Blink-LED grau. Die Server-LED zeigt schon, ob der Server fehlt.
-    }
-  }, [])
+  const loadBlink = useCallback(
+    () =>
+      getBlinkStatus()
+        .then((next) => {
+          if (active.current) setBlink(next)
+        })
+        .catch(() => {
+          // Ohne Antwort bleibt die Blink-LED grau. Die Server-LED zeigt schon, ob der Server fehlt.
+        }),
+    [],
+  )
 
   useEffect(() => {
     active.current = true
