@@ -3,7 +3,6 @@ using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace HomeControl.Api.Endpoints;
 
@@ -16,26 +15,20 @@ public static class AuthEndpoints
     // Abruf von Räumen oder Geräten mit. Gebraucht wird es nur bei refresh und logout.
     private const string RefreshCookiePath = "/api/auth";
 
-    private const int MaxEmailLength = 256;
-    private const int MinPasswordLength = 8;
-    // Obergrenze, damit niemand den Server mit riesigen Passwörtern beschäftigt (Hashing ist
-    // absichtlich langsam).
-    private const int MaxPasswordLength = 128;
-
     // Registriert alle Endpunkte unter /api/auth.
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var auth = app.MapGroup("/api/auth");
+        var auth = app.MapGroup("/api/auth").WithTags("Anmeldung");
 
         // Diese vier sind immer offen (auch mit "Auth:RequireLoginForReading"): Wer sich erst
         // anmelden will, hat noch kein Token. register prüft die Rolle selbst, refresh und logout
         // arbeiten mit dem Refresh-Cookie.
-        auth.MapPost("/register", Register).AllowAnonymous();
-        auth.MapPost("/login", Login).AllowAnonymous();
-        auth.MapPost("/refresh", Refresh).AllowAnonymous();
-        auth.MapPost("/logout", Logout).AllowAnonymous();
+        auth.MapPost("/register", Register).AllowAnonymous().WithSummary("Benutzer anlegen (erster Benutzer wird Admin, danach nur durch Admin)");
+        auth.MapPost("/login", Login).AllowAnonymous().WithSummary("Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie");
+        auth.MapPost("/refresh", Refresh).AllowAnonymous().WithSummary("Neues Access Token mit dem Refresh-Cookie (Rotation)");
+        auth.MapPost("/logout", Logout).AllowAnonymous().WithSummary("Abmelden: Refresh-Token widerrufen, Cookie löschen");
         // Nur mit gültigem Access Token (Authorization: Bearer ...), sonst 401.
-        auth.MapGet("/profile", GetProfile).RequireAuthorization();
+        auth.MapGet("/profile", GetProfile).RequireAuthorization().WithSummary("Eigenes Profil (Access Token nötig)");
     }
 
     // POST /api/auth/register – Benutzer anlegen (erster Benutzer: jeder, danach nur Admin)
@@ -45,16 +38,8 @@ public static class AuthEndpoints
         AuthService authService,
         CancellationToken cancellationToken)
     {
-        var errors = ValidateEmailAndPassword(request.Email, request.Password, checkPasswordRules: true);
-        if (request.Role is not null && request.Role != Roles.Admin && request.Role != Roles.User)
-        {
-            errors["role"] = ["Rolle muss \"Admin\" oder \"User\" sein."];
-        }
-        if (errors.Count > 0)
-        {
-            return Results.ValidationProblem(errors);
-        }
-
+        // E-Mail, Passwort-Länge und Rolle sind schon geprüft (DataAnnotations an RegisterRequest,
+        // AddValidation in Program.cs). Die Passwortregeln prüft Identity beim Anlegen.
         var result = await authService.RegisterAsync(
             request.Email,
             request.Password,
@@ -89,14 +74,7 @@ public static class AuthEndpoints
         IWebHostEnvironment environment,
         CancellationToken cancellationToken)
     {
-        // Beim Login keine Passwortregeln prüfen: Sonst verrät die Antwort etwas über die Regeln
-        // statt nur "falsch". Leer oder viel zu lang ist trotzdem ein Eingabefehler.
-        var errors = ValidateEmailAndPassword(request.Email, request.Password, checkPasswordRules: false);
-        if (errors.Count > 0)
-        {
-            return Results.ValidationProblem(errors);
-        }
-
+        // Pflichtfelder sind schon geprüft (DataAnnotations an LoginRequest), bewusst ohne Passwortregeln.
         var login = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
         if (login.Status == LoginStatus.LockedOut)
         {
@@ -157,7 +135,7 @@ public static class AuthEndpoints
         AuthService authService,
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value, out var userId))
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Ungültiges Token.");
         }
@@ -195,40 +173,6 @@ public static class AuthEndpoints
     // Zum Löschen müssen Path und die übrigen Optionen gleich sein wie beim Setzen.
     private static void DeleteRefreshCookie(HttpContext http, IWebHostEnvironment environment) =>
         http.Response.Cookies.Delete(RefreshCookieName, CreateRefreshCookieOptions(environment));
-
-    private static Dictionary<string, string[]> ValidateEmailAndPassword(
-        string? email,
-        string? password,
-        bool checkPasswordRules)
-    {
-        var errors = new Dictionary<string, string[]>();
-
-        var trimmedEmail = email?.Trim() ?? string.Empty;
-        var atIndex = trimmedEmail.IndexOf('@');
-        if (trimmedEmail.Length == 0)
-        {
-            errors["email"] = ["Bitte eine E-Mail-Adresse eingeben."];
-        }
-        else if (trimmedEmail.Length > MaxEmailLength || atIndex <= 0 || atIndex == trimmedEmail.Length - 1)
-        {
-            errors["email"] = ["Bitte eine gültige E-Mail-Adresse eingeben."];
-        }
-
-        if (string.IsNullOrEmpty(password))
-        {
-            errors["password"] = ["Bitte ein Passwort eingeben."];
-        }
-        else if (password.Length > MaxPasswordLength)
-        {
-            errors["password"] = [$"Das Passwort darf höchstens {MaxPasswordLength} Zeichen lang sein."];
-        }
-        else if (checkPasswordRules && password.Length < MinPasswordLength)
-        {
-            errors["password"] = [$"Das Passwort muss mindestens {MinPasswordLength} Zeichen lang sein."];
-        }
-
-        return errors;
-    }
 
     private static UserResponse ToUserResponse(AuthUser user) => new(user.Id, user.Email, user.Role);
 

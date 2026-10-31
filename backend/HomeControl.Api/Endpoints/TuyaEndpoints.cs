@@ -19,7 +19,7 @@ public static class TuyaEndpoints
     // zusätzlich in unserer Datenbank (siehe TuyaSwitchRecorder).
     public static void MapTuyaEndpoints(this WebApplication app)
     {
-        var tuya = app.MapGroup("/api/tuya");
+        var tuya = app.MapGroup("/api/tuya").WithTags("Tuya");
 
         tuya.MapGet("/devices", GetCloudDevices);
         tuya.MapGet("/test-device/status", GetTestDeviceStatus);

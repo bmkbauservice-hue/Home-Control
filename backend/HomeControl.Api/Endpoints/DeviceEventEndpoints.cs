@@ -19,7 +19,7 @@ public static class DeviceEventEndpoints
     // Registriert die Endpunkte unter /api/devices/{id}/events.
     public static void MapDeviceEventEndpoints(this WebApplication app)
     {
-        var events = app.MapGroup("/api/devices/{id:guid}/events");
+        var events = app.MapGroup("/api/devices/{id:guid}/events").WithTags("Ereignisse");
 
         events.MapGet("/", GetEvents);
         events.MapGet("/{eventId:guid}", GetEventById);

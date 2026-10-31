@@ -132,6 +132,11 @@ builder.Services.AddOpenApi();
 
 // Einheitliche Fehlerantworten im ProblemDetails-Format (RFC 9457)
 builder.Services.AddProblemDetails();
+
+// Eingebaute Validierung von .NET 10: prüft DataAnnotations an den Parametern der Endpunkte
+// (z. B. [Required], [EmailAddress] an LoginRequest), bevor der Endpunkt läuft. Ungültig → 400
+// mit ProblemDetails, der Endpunkt wird nicht aufgerufen.
+builder.Services.AddValidation();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Fehlerhafte Anfragen (z. B. kaputtes JSON) immer als Exception melden – sonst passiert das

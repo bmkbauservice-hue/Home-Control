@@ -15,7 +15,7 @@ public static class DeviceEndpoints
     // Registriert alle Endpunkte unter /api/devices.
     public static void MapDeviceEndpoints(this WebApplication app)
     {
-        var devices = app.MapGroup("/api/devices");
+        var devices = app.MapGroup("/api/devices").WithTags("Geräte");
 
         devices.MapGet("/", GetAllDevices);
         devices.MapGet("/{id:guid}", GetDeviceById);

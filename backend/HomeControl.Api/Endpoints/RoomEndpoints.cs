@@ -13,7 +13,7 @@ public static class RoomEndpoints
     // Registriert alle Endpunkte unter /api/rooms.
     public static void MapRoomEndpoints(this WebApplication app)
     {
-        var rooms = app.MapGroup("/api/rooms");
+        var rooms = app.MapGroup("/api/rooms").WithTags("Räume");
 
         rooms.MapGet("/", GetAllRooms);
         rooms.MapGet("/{id:guid}", GetRoomById);

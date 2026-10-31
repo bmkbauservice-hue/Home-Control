@@ -13,7 +13,9 @@ public static class StatusEndpoints
     // Registriert GET /api/status. Nur lesend: Es wird nichts gespeichert und nichts geschaltet.
     public static void MapStatusEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/status", GetStatus);
+        app.MapGet("/api/status", GetStatus)
+            .WithTags("Status")
+            .WithSummary("Status-LEDs: Tuya-Cloud erreichbar? Welche Geräte sind online?");
     }
 
     // GET /api/status – Übersicht für die Status-LEDs: Ist die Tuya-Cloud erreichbar, und welche
