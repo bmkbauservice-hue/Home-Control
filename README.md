@@ -77,6 +77,9 @@ Tuya-Cloud.
 
 ## Stand und nächste Schritte
 
+> **Einstieg für jede neue Arbeitssitzung:** [docs/UEBERGABE.md](docs/UEBERGABE.md): was fertig ist,
+> wie man prüft (`./pruefen.sh`), offene Punkte in empfohlener Reihenfolge und die Regeln.
+
 **Bewusste Grenzen des aktuellen Stands:**
 
 - Tuya ist **nur lesend** angebunden, inzwischen für alle verknüpften Geräte.
@@ -96,7 +99,8 @@ Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“
 
 [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) · [API](docs/API.md) ·
 [Authentifizierung](docs/AUTHENTIFIZIERUNG.md) · [Identity](docs/IDENTITY.md) · [Tuya-Anbindung](docs/TUYA.md) ·
-[Blink-Anbindung](docs/BLINK.md) · [Betrieb (Handy, Server)](docs/BETRIEB.md) · [Präsentation](docs/PRAESENTATION.md)
+[Blink-Anbindung](docs/BLINK.md) · [Betrieb (Handy, Server)](docs/BETRIEB.md) · [Präsentation](docs/PRAESENTATION.md) ·
+[Übergabe](docs/UEBERGABE.md)
 
 ### Lernunterlagen (PDF)
 
@@ -112,6 +116,8 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Prüfskript und Identity-Migration (pruefen.sh, Exit-Codes, Migrationen, „loss of data“) | [Lernunterlage-Pruefen-und-Migration.pdf](docs/Lernunterlage-Pruefen-und-Migration.pdf) |
 | Betrieb: Dienst und HTTPS (systemd, dotnet publish, Ports, tailscale serve, iPhone) | [Lernunterlage-Betrieb.pdf](docs/Lernunterlage-Betrieb.pdf) |
 | Status-LEDs (GET /api/status, Cache, Context-Provider, CSS-LEDs, Barrierefreiheit) | [Lernunterlage-Status-LEDs.pdf](docs/Lernunterlage-Status-LEDs.pdf) |
+| Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
+| Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 
 ## Lokal starten
 
