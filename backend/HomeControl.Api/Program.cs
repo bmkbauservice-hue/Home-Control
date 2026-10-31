@@ -5,6 +5,7 @@ using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
+using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -43,6 +44,8 @@ builder.Services.AddHttpClient<TuyaClient>((services, client) =>
 builder.Services.AddScoped<TuyaSwitchRecorder>();
 // Liest und überträgt den Zustand aller mit Tuya verknüpften Geräte.
 builder.Services.AddScoped<TuyaDeviceSyncer>();
+// Merkt sich 60 Sekunden lang, welche Tuya-Geräte online sind (Status-LEDs, GET /api/status).
+builder.Services.AddSingleton<TuyaOnlineCache>();
 
 // Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).
 // SetApplicationName hält den Schlüssel unabhängig vom Pfad des Checkouts gleich – sonst
@@ -209,6 +212,7 @@ app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
+app.MapStatusEndpoints();
 
 if (frontendFiles is not null)
 {

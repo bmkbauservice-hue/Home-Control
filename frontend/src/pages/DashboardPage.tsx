@@ -7,7 +7,10 @@ import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
 import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
+import { StatusBar } from '../components/StatusBar'
+import { StatusLed } from '../components/StatusLed'
 import { TuyaLightCard } from '../components/TuyaLightCard'
+import { useStatus } from '../status/statusContext'
 
 // Zwei Plätze für die Blink-Kameras. Echte Namen und Bilder kommen erst mit der Blink-Anbindung.
 const cameraSlots = ['Kamera 1', 'Kamera 2']
@@ -69,9 +72,11 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
           </span>
           <h1 className="hero-title">Home Control</h1>
         </div>
-        <p className="hero-greeting">Hallo Muju</p>
+        <p className="hero-greeting">{greeting()}, Muju</p>
         <p className="page-subtitle">Dein Zuhause auf einen Blick</p>
       </header>
+
+      <StatusBar />
 
       {error && (
         <div className="alert alert-row" role="alert">
@@ -196,6 +201,7 @@ type RoomCardProps = {
 // Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter.
 // Darunter stehen die Geräte mit Typ und ehrlich gekennzeichnetem (fehlendem) Messwert.
 function RoomCard({ room, devices, onOpen }: RoomCardProps) {
+  const { stateOf } = useStatus()
   const shown = devices.slice(0, devicesPerCard)
   const hidden = devices.length - shown.length
 
@@ -223,8 +229,11 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
                 <DeviceTypeIcon type={device.type} />
               </span>
               <span className="room-device-text">
-                <span className="room-device-name" title={device.name}>
-                  {device.name}
+                <span className="room-device-name-row">
+                  <StatusLed state={stateOf(device.id)} />
+                  <span className="room-device-name" title={device.name}>
+                    {device.name}
+                  </span>
                 </span>
                 <span className="room-device-type">{getDeviceTypeLabel(device.type)}</span>
                 {/* Ehrlich: Ohne Geräteanbindung gibt es noch keine Messwerte. */}
@@ -313,4 +322,12 @@ function EmptyRooms({ canCreate, onCreated }: EmptyRoomsProps) {
       )}
     </div>
   )
+}
+
+// Begrüßung passend zur Tageszeit.
+function greeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 11) return 'Guten Morgen'
+  if (hour < 18) return 'Hallo'
+  return 'Guten Abend'
 }

@@ -21,6 +21,7 @@
   --warning: #fbbf24;
   --warning-soft: rgba(251, 191, 36, 0.14);
   --offline: #8b97ab;
+  --online: #34d399; /* LED grün */
 
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-accent: 0 10px 30px rgba(34, 211, 238, 0.1);
@@ -1338,4 +1339,178 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
     font-weight: 700;
     color: var(--accent);
   }
+}
+
+/* ---------- Status-LEDs ---------- */
+/* Eine LED ist ein farbiger Punkt mit leichtem Leuchten. Die Farbe kommt aus --led. */
+
+.led {
+  --led: var(--offline);
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--led);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--led) 18%, transparent),
+    0 0 10px color-mix(in srgb, var(--led) 70%, transparent);
+}
+
+.led-online {
+  --led: var(--online);
+}
+
+.led-offline {
+  --led: var(--danger);
+}
+
+.led-warning {
+  --led: var(--warning);
+}
+
+/* Unbekannt: grau und ohne Leuchten, damit es nicht nach "an" aussieht */
+.led-unknown {
+  box-shadow: 0 0 0 3px rgba(139, 151, 171, 0.14);
+}
+
+.led-large {
+  width: 16px;
+  height: 16px;
+}
+
+/* Online und Achtung pulsieren sanft, aber nur, wenn der Benutzer Bewegung nicht abgeschaltet hat */
+@media (prefers-reduced-motion: no-preference) {
+  .led-online,
+  .led-warning {
+    animation: led-pulse 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes led-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--led) 18%, transparent),
+      0 0 6px color-mix(in srgb, var(--led) 50%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--led) 24%, transparent),
+      0 0 16px color-mix(in srgb, var(--led) 85%, transparent);
+  }
+}
+
+.led-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+/* ---- Status-Leiste oben auf der Übersicht ---- */
+
+.status-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--card-gradient);
+  box-shadow: var(--shadow);
+}
+
+/* Der Rand nimmt die Farbe des Gesamtzustands leicht an */
+.status-bar-online {
+  border-color: color-mix(in srgb, var(--online) 35%, transparent);
+}
+
+.status-bar-warning {
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+
+.status-bar-offline {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+.status-bar-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.status-bar-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.status-bar-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.status-bar-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.status-bar-refresh {
+  margin-left: auto;
+  padding: 0 14px;
+}
+
+/* Auf schmalen Handys nur das Symbol, der Text steckt im aria-label */
+@media (max-width: 420px) {
+  .status-bar-refresh-text {
+    display: none;
+  }
+}
+
+.status-bar-services,
+.status-bar-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-bar-counts {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.status-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.status-count strong {
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+/* ---- LED an Raumkarten und Geräte-Kacheln ---- */
+
+.room-device-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tile-led {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.device-tile {
+  position: relative;
 }
