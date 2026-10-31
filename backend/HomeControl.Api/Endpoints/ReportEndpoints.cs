@@ -13,7 +13,7 @@ public static class ReportEndpoints
     // Registriert alle Endpunkte unter /api/reports.
     public static void MapReportEndpoints(this WebApplication app)
     {
-        var reports = app.MapGroup("/api/reports");
+        var reports = app.MapGroup("/api/reports").WithTags("Reports");
 
         reports.MapGet("/daily", GetDailyReport);
     }

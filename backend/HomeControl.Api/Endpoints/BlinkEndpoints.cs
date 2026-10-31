@@ -19,7 +19,7 @@ public static class BlinkEndpoints
     // Fehler aus dem HTTP-Zugriff (nicht erreichbar, Zeitüberschreitung).
     public static void MapBlinkEndpoints(this WebApplication app)
     {
-        var blink = app.MapGroup("/api/blink");
+        var blink = app.MapGroup("/api/blink").WithTags("Blink");
 
         blink.MapGet("/status", GetStatus);
         blink.MapGet("/cameras", GetCameras);

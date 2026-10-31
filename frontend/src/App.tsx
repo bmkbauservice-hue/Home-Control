@@ -7,6 +7,7 @@ import { ReportsPage } from './pages/ReportsPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { LoginPage } from './pages/LoginPage'
 import { useAuth } from './auth/authContext'
+import { StatusProvider } from './status/StatusProvider'
 
 export default function App() {
   const { status } = useAuth()
@@ -41,16 +42,20 @@ function AppShell() {
     setPage('devices')
   }
 
+  // StatusProvider fragt alle 60 Sekunden den Status ab (LEDs). Er steht hier und nicht in main.tsx,
+  // damit er erst nach der Anmeldung startet und beim Abmelden wieder aufhört.
   return (
-    <div className="app">
-      <Navigation currentPage={page} onNavigate={navigate} />
-      <main className="main">
-        {page === 'dashboard' && <DashboardPage onNavigate={navigate} onOpenRoom={openDevicesInRoom} />}
-        {page === 'rooms' && <RoomsPage />}
-        {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}
-        {page === 'reports' && <ReportsPage />}
-        {page === 'blink' && <BlinkPage />}
-      </main>
-    </div>
+    <StatusProvider>
+      <div className="app">
+        <Navigation currentPage={page} onNavigate={navigate} />
+        <main className="main">
+          {page === 'dashboard' && <DashboardPage onNavigate={navigate} onOpenRoom={openDevicesInRoom} />}
+          {page === 'rooms' && <RoomsPage />}
+          {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}
+          {page === 'reports' && <ReportsPage />}
+          {page === 'blink' && <BlinkPage />}
+        </main>
+      </div>
+    </StatusProvider>
   )
 }

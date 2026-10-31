@@ -5,6 +5,8 @@ import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
 import { DeviceFields } from './DeviceFields'
 import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
+import { StatusLed } from './StatusLed'
+import { useStatus } from '../status/statusContext'
 
 type DeviceTileProps = {
   device: Device
@@ -26,6 +28,8 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
   const [mode, setMode] = useState<Mode>('view')
   const [input, setInput] = useState<DeviceInput>(toInput(device))
   const [busy, setBusy] = useState(false)
+  const { stateOf } = useStatus()
+  const onlineState = stateOf(device.id)
 
   async function handleSave(event: FormEvent) {
     event.preventDefault()
@@ -116,6 +120,13 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
 
   return (
     <div className="tile device-tile">
+      <span className="tile-led">
+        {onlineState === 'unknown' ? (
+          <StatusLed state="unknown" title="Kein Online-Status (nicht mit Tuya verknüpft oder Tuya meldet nichts)" />
+        ) : (
+          <StatusLed state={onlineState} label={onlineState} />
+        )}
+      </span>
       <span className="tile-icon">
         <DeviceIcon size={28} />
       </span>

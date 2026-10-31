@@ -33,6 +33,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
 | POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
 | GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
+| GET | `/api/status` | Status-LEDs: Tuya-Cloud erreichbar?, jedes Gerät online/offline/unbekannt (Tuya-Antwort 60 s zwischengespeichert) | 200 | – |
 
 **Wer darf was:** Alle `GET`-Endpunkte sind standardmäßig ohne Anmeldung erreichbar (Frontend und
 n8n-Agent lesen weiter wie bisher). Ist `Auth:RequireLoginForReading` an, verlangen sie ein Access
@@ -150,6 +151,35 @@ oder ein Text sein. Einrichtung, Fehlerfälle und Grenzen stehen in [TUYA.md](TU
 Ereignis gespeichert), `unchanged`, `notLinked` (kein Gerät eingestellt), `deviceNotFound`
 oder `unknownValue` (switch_1 fehlt oder ist kein Boolean). Nur bei `changed` wird etwas
 gespeichert. Fehlerantworten sind dieselben wie beim GET.
+
+### Status (LEDs)
+
+`GET /api/status` antwortet **immer mit 200**. Ist Tuya nicht erreichbar, steht das in `tuya`
+(rote LED) und die Geräte sind `unknown`. Es ist kein Fehler dieses Endpunkts.
+
+```json
+{
+  "checkedAtUtc": "2026-10-31T13:05:00+00:00",
+  "tuya": "online",
+  "devicesOnline": 3,
+  "devicesOffline": 1,
+  "devicesUnknown": 2,
+  "devices": [
+    { "id": "…", "name": "Licht Wohnzimmer", "state": "online" },
+    { "id": "…", "name": "Steckdose Flur", "state": "offline" },
+    { "id": "…", "name": "Thermometer Bad", "state": "unknown" }
+  ]
+}
+```
+
+| Feld | Werte |
+|---|---|
+| `tuya` | `online` (Cloud erreichbar), `offline` (nicht erreichbar), `notConfigured` (Zugangsdaten fehlen) |
+| `devices[].state` | `online`/`offline` laut Tuya, `unknown` = nicht verknüpft, Tuya meldet nichts oder ist nicht erreichbar |
+
+Die Tuya-Antwort merkt sich der Server 60 Sekunden (`TuyaOnlineCache`). So entsteht höchstens
+ein Aufruf pro Minute bei der Tuya-Cloud, egal wie viele Geräte die App offen haben. Auch für den
+KI-Agenten geeignet: „Welche Geräte sind offline?“
 
 ## Validierung
 
