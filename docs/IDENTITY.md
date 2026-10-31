@@ -6,8 +6,8 @@ Identity übernimmt die Benutzerverwaltung: Benutzer anlegen, Passwörter prüfe
 Sperre nach Fehlversuchen. Passwörter werden **nicht selbst gehasht** (`UserManager.CreateAsync(user, password)`).
 Die Anmeldung selbst läuft weiter mit **JWT**, siehe [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md).
 
-> **Stand:** Der Code ist umgestellt, aber **noch nicht kompiliert und nicht getestet** (Entwicklungsumgebung
-> ohne .NET SDK). Die Migration muss auf dem eigenen Rechner erzeugt werden (Anleitung unten).
+> **Stand 31.10.2026:** Gebaut und getestet (`./pruefen.sh`: Build ohne Warnung, 103/103 Tests grün).
+> Die Migration `IdentityUmgestellt` ist im Repo. Erklärung: [Lernunterlage-Pruefen-und-Migration.pdf](Lernunterlage-Pruefen-und-Migration.pdf).
 
 ## Bausteine
 
@@ -71,7 +71,6 @@ das **Home-Control-Refresh-Token** (gehört zu unseren Benutzern).
 
 ## Bekannte Grenzen
 
-- Nicht kompiliert, nicht getestet, solange `dotnet build` und `dotnet test` nicht gelaufen sind.
 - Alte Benutzer werden nicht übernommen.
 - Die Sperrzeit misst Identity mit der echten Uhr, der Ablauf ist deshalb nicht im Unit-Test geprüft.
 - Keine E-Mail-Bestätigung, kein Passwort-Zurücksetzen, keine Zwei-Faktor-Anmeldung.

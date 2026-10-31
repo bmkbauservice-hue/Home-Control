@@ -14,7 +14,7 @@ for db in homecontrol.db backend/HomeControl.Api/homecontrol.db; do
   [ -f "$db" ] || continue
   found=1
   backup="$db.vor-identity.bak"
-  cp -n "$db" "$backup" && echo "Gesichert: $backup"
+  if [ -e "$backup" ]; then echo "Sicherung gibt es schon: $backup"; else cp "$db" "$backup" && echo "Gesichert: $backup"; fi
   python3 - "$db" <<'PY'
 import sqlite3, sys
 con = sqlite3.connect(sys.argv[1])

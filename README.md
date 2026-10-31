@@ -109,6 +109,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | ASP.NET Core Identity (UserManager, IdentityUser, Rollen, Passwort-Hashing, Lockout) | [Lernunterlage-Identity.pdf](docs/Lernunterlage-Identity.pdf) |
 | Smart-Home-Geräte verbinden (Tuya-Cloud, Statuscodes, Skalierung, Abgleich) | [Lernunterlage-Tuya-Geraete.pdf](docs/Lernunterlage-Tuya-Geraete.pdf) |
 | API-Schlüssel für den KI-Agenten (Anmeldeverfahren, Fallback-Regel, Schalter) | [Lernunterlage-API-Schluessel.pdf](docs/Lernunterlage-API-Schluessel.pdf) |
+| Prüfskript und Identity-Migration (pruefen.sh, Exit-Codes, Migrationen, „loss of data“) | [Lernunterlage-Pruefen-und-Migration.pdf](docs/Lernunterlage-Pruefen-und-Migration.pdf) |
 
 ## Lokal starten
 
@@ -132,6 +133,15 @@ dotnet tool restore
 cd frontend
 npm install
 ```
+
+### Alles prüfen (ein Befehl)
+
+```bash
+./pruefen.sh
+```
+
+Baut das Backend, prüft auf fehlende Migrationen, führt alle Tests aus, baut das Frontend und
+lintet es. Am Ende steht eine Zusammenfassung, die ganze Ausgabe liegt in `pruefen.log`.
 
 Die NuGet-Pakete des Backends lädt `dotnet run` bzw. `dotnet build` automatisch.
 
