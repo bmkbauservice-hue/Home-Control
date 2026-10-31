@@ -87,6 +87,34 @@ d.bullets([
     "<b>Blink seltener:</b> nur beim Start und auf Knopfdruck, nicht jede Minute (keine offizielle API, Sperrrisiko).",
 ])
 
+d.h2("Lint-Warnung: setState direkt im Effekt")
+d.p("oxlint meldete <font name='Mono'>react(set-state-in-effect)</font>. Der Effekt rief "
+    "<font name='Mono'>loadStatus()</font> auf, und die Funktion setzte State. Der erste Versuch, nur "
+    "<font name='Mono'>setRefreshing(true)</font> zu entfernen, reichte nicht: Bei einer "
+    "<font name='Mono'>async</font>-Funktion erkennt der Linter nicht sicher, dass das setState erst nach dem "
+    "<font name='Mono'>await</font> passiert. Erst das Muster aus der React-Doku hat geholfen: State nur in "
+    "<font name='Mono'>.then()</font> bzw. <font name='Mono'>.catch()</font> setzen.")
+d.code("""// vorher (Warnung): async-Funktion mit setState
+const loadStatus = useCallback(async () => {
+  setRefreshing(true)                       // synchron → sofort neuer Render
+  try { setStatus(await getStatus()) } ...
+}, [])
+
+// nachher (0 Warnungen): State erst, wenn die Antwort da ist
+const loadStatus = useCallback(() =>
+  getStatus()
+    .then((next) => { setStatus(next); setServerUnreachable(false) })
+    .catch(() => setServerUnreachable(true))
+    .finally(() => setRefreshing(false)), [])
+
+const refresh = useCallback(() => {
+  setRefreshing(true)                       // Klick = Ereignis, hier ist setState richtig
+  loadStatus(); loadBlink()
+}, [loadStatus, loadBlink])""")
+d.merksatz("<b>Merksatz:</b> Effekte synchronisieren mit der Außenwelt (Server, Timer). State aus einer "
+           "Benutzeraktion gehört in den Event-Handler, State aus einer Server-Antwort in den Promise-Callback. "
+           "Und: Erst prüfen (Linter erneut laufen lassen), dann „behoben“ sagen.")
+
 # ------------------------------------------------------------------ 5
 d.h1("5  CSS: die LED leuchtet")
 d.code(""".led { --led: var(--offline); width: 10px; height: 10px; border-radius: 50%;
