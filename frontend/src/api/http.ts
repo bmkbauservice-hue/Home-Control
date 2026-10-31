@@ -7,6 +7,24 @@ type ProblemDetails = {
   errors?: Record<string, string[]>
 }
 
+// Meldung, wenn gar keine Antwort vom Backend kommt (Netzwerkfehler oder Proxy ohne Backend).
+const unreachableMessage = 'Die API ist nicht erreichbar. Läuft das Backend?'
+
+// Fehler einer API-Anfrage. Wie ein normaler Error (message), dazu:
+// - status: HTTP-Status der Antwort (0 = gar keine Antwort)
+// - unreachable: true, wenn nicht unser Backend geantwortet hat (Netzwerk, Proxy, Backend aus)
+export class ApiError extends Error {
+  readonly status: number
+  readonly unreachable: boolean
+
+  constructor(message: string, status: number, unreachable: boolean) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.unreachable = unreachable
+  }
+}
+
 // Liest eine verständliche Fehlermeldung aus der Antwort.
 async function getErrorMessage(response: Response): Promise<string> {
   // Manche Fehlerantworten haben keinen Inhalt, dann bleibt problem null.
@@ -20,7 +38,7 @@ async function getErrorMessage(response: Response): Promise<string> {
   // 500 mit ProblemDetails kommt vom Backend selbst. Eine leere 500 liefert der
   // Vite-Proxy, wenn das Backend gar nicht läuft.
   if (response.status >= 500) {
-    return problem?.title ?? 'Die API ist nicht erreichbar. Läuft das Backend?'
+    return problem?.title ?? unreachableMessage
   }
 
   if (response.status === 403) {
@@ -67,11 +85,14 @@ export async function send(url: string, options?: RequestInit): Promise<Response
       }
     }
   } catch {
-    throw new Error('Die API ist nicht erreichbar. Läuft das Backend?')
+    throw new ApiError(unreachableMessage, 0, true)
   }
 
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response))
+    const message = await getErrorMessage(response)
+    // Eine Fehlerantwort ohne ProblemDetails (z. B. vom Vite- oder Tailscale-Proxy) heißt: Das
+    // Backend selbst hat nicht geantwortet.
+    throw new ApiError(message, response.status, message === unreachableMessage)
   }
   return response
 }

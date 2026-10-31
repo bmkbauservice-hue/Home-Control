@@ -115,6 +115,19 @@ d.merksatz("<b>Merksatz:</b> Effekte synchronisieren mit der Außenwelt (Server,
            "Benutzeraktion gehört in den Event-Handler, State aus einer Server-Antwort in den Promise-Callback. "
            "Und: Erst prüfen (Linter erneut laufen lassen), dann „behoben“ sagen.")
 
+d.h2("Nicht erreichbar oder Fehlerantwort?")
+d.p("Im ersten Test zeigte die Leiste „Server nicht erreichbar“, obwohl Räume und Geräte luden. Grund: Es lief "
+    "noch ein älteres Backend ohne <font name='Mono'>/api/status</font>. Es antwortete mit 404, und jede "
+    "Fehlerantwort wurde als „nicht erreichbar“ gedeutet. Jetzt unterscheidet <font name='Mono'>ApiError</font> "
+    "(in api/http.ts) beides:")
+d.table([
+    ["Fall", "Erkennung", "Anzeige"],
+    ["Keine Antwort (Netzwerk, Backend aus, Proxy ohne Backend)", "fetch wirft, oder Fehler ohne ProblemDetails → unreachable", "rot: „Server nicht erreichbar“"],
+    ["Backend antwortet mit Fehler (404, 500 mit ProblemDetails)", "ApiError mit status, unreachable = false", "gelb: „Status nicht abrufbar“ + Hinweis"],
+], [0.36, 0.38, 0.26])
+d.merksatz("<b>Merksatz:</b> Eine Fehlermeldung muss die Ursache treffen. „Server nicht erreichbar“ bei einer 404 "
+           "schickt einen auf die falsche Fährte. Deshalb Fehler nach Art unterscheiden (Status-Code, wer hat geantwortet).")
+
 # ------------------------------------------------------------------ 5
 d.h1("5  CSS: die LED leuchtet")
 d.code(""".led { --led: var(--offline); width: 10px; height: 10px; border-radius: 50%;

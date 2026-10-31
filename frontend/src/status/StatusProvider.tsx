@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ApiError } from '../api/http'
 import { getBlinkStatus, getStatus, type BlinkStatusInfo, type OnlineState, type SystemStatus } from '../api/status'
 import { StatusContext, type StatusContextValue } from './statusContext'
 
@@ -13,6 +14,7 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [blink, setBlink] = useState<BlinkStatusInfo | null>(null)
   const [serverUnreachable, setServerUnreachable] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   // Verhindert, dass nach dem Verlassen der App noch ein State gesetzt wird.
   const active = useRef(true)
@@ -27,9 +29,22 @@ export function StatusProvider({ children }: { children: ReactNode }) {
           if (!active.current) return
           setStatus(next)
           setServerUnreachable(false)
+          setStatusError(null)
         })
-        .catch(() => {
-          if (active.current) setServerUnreachable(true)
+        .catch((error: unknown) => {
+          if (!active.current) return
+          // Hat unser Backend selbst geantwortet (nur eben mit einem Fehler), ist der Server
+          // erreichbar. Rot ("nicht erreichbar") nur, wenn gar keine Antwort vom Backend kam.
+          if (error instanceof ApiError && !error.unreachable) {
+            setServerUnreachable(false)
+            setStatusError(
+              error.status === 404
+                ? 'Der Server kennt /api/status nicht. Läuft noch eine ältere Version? Backend neu starten.'
+                : error.message,
+            )
+          } else {
+            setServerUnreachable(true)
+          }
         })
         .finally(() => {
           if (active.current) setRefreshing(false)
@@ -84,11 +99,12 @@ export function StatusProvider({ children }: { children: ReactNode }) {
       status,
       blink,
       serverUnreachable,
+      statusError,
       refreshing,
       refresh,
       stateOf: (deviceId: string) => byId.get(deviceId) ?? 'unknown',
     }
-  }, [status, blink, serverUnreachable, refreshing, refresh])
+  }, [status, blink, serverUnreachable, statusError, refreshing, refresh])
 
   return <StatusContext.Provider value={value}>{children}</StatusContext.Provider>
 }

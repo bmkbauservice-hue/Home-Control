@@ -7,8 +7,10 @@ import { StatusLed } from './StatusLed'
 // LED für Server, Tuya-Cloud und Blink und die Anzahl der Geräte, die online, offline oder ohne
 // Status sind.
 export function StatusBar() {
-  const { status, blink, serverUnreachable, refreshing, refresh } = useStatus()
-  const overall = overallOf(status, blink, serverUnreachable)
+  const { status, blink, serverUnreachable, statusError, refreshing, refresh } = useStatus()
+  const overall = overallOf(status, blink, serverUnreachable, statusError)
+  // Der Server hat geantwortet, wenn es eine Antwort oder eine Fehlermeldung von ihm gibt.
+  const serverAnswered = !serverUnreachable && (status !== null || statusError !== null)
 
   return (
     <section className={`status-bar status-bar-${overall.state}`} aria-label="Systemstatus">
@@ -16,7 +18,7 @@ export function StatusBar() {
         <StatusLed state={overall.state} title={overall.text} large />
         <div className="status-bar-heading">
           <p className="status-bar-title">{overall.text}</p>
-          <p className="status-bar-time">{checkedText(status, serverUnreachable)}</p>
+          <p className="status-bar-time">{statusError ?? checkedText(status, serverUnreachable)}</p>
         </div>
         <button
           type="button"
@@ -33,7 +35,7 @@ export function StatusBar() {
       <ul className="status-bar-services">
         <li>
           <StatusLed
-            state={serverUnreachable ? 'offline' : status ? 'online' : 'unknown'}
+            state={serverUnreachable ? 'offline' : serverAnswered ? 'online' : 'unknown'}
             label="Server"
             title={serverUnreachable ? 'Server nicht erreichbar' : 'Server erreichbar'}
           />
@@ -69,9 +71,17 @@ export function StatusBar() {
 type Overall = { state: LedState; text: string }
 
 // Ein Satz für den Gesamtzustand. Das Wichtigste zuerst: Ohne Server ist alles andere egal.
-function overallOf(status: SystemStatus | null, blink: BlinkStatusInfo | null, serverUnreachable: boolean): Overall {
+function overallOf(
+  status: SystemStatus | null,
+  blink: BlinkStatusInfo | null,
+  serverUnreachable: boolean,
+  statusError: string | null,
+): Overall {
   if (serverUnreachable) {
     return { state: 'offline', text: 'Server nicht erreichbar' }
+  }
+  if (statusError !== null) {
+    return { state: 'warning', text: 'Status nicht abrufbar' }
   }
   if (status === null) {
     return { state: 'unknown', text: 'Status wird geprüft …' }
