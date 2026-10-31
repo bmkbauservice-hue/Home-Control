@@ -17,8 +17,9 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   // Verhindert, dass nach dem Verlassen der App noch ein State gesetzt wird.
   const active = useRef(true)
 
+  // Setzt keinen State, bevor die Antwort da ist: Der Aufruf im useEffect darf nicht sofort
+  // (synchron) einen weiteren Render auslösen. "refreshing" setzt nur der Knopf (refresh unten).
   const loadStatus = useCallback(async () => {
-    setRefreshing(true)
     try {
       const next = await getStatus()
       if (active.current) {
@@ -62,7 +63,9 @@ export function StatusProvider({ children }: { children: ReactNode }) {
     }
   }, [loadStatus, loadBlink])
 
+  // Knopf "Aktualisieren": Hier ist setState erlaubt, denn es ist ein Klick (Ereignis), kein Effekt.
   const refresh = useCallback(() => {
+    setRefreshing(true)
     loadStatus()
     loadBlink()
   }, [loadStatus, loadBlink])

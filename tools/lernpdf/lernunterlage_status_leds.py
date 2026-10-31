@@ -87,6 +87,27 @@ d.bullets([
     "<b>Blink seltener:</b> nur beim Start und auf Knopfdruck, nicht jede Minute (keine offizielle API, Sperrrisiko).",
 ])
 
+d.h2("Lint-Warnung: setState direkt im Effekt")
+d.p("oxlint meldete <font name='Mono'>react(set-state-in-effect)</font>: <font name='Mono'>loadStatus()</font> setzte "
+    "gleich am Anfang <font name='Mono'>setRefreshing(true)</font>, und das <b>synchron</b> im "
+    "<font name='Mono'>useEffect</font>. Dadurch rendert React sofort ein zweites Mal, bevor überhaupt eine Antwort da ist.")
+d.code("""// vorher: setState sofort im Effekt
+const loadStatus = useCallback(async () => {
+  setRefreshing(true)            // ← synchron, löst sofort einen neuen Render aus
+  try { const next = await getStatus(); setStatus(next) } ...
+}, [])
+
+// nachher: State erst nach dem await, "refreshing" nur beim Klick
+const loadStatus = useCallback(async () => {
+  try { const next = await getStatus(); setStatus(next) } ...   // nach await: in Ordnung
+}, [])
+const refresh = useCallback(() => {
+  setRefreshing(true)            // Klick = Ereignis, hier ist setState richtig
+  loadStatus(); loadBlink()
+}, [loadStatus, loadBlink])""")
+d.merksatz("<b>Merksatz:</b> Effekte synchronisieren mit der Außenwelt (Server, Timer). State, der aus einer "
+           "Benutzeraktion folgt, gehört in den Event-Handler. setState nach einem await im Effekt ist in Ordnung.")
+
 # ------------------------------------------------------------------ 5
 d.h1("5  CSS: die LED leuchtet")
 d.code(""".led { --led: var(--offline); width: 10px; height: 10px; border-radius: 50%;
