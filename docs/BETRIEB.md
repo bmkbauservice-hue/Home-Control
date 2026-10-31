@@ -1,7 +1,10 @@
 # Betrieb: Home Control auf Handy, Rechner und Server
 
-Stand: Planung. Die App ist als PWA vorbereitet (Manifest, Icons, Service Worker). Der Betrieb über einen
-festen Link ist der nächste Schritt und noch **nicht gebaut oder getestet**.
+**Zum Lernen:** [Lernunterlage-Betrieb.pdf](Lernunterlage-Betrieb.pdf)
+
+Stand 31.10.2026: Die App ist als PWA vorbereitet (Manifest, Icons, Service Worker). Für den Dauerbetrieb
+gibt es zwei Skripte: `dienst-einrichten.sh` (Dienst) und `tailscale-https-einrichten.sh` (HTTPS-Link).
+Beide sind geschrieben, aber auf dem Rechner noch **nicht ausgeführt** worden.
 
 ## Ziel
 
@@ -42,8 +45,71 @@ Starten im Repo-Hauptordner: `./app-starten.sh` → `http://localhost:5111`.
   mit Development: Nur dort werden die User Secrets (Tuya, JWT, Agent) gelesen. Für einen echten Produktivbetrieb auf dem Server
   müssen die Geheimnisse als Umgebungsvariablen kommen (z. B. `Jwt__SigningKey`).
 
-## Dafür fehlt noch (nächste Schritte)
+## Dauerbetrieb einrichten (Variante A: Linux-PC + Tailscale)
 
-1. Start als Dienst (systemd), damit nach einem Absturz oder Neustart alles von allein wieder läuft.
-2. Tailscale-HTTPS einrichten (`tailscale serve`), damit die App auf dem iPhone installierbar ist.
-3. Agent: API-Schlüssel in n8n eintragen, Basis-Adresse auf den Tailscale-Namen stellen, danach `Auth:RequireLoginForReading` auf `true`.
+### 1. Dienst: Home Control läuft von allein
+
+```bash
+./dienst-einrichten.sh
+```
+
+| Was | Wie |
+|---|---|
+| Bauen | Frontend (`npm ci`, `npm run build`), Backend als Release (`dotnet publish`) nach `~/.local/share/home-control/app` |
+| Dienst | systemd-**Benutzer**dienst `~/.config/systemd/user/home-control.service`, kein `sudo` nötig |
+| Adresse | nur `http://127.0.0.1:5200`, also von außen nicht direkt erreichbar |
+| Datenbank | dieselbe wie beim Entwickeln: `backend/HomeControl.Api/homecontrol.db` |
+| Absturz | `Restart=on-failure`: nach 5 Sekunden startet der Dienst neu |
+| Neustart des PCs | `loginctl enable-linger`: Der Dienst startet beim Hochfahren, auch ohne Anmeldung |
+| Update | Das Skript einfach noch einmal ausführen (baut neu und startet neu) |
+
+Warum Port **5200**? `dotnet run` beim Entwickeln benutzt 5111. Laufen beide gleichzeitig, kommen sie
+sich so nicht in die Quere (kein „address already in use“).
+
+Nützliche Befehle:
+
+```bash
+systemctl --user status home-control      # läuft er?
+journalctl --user -u home-control -f      # Log live ansehen (Strg+C beendet nur die Anzeige)
+systemctl --user restart home-control     # neu starten
+systemctl --user stop home-control        # anhalten
+systemctl --user disable --now home-control   # ganz abschalten
+```
+
+### 2. HTTPS-Link im Tailscale-Netz
+
+Einmalig in der Tailscale-Verwaltung (login.tailscale.com → **DNS**) „MagicDNS“ und
+„HTTPS Certificates“ einschalten. Dann:
+
+```bash
+./tailscale-https-einrichten.sh
+```
+
+Das Skript ruft `tailscale serve --bg http://127.0.0.1:5200` auf. Tailscale holt selbst ein echtes
+Zertifikat und leitet `https://<rechner>.<tailnet>.ts.net` an den Dienst weiter. Erreichbar ist das
+**nur aus deinem Tailscale-Netz** (iPhone, iPad, MacBook, OVH-Server), nicht aus dem Internet.
+
+Meldet das Skript fehlende Rechte: einmal `sudo tailscale set --operator=$USER`, dann erneut starten.
+Abschalten: `tailscale serve reset`.
+
+### 3. iPhone und iPad
+
+1. Tailscale-App installieren und mit demselben Konto anmelden.
+2. In **Safari** den Link `https://<rechner>.<tailnet>.ts.net` öffnen und anmelden.
+3. Teilen → **„Zum Home-Bildschirm“**. Home Control startet dann wie eine App ohne Browserleiste.
+
+### 4. KI-Agent (n8n)
+
+1. `./agent-schluessel-einrichten.sh`, danach `./dienst-einrichten.sh` (Dienst übernimmt den Schlüssel beim Neustart).
+2. In n8n: Basis-Adresse `https://<rechner>.<tailnet>.ts.net`, Header `X-Api-Key` (Zugangsdaten „Header Auth“).
+3. Prüfen, dass der Agent Daten bekommt. Neu: `GET /api/status` sagt, welche Geräte offline sind.
+4. Erst dann `Auth:RequireLoginForReading` auf `true` setzen und den Dienst neu starten.
+
+## Bewusste Grenzen
+
+- Der Dienst läuft mit `ASPNETCORE_ENVIRONMENT=Development`, weil die Geheimnisse in den User Secrets
+  liegen und die nur im Development gelesen werden. Folgen: Die API-Doku (`/scalar`) ist im Tailscale-Netz
+  erreichbar, und das Refresh-Cookie ist nicht als `Secure` markiert (über HTTPS wird es trotzdem
+  verschlüsselt übertragen). Für einen echten Server (Variante B) gehören die Geheimnisse in
+  Umgebungsvariablen (`Jwt__SigningKey`, `Tuya__ClientSecret` …) und die Umgebung auf `Production`.
+- Der PC muss laufen. Für 24/7 ist Variante B (OVH-Server, Docker) der nächste Schritt.

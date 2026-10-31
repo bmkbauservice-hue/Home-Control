@@ -68,7 +68,7 @@ Tuya-Cloud.
 
 | Bereich | Was funktioniert |
 |---|---|
-| Übersicht | Anzahl Räume und Geräte, Räume als Kacheln, Lichtkarte mit echtem Tuya-Zustand |
+| Übersicht | Status-Leiste mit LEDs (gesamt, Server, Tuya-Cloud, Blink, Geräte online/offline/ohne Status), Anzahl Räume und Geräte, Räume als Kacheln mit Geräte-LEDs, Lichtkarte mit echtem Tuya-Zustand |
 | Räume | Anlegen, anzeigen, umbenennen, löschen, nach Namen suchen |
 | Geräte | Anlegen, anzeigen, bearbeiten (auch Raum wechseln), löschen; Suche nach Namen, Filter nach Raum und Gerätetyp; Verknüpfung mit einem Tuya-Gerät per Auswahlliste |
 | Ereignisse | Verlauf pro Gerät, manuelle Einträge und automatische Einträge aus dem Tuya-Abgleich |
@@ -110,6 +110,8 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Smart-Home-Geräte verbinden (Tuya-Cloud, Statuscodes, Skalierung, Abgleich) | [Lernunterlage-Tuya-Geraete.pdf](docs/Lernunterlage-Tuya-Geraete.pdf) |
 | API-Schlüssel für den KI-Agenten (Anmeldeverfahren, Fallback-Regel, Schalter) | [Lernunterlage-API-Schluessel.pdf](docs/Lernunterlage-API-Schluessel.pdf) |
 | Prüfskript und Identity-Migration (pruefen.sh, Exit-Codes, Migrationen, „loss of data“) | [Lernunterlage-Pruefen-und-Migration.pdf](docs/Lernunterlage-Pruefen-und-Migration.pdf) |
+| Betrieb: Dienst und HTTPS (systemd, dotnet publish, Ports, tailscale serve, iPhone) | [Lernunterlage-Betrieb.pdf](docs/Lernunterlage-Betrieb.pdf) |
+| Status-LEDs (GET /api/status, Cache, Context-Provider, CSS-LEDs, Barrierefreiheit) | [Lernunterlage-Status-LEDs.pdf](docs/Lernunterlage-Status-LEDs.pdf) |
 
 ## Lokal starten
 

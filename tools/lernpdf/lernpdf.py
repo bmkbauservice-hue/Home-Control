@@ -16,7 +16,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    BaseDocTemplate, Frame, KeepTogether, PageBreak, PageTemplate, Paragraph, Preformatted,
+    BaseDocTemplate, CondPageBreak, Frame, KeepTogether, PageBreak, PageTemplate, Paragraph, Preformatted,
     Spacer, Table, TableStyle,
 )
 
@@ -50,11 +50,12 @@ class Doc:
         self.story = []
 
     # ---------- Bausteine ----------
+    # Überschriften nie allein unten auf der Seite: Ist weniger Platz frei, beginnt eine neue Seite.
     def h1(self, text):
-        self.story.append(Paragraph(text, H1))
+        self.story += [CondPageBreak(45 * mm), Paragraph(text, H1)]
 
     def h2(self, text):
-        self.story.append(Paragraph(text, H2))
+        self.story += [CondPageBreak(32 * mm), Paragraph(text, H2)]
 
     def p(self, text):
         self.story.append(Paragraph(text, BODY))
@@ -74,7 +75,8 @@ class Doc:
             ("LEFTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
-        self.story += [box, Spacer(1, 8)]
+        # Codeblöcke nicht über zwei Seiten zerreißen (sie sind kurz).
+        self.story += [KeepTogether([box]), Spacer(1, 8)]
 
     def merksatz(self, text, warn=False):
         box = Table([[Paragraph(text, CELL)]], colWidths=[170 * mm])
