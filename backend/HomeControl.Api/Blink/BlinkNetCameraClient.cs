@@ -44,6 +44,11 @@ public class BlinkNetCameraClient(
     // ein ANDERER (neuer) Token-Wert löst einen neuen Versuch aus.
     private string? lastFailedRefreshToken;
 
+    // Token, mit dem der aktuelle BlinkClient angemeldet ist (wird bei OnTokenRefreshed mitgeführt).
+    // Scheitert ein Abruf NACH erfolgreichem Login, gilt dieses Token als verbraucht. Ohne diese
+    // Merkhilfe würde jeder weitere Aufruf mit demselben Token erneut einloggen (Sperrrisiko).
+    private string? activeRefreshToken;
+
     private DateTimeOffset lastFetchAtUtc = DateTimeOffset.MinValue;
     private IReadOnlyList<BlinkCameraInfo> lastCameras = [];
 
@@ -137,6 +142,8 @@ public class BlinkNetCameraClient(
                 ex.GetType().Name, ex.Message);
             client = null;
             loginRequired = true;
+            // Nicht noch einmal mit demselben Token einloggen, erst mit einem neuen (BlinkSpike).
+            lastFailedRefreshToken = activeRefreshToken;
             throw new BlinkLoginRequiredException("Blink hat den Abruf abgelehnt. Bitte tools/BlinkSpike erneut ausführen.");
         }
     }
@@ -164,12 +171,18 @@ public class BlinkNetCameraClient(
             throw new BlinkLoginRequiredException("Blink-Anmeldung ist abgelaufen. Bitte tools/BlinkSpike erneut ausführen.");
         }
 
+        // Neuer Login: Das Token der alten Sitzung gilt nicht mehr.
+        activeRefreshToken = null;
         var newClient = new BlinkClient
         {
             GeneralSleepTime = GeneralSleepTimeMs,
             HardwareId = credential.HardwareId,
         };
-        newClient.OnTokenRefreshed += newToken => PersistTokenFireAndForget(credential.HardwareId, newToken);
+        newClient.OnTokenRefreshed += newToken =>
+        {
+            activeRefreshToken = newToken;
+            PersistTokenFireAndForget(credential.HardwareId, newToken);
+        };
 
         var ok = await newClient.TryLoginWithRefreshTokenAsync(credential.RefreshToken);
         if (!ok)
@@ -182,6 +195,9 @@ public class BlinkNetCameraClient(
         client = newClient;
         loginRequired = false;
         lastFailedRefreshToken = null;
+        // Blink.NET meldet ein neues Token auch schon während des Logins (OnTokenRefreshed). Nur wenn
+        // das nicht passiert ist, gilt noch das Token, mit dem wir uns angemeldet haben.
+        activeRefreshToken ??= credential.RefreshToken;
         return newClient;
     }
 

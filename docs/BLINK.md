@@ -89,6 +89,12 @@ Hash, dass sich der Wert in den User Secrets geändert hat, übernimmt ihn in di
 versucht den Login erneut. Ein unveränderter Bootstrap-Wert überschreibt dabei nie ein
 zwischenzeitlich über `OnTokenRefreshed` rotiertes, neueres Token.
 
+**Kein Login-Kreisel:** Scheitert ein Abruf *nach* erfolgreichem Login (Blink lehnt die Sitzung ab),
+merkt sich `BlinkNetCameraClient` das gerade benutzte Token als verbraucht (`activeRefreshToken` →
+`lastFailedRefreshToken`). Weitere Aufrufe melden dann nur `loginRequired`, ohne Blink erneut mit
+demselben Token zu fragen. Erst ein neues Token (BlinkSpike) löst wieder einen Login aus. Wichtig,
+seit die Status-Leiste im Dashboard `/api/blink/status` bei jedem Öffnen der App abfragt.
+
 ## 3. Wo Zugangsdaten liegen
 
 | Wert | Ort | Warum |
