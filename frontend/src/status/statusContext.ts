@@ -8,6 +8,9 @@ export type StatusContextValue = {
   blink: BlinkStatusInfo | null
   // true: Der Server hat beim letzten Versuch nicht geantwortet (Server-LED rot).
   serverUnreachable: boolean
+  // Der Server hat geantwortet, aber mit einem Fehler (z. B. 404 bei einer alten Server-Version).
+  // null, wenn die letzte Abfrage geklappt hat.
+  statusError: string | null
   // true während einer Abfrage, z. B. um den Knopf "Aktualisieren" zu sperren.
   refreshing: boolean
   // Sofort neu abfragen (Knopf "Aktualisieren").
