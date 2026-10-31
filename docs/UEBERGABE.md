@@ -1,6 +1,6 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 31.10.2026.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 31.10.2026, 14:40 Uhr.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
@@ -18,10 +18,10 @@ was offen ist und welche Regeln gelten.
 | Tuya: Geräteliste, Status, Abgleich aller verknüpften Geräte (nur lesend) | fertig, getestet | [TUYA.md](TUYA.md) |
 | Blink: Status und Kameras (nur lesend, inoffizielle API) | Backend fertig, Oberfläche zeigt nur den Status | [BLINK.md](BLINK.md) |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
-| Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | PR #16 | [API.md](API.md) (`/api/status`) |
-| Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | PR #16 | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
+| Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
+| Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
 | PWA (App auf dem Home-Bildschirm) | vorbereitet | [BETRIEB.md](BETRIEB.md) |
-| Dauerbetrieb: Dienst + HTTPS über Tailscale | Skripte in PR #16, noch nicht ausgeführt | [BETRIEB.md](BETRIEB.md) |
+| Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft**: Dienst auf 127.0.0.1:5200, https://muju-ms-7c95.tail0b69aa.ts.net | [BETRIEB.md](BETRIEB.md) |
 
 ## 2. Prüfen, starten, betreiben
 
@@ -38,12 +38,13 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **PR #16 prüfen und mergen:** `git switch feature/betrieb && git pull && ./pruefen.sh`. Alles grün → mergen.
-2. **Dauerbetrieb:** `./dienst-einrichten.sh`, in Tailscale MagicDNS + HTTPS Certificates einschalten,
-   `./tailscale-https-einrichten.sh`, auf iPhone/iPad „Zum Home-Bildschirm“.
-3. **KI-Agent umstellen:** `./agent-schluessel-einrichten.sh`, in n8n Header `X-Api-Key` und die neue
-   https-Adresse eintragen, testen, dann `Auth:RequireLoginForReading` auf `true`. Neu für den Agenten:
-   `GET /api/status` („Welche Geräte sind offline?“).
+1. **Geräte mit Tuya verknüpfen** (als Nächstes, ohne Code): App öffnen → Geräte → Bearbeiten → Feld
+   „Tuya-Gerät“ wählen → Speichern, für jedes Gerät aus der Tuya-App. Danach werden die LEDs grün/rot statt grau.
+2. **Rohwerte ansehen:** `HC_API=http://127.0.0.1:5200 ./tuya-rohwerte-anzeigen.sh` (Anmeldung mit dem
+   Home-Control-Konto). Die Ausgabe zeigt die echten Tuya-Codes für Punkt 4.
+3. **iPhone/iPad und KI-Agent:** Link in Safari öffnen → „Zum Home-Bildschirm“. Für n8n:
+   `./agent-schluessel-einrichten.sh`, danach `./dienst-einrichten.sh`, in n8n Header `X-Api-Key` und die
+   https-Adresse eintragen, testen, dann `Auth:RequireLoginForReading` auf `true`.
 4. **Weitere Gerätetypen:** `./tuya-rohwerte-anzeigen.sh` ausführen, Codes für Temperatur, Watt und Akku
    ansehen, dann im `TuyaDeviceSyncer` übertragen (siehe [TUYA.md](TUYA.md), „Bekannte Grenzen“).
 5. **Blink-Seite:** Kameraliste aus `GET /api/blink/cameras` anzeigen (Backend ist fertig, die Seite ist
