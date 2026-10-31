@@ -21,3 +21,9 @@ dist/
 
 # Persönliche Editor-Einstellungen (enthält lokale Pfade)
 /Home-Control.code-workspace
+
+# Ausgabe von ./pruefen.sh
+pruefen.log
+
+# Python-Zwischendateien (Lern-PDF-Skripte)
+__pycache__/
