@@ -51,6 +51,9 @@ namespace HomeControl.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("BatteryPercent")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -58,10 +61,16 @@ namespace HomeControl.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("MeasuredAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
+
+                    b.Property<double?>("PowerWatt")
+                        .HasColumnType("REAL");
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("TEXT");
@@ -74,6 +83,9 @@ namespace HomeControl.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<double?>("VoltageVolt")
+                        .HasColumnType("REAL");
 
                     b.HasKey("Id");
 
