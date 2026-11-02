@@ -12,7 +12,13 @@ public enum BlinkConnectionState
 
     // Letzter Abruf (oder der zwischengespeicherte Stand) war erfolgreich.
     Connected,
+
+    // In diesem Prozess ausgeschaltet (Blink:Enabled = false, Standard beim Entwickeln). Es wird nichts abgefragt.
+    Disabled,
 }
+
+// Blink ist in diesem Prozess ausgeschaltet (Blink:Enabled = false).
+public class BlinkDisabledException() : Exception("Blink ist in dieser Umgebung ausgeschaltet (Blink:Enabled).");
 
 public record BlinkStatusResult(BlinkConnectionState State, DateTimeOffset? LastSuccessfulFetchUtc);
 

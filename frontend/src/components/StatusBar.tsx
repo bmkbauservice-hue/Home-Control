@@ -140,6 +140,8 @@ function blinkLed(blink: BlinkStatusInfo | null) {
       return { state: 'warning' as const, label, title: 'Blink: neue Anmeldung nötig (tools/BlinkSpike)' }
     case 'notConfigured':
       return { state: 'unknown' as const, label, title: 'Blink ist nicht eingerichtet' }
+    case 'disabled':
+      return { state: 'unknown' as const, label, title: 'Blink ist in der Entwicklung aus (Blink:Enabled)' }
     default:
       return { state: 'unknown' as const, label, title: 'Blink: unbekannt' }
   }

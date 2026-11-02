@@ -84,13 +84,27 @@ d.bullets([
 d.merksatz("Token, Bild-Adressen und Seriennummern kommen nie ins Log. Beim ersten Abruf stehen dort nur die "
            "NAMEN der Felder, damit sich die Zuordnung an echten Daten prüfen lässt, ohne zu raten.")
 
+d.h2("Grenze: ein Prozess pro Datenbank")
+d.p("Dienst (Port 5200) und " + M + "app-starten.sh" + E + " (Port 5111) teilen sich " + M + "homecontrol.db" + E +
+    ". Die Sperre gilt nur innerhalb EINES Prozesses. Erneuern beide, benutzt der zweite ein Token, das der erste "
+    "schon verbraucht hat, und Blink verlangt einen neuen Login mit 2FA.")
+d.bullets([
+    "<b>Beim Entwickeln ist Blink aus</b> (" + M + "Blink:Enabled = false" + E + " in appsettings.Development.json). "
+    "Die Übersicht zeigt „Blink in der Entwicklung aus“.",
+    "<b>Vor jeder Erneuerung</b> wird das Token frisch aus der Datenbank gelesen. Hat ein anderer Prozess erneuert, "
+    "wird dessen neueres Token übernommen. Gegen genau gleichzeitige Erneuerungen hilft das nicht.",
+])
+d.merksatz("Eine Sperre im Arbeitsspeicher (lock, SemaphoreSlim) schützt nur den eigenen Prozess. Teilen sich "
+           "mehrere Prozesse eine Ressource (Datei, Datenbank, Token), braucht es eine Regel darüber hinaus.", warn=True)
+
 # ------------------------------------------------------------------ 6
 d.h1("6  Tests")
 d.p("12 Tests mit " + M + "FakeBlinkHandler" + E + " (spielt die Blink-Cloud, ohne Internet): Kameras aus dem "
     "Homescreen, kein App-Build-Header, rotiertes Token verschlüsselt in der DB und nicht im Log, nur eine "
     "Erneuerung bei fünf parallelen Aufrufen, 2-Minuten-Cache, einmal erneuern bei 401, kein Kreisel bei "
     "zweimal 401, neuer Startwert ohne Neustart, 426 ist kein Login-Problem, kein fremder Server, "
-    "ohne HardwareId nicht eingerichtet.")
+    "ohne HardwareId nicht eingerichtet, ausgeschaltet fragt nichts ab, zweiter Prozess übernimmt das neuere "
+    "Token aus der Datenbank. Dazu Endpunkt-Tests: in der Entwicklung „disabled“.")
 d.p("Danach einmal gegen das echte Konto: Status <b>connected</b>, zwei Kameras, Token verschlüsselt in der Datenbank.")
 
 d.h1("7  Kurzantworten für Rückfragen")

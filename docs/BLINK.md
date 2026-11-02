@@ -138,6 +138,18 @@ beide Endpunkte `502` bzw. `504` (ProblemDetails) statt eines allgemeinen Server
 
 ## 5. Bekannte Grenzen
 
+- **Ein Prozess pro Datenbank.** Dienst (Port 5200) und `./app-starten.sh` (Port 5111) benutzen dieselbe
+  `homecontrol.db`. Blink tauscht das Refresh-Token bei jeder Erneuerung aus. Erneuern zwei Prozesse
+  unabhängig voneinander, benutzt der zweite ein Token, das der erste schon verbraucht hat, und Blink
+  lehnt ab (Neu-Login mit 2FA nötig). Die Sperre (`SemaphoreSlim`) schützt nur innerhalb **eines**
+  Prozesses. Deshalb:
+  - **Beim Entwickeln ist Blink aus** (`"Blink": { "Enabled": false }` in `appsettings.Development.json`).
+    Die Übersicht zeigt „Blink in der Entwicklung aus“. Einschalten nur, wenn der Dienst gestoppt ist:
+    `systemctl --user stop home-control`, dann `Blink__Enabled=true ./app-starten.sh`.
+  - **Vor jeder Erneuerung** liest der Client das Token frisch aus der Datenbank. Hat ein anderer Prozess
+    inzwischen erneuert, wird dessen neueres Token benutzt. Das hilft bei nacheinander laufenden
+    Erneuerungen, nicht bei genau gleichzeitigen.
+
 - **Inoffizielle Schnittstelle.** Blink kann Endpunkte jederzeit ändern (wie am 02.11.2026 mit `426`
   bei der alten Kameraliste). Dann muss `BlinkHttpCameraClient` angepasst werden. Vorbild ist das
   aktive Projekt blinkpy.

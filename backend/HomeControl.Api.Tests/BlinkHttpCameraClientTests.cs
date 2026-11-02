@@ -211,6 +211,46 @@ public class BlinkHttpCameraClientTests : IDisposable
         Assert.Contains("refresh_token=rt-neu-aus-spike", blink.TokenRequestBodies[1]);
     }
 
+    // ---------- Ein Prozess pro Datenbank ----------
+
+    private BlinkHttpCameraClient CreateSecondProcess() => new(
+        new FakeHttpClientFactory(blink),
+        services.GetRequiredService<IServiceScopeFactory>(),
+        options,
+        clock,
+        services.GetRequiredService<ILogger<BlinkHttpCameraClient>>());
+
+    [Fact]
+    public async Task Vor_der_Erneuerung_wird_das_neuere_Token_aus_der_Datenbank_uebernommen()
+    {
+        // "Prozess A" (der Dienst) erneuert: refresh-1 steht in der Datenbank.
+        await client.GetCamerasAsync(CancellationToken.None);
+
+        // "Prozess B" (z. B. app-starten.sh) auf derselben Datenbank nimmt refresh-1, nicht den alten Startwert.
+        var second = CreateSecondProcess();
+        await second.GetCamerasAsync(CancellationToken.None);
+        Assert.Contains("refresh_token=refresh-1", blink.TokenRequestBodies[1]);
+
+        // A muss später erneuern (Access Token abgelaufen) und nimmt das von B rotierte refresh-2 aus der DB,
+        // nicht sein eigenes, inzwischen ungültiges refresh-1 aus dem Arbeitsspeicher.
+        clock.Advance(TimeSpan.FromHours(1));
+        await client.GetCamerasAsync(CancellationToken.None);
+        Assert.Contains("refresh_token=refresh-2", blink.TokenRequestBodies[2]);
+    }
+
+    [Fact]
+    public async Task Ausgeschaltet_fragt_nichts_ab()
+    {
+        options.CurrentValue = new BlinkOptions { HardwareId = "HW-TEST", InitialRefreshToken = StartToken, Enabled = false };
+
+        var status = await client.GetStatusAsync(CancellationToken.None);
+
+        Assert.Equal(BlinkConnectionState.Disabled, status.State);
+        await Assert.ThrowsAsync<BlinkDisabledException>(() => client.GetCamerasAsync(CancellationToken.None));
+        Assert.Empty(blink.TokenRequestBodies);
+        Assert.Empty(blink.HomescreenRequests);
+    }
+
     // ---------- Andere Fehler ----------
 
     [Fact]

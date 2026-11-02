@@ -37,6 +37,7 @@ public static class BlinkEndpoints
             {
                 BlinkConnectionState.Connected => "connected",
                 BlinkConnectionState.LoginRequired => "loginRequired",
+                BlinkConnectionState.Disabled => "disabled",
                 _ => "notConfigured",
             };
 
@@ -67,6 +68,13 @@ public static class BlinkEndpoints
             return Results.Problem(
                 statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Blink ist nicht eingerichtet.",
+                detail: ex.Message);
+        }
+        catch (BlinkDisabledException ex)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist in dieser Umgebung ausgeschaltet.",
                 detail: ex.Message);
         }
         catch (BlinkLoginRequiredException ex)

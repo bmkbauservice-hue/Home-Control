@@ -36,7 +36,8 @@ export async function getStatus(): Promise<SystemStatus> {
 }
 
 // Antwort von GET /api/blink/status (entspricht BlinkStatusResponse im Backend).
-export type BlinkState = 'connected' | 'loginRequired' | 'notConfigured'
+// 'disabled': in diesem Backend ausgeschaltet (Standard beim Entwickeln, siehe docs/BLINK.md).
+export type BlinkState = 'connected' | 'loginRequired' | 'notConfigured' | 'disabled'
 
 export type BlinkStatusInfo = {
   state: BlinkState

@@ -79,6 +79,11 @@ public class BlinkHttpCameraClient(
 
     public async Task<BlinkStatusResult> GetStatusAsync(CancellationToken cancellationToken)
     {
+        if (!options.CurrentValue.Enabled)
+        {
+            return new BlinkStatusResult(BlinkConnectionState.Disabled, null);
+        }
+
         try
         {
             await EnsureFreshAsync(cancellationToken);
@@ -97,6 +102,11 @@ public class BlinkHttpCameraClient(
 
     public async Task<IReadOnlyList<BlinkCameraInfo>> GetCamerasAsync(CancellationToken cancellationToken)
     {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
         await EnsureFreshAsync(cancellationToken);
         return lastCameras;
     }
@@ -220,11 +230,16 @@ public class BlinkHttpCameraClient(
             throw new BlinkNotConfiguredException($"Es fehlen folgende Einstellungen in den User Secrets: {string.Join(", ", missing)}.");
         }
 
-        // Im Arbeitsspeicher steht das zuletzt rotierte Token. Beim ersten Mal (oder nach einem Fehler)
-        // kommt es aus der Datenbank bzw. als Startwert aus den User Secrets.
-        var (hardwareId, refreshToken) = session is { } known && !loginRequired
-            ? (known.HardwareId, known.RefreshToken)
-            : await LoadCredentialAsync(cancellationToken);
+        // Vor JEDER Erneuerung das Token frisch aus der Datenbank lesen, nicht das aus dem Arbeitsspeicher
+        // nehmen. Hat ein anderer Prozess auf derselben Datenbank (z. B. app-starten.sh neben dem Dienst)
+        // das Token inzwischen erneuert, ist unser altes bei Blink schon ungültig, und wir übernehmen das
+        // neuere. Ganz verhindern lässt sich das gleichzeitige Erneuern zweier Prozesse damit nicht,
+        // deshalb gilt: ein Prozess pro Datenbank (docs/BLINK.md).
+        var (hardwareId, refreshToken) = await LoadCredentialAsync(cancellationToken);
+        if (session is { } known && known.RefreshToken != refreshToken)
+        {
+            logger.LogInformation("Blink: In der Datenbank liegt ein neueres Token (von einem anderen Prozess), es wird übernommen.");
+        }
 
         if (loginRequired && refreshToken == lastFailedRefreshToken)
         {

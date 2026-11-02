@@ -16,6 +16,12 @@ public class BlinkOptions
     // (siehe BlinkCredentialStore) und kann danach aus den User Secrets entfernt werden.
     public string InitialRefreshToken { get; set; } = string.Empty;
 
+    // Schalter: Darf DIESER Prozess Blink abfragen? Standard an, in appsettings.Development.json aus.
+    // Grund: Dienst (Port 5200) und app-starten.sh (Port 5111) teilen sich homecontrol.db. Erneuern beide das
+    // rotierende Blink-Token, macht der zweite das Token des ersten ungültig (siehe docs/BLINK.md,
+    // "Ein Prozess pro Datenbank"). Beim Entwickeln einschalten mit Blink__Enabled=true.
+    public bool Enabled { get; set; } = true;
+
     // Nur die HardwareId ist zwingend. Fehlt sie, ist Blink nicht eingerichtet,
     // unabhängig davon, ob schon ein Token in der Datenbank liegt.
     public List<string> GetMissingSettings()
