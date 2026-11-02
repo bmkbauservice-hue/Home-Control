@@ -75,6 +75,10 @@ systemctl --user stop home-control        # anhalten
 systemctl --user disable --now home-control   # ganz abschalten
 ```
 
+SQL-Befehle von EF Core stehen nicht im Log (`Microsoft.EntityFrameworkCore.Database.Command` auf `Warning` in
+`appsettings.json`), sonst stünden dort jede Minute mehrere Abfragen. Zum Fehlersuchen vorübergehend per
+Umgebungsvariable einschalten: `Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command=Information`.
+
 ### 2. HTTPS-Link im Tailscale-Netz
 
 Einmalig in der Tailscale-Verwaltung (login.tailscale.com → **DNS**) „MagicDNS“ und
