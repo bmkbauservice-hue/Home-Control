@@ -32,20 +32,25 @@ export function BlinkCameras() {
     if (connected) load()
   })
 
+  // Hinweise (nicht verbunden, Fehler, leer) stehen in einer eigenen Karte, damit die Spalte nicht leer wirkt.
   if (!connected) {
-    return <BlinkStatus />
+    return (
+      <p className="camera-message">
+        <BlinkStatus />
+      </p>
+    )
   }
 
   if (error !== null && cameras === null) {
-    return <p className="camera-state">Blink: derzeit nicht verfügbar ({error})</p>
+    return <p className="camera-message">Blink: derzeit nicht verfügbar ({error})</p>
   }
 
   if (cameras === null) {
-    return <p className="camera-state">Kameras werden geladen …</p>
+    return <p className="camera-message">Kameras werden geladen …</p>
   }
 
   if (cameras.length === 0) {
-    return <p className="camera-state">Blink ist verbunden, aber es wurden keine Kameras gefunden.</p>
+    return <p className="camera-message">Blink ist verbunden, aber es wurden keine Kameras gefunden.</p>
   }
 
   return (

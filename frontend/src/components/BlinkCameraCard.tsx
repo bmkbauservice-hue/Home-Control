@@ -49,22 +49,26 @@ export function BlinkCameraCard({ camera, refreshKey }: BlinkCameraCardProps) {
 
   return (
     <article className="camera-card">
-      {imageUrl !== null ? (
-        <img className="camera-image" src={imageUrl} alt={`Letztes Bild der Kamera ${camera.name}`} />
-      ) : (
-        <div className="camera-preview">
-          <CameraIcon size={20} />
-          <span>{!camera.hasThumbnail ? 'Kein Bild vorhanden' : error ?? 'Bild wird geladen …'}</span>
-        </div>
-      )}
-      <h3 className="camera-name">{camera.name}</h3>
-      <p className="camera-state">
-        <StatusLed state={onlineState} label={onlineText} />
-        {battery !== null && <span className="camera-battery"> · {battery}</span>}
-      </p>
-      {camera.hasThumbnail && (
-        <p className="camera-taken">{takenAt !== null ? `Aufnahme von ${formatTakenAt(takenAt)}` : 'Aufnahmezeit unbekannt'}</p>
-      )}
+      {/* Bild mit Etikett (Online · Akku) oben links, darunter Name und Aufnahmezeit. */}
+      <figure className="camera-figure">
+        {imageUrl !== null ? (
+          <img className="camera-image" src={imageUrl} alt={`Letztes Bild der Kamera ${camera.name}`} />
+        ) : (
+          <div className="camera-preview">
+            <CameraIcon size={20} />
+            <span>{!camera.hasThumbnail ? 'Kein Bild vorhanden' : error ?? 'Bild wird geladen …'}</span>
+          </div>
+        )}
+        <span className="camera-tag">
+          <StatusLed state={onlineState} label={battery !== null ? `${onlineText} · ${battery}` : onlineText} />
+        </span>
+        <figcaption className="camera-caption">
+          <h3 className="camera-name">{camera.name}</h3>
+          {camera.hasThumbnail && (
+            <p className="camera-taken">{takenAt !== null ? `Aufnahme von ${formatTakenAt(takenAt)}` : 'Aufnahmezeit unbekannt'}</p>
+          )}
+        </figcaption>
+      </figure>
     </article>
   )
 }

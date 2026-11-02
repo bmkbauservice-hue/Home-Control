@@ -1,16 +1,19 @@
-import type { BlinkStatusInfo, LedState, SystemStatus } from '../api/status'
+import type { BlinkStatusInfo, SystemStatus } from '../api/status'
 import { useStatus } from '../status/statusContext'
 import { RefreshIcon } from './Icons'
+import { offlineDetail, overallOf } from './statusText'
 import { StatusLed } from './StatusLed'
 
-// Status-Leiste oben auf der Übersicht: eine große LED für den Gesamtzustand, darunter je eine
-// LED für Server, Tuya-Cloud und Blink und die Anzahl der Geräte, die online, offline oder ohne
-// Status sind.
+// Status-Leiste oben auf der Übersicht, als ruhiger Satz: links eine farbige Kante und die Gesamt-LED,
+// daneben was los ist ("1 Gerät ist offline") und welches Gerät es betrifft. Darunter eine Reihe kleiner
+// Chips: Server, Tuya-Cloud, Blink und die Anzahl der Geräte online/offline/ohne Status. Auf dem Handy
+// passt die Reihe nicht in die Breite, sie lässt sich dann waagerecht wischen (siehe .status-chips).
 export function StatusBar() {
   const { status, blink, serverUnreachable, statusError, refreshing, refresh } = useStatus()
   const overall = overallOf(status, blink, serverUnreachable, statusError)
   // Der Server hat geantwortet, wenn es eine Antwort oder eine Fehlermeldung von ihm gibt.
   const serverAnswered = !serverUnreachable && (status !== null || statusError !== null)
+  const detail = [offlineDetail(status), statusError ?? checkedText(status, serverUnreachable)].filter(Boolean).join(' · ')
 
   return (
     <section className={`status-bar status-bar-${overall.state}`} aria-label="Systemstatus">
@@ -18,7 +21,7 @@ export function StatusBar() {
         <StatusLed state={overall.state} title={overall.text} large />
         <div className="status-bar-heading">
           <p className="status-bar-title">{overall.text}</p>
-          <p className="status-bar-time">{statusError ?? checkedText(status, serverUnreachable)}</p>
+          <p className="status-bar-time">{detail}</p>
         </div>
         <button
           type="button"
@@ -32,71 +35,40 @@ export function StatusBar() {
         </button>
       </div>
 
-      <ul className="status-bar-services">
-        <li>
+      {/* tabIndex: Auf dem Handy lässt sich die Reihe waagerecht scrollen, mit Tastatur nur, wenn sie fokussierbar ist. */}
+      <ul className="status-chips" aria-label="Dienste und Geräte" tabIndex={0}>
+        <li className="status-chip">
           <StatusLed
             state={serverUnreachable ? 'offline' : serverAnswered ? 'online' : 'unknown'}
             label="Server"
             title={serverUnreachable ? 'Server nicht erreichbar' : 'Server erreichbar'}
           />
         </li>
-        <li>
+        <li className="status-chip">
           <StatusLed {...tuyaLed(status, serverUnreachable)} />
         </li>
-        <li>
+        <li className="status-chip">
           <StatusLed {...blinkLed(blink)} />
         </li>
+        {status && (
+          <>
+            <li className="status-chip">
+              <StatusLed state="online" />
+              <strong>{status.devicesOnline}</strong> online
+            </li>
+            <li className="status-chip">
+              <StatusLed state="offline" />
+              <strong>{status.devicesOffline}</strong> offline
+            </li>
+            <li className="status-chip" title="Nicht mit Tuya verknüpft oder Tuya meldet nichts">
+              <StatusLed state="unknown" />
+              <strong>{status.devicesUnknown}</strong> ohne Status
+            </li>
+          </>
+        )}
       </ul>
-
-      {status && (
-        <ul className="status-bar-counts" aria-label="Geräte">
-          <li className="status-count">
-            <StatusLed state="online" />
-            <strong>{status.devicesOnline}</strong> online
-          </li>
-          <li className="status-count">
-            <StatusLed state="offline" />
-            <strong>{status.devicesOffline}</strong> offline
-          </li>
-          <li className="status-count" title="Nicht mit Tuya verknüpft oder Tuya meldet nichts">
-            <StatusLed state="unknown" />
-            <strong>{status.devicesUnknown}</strong> ohne Status
-          </li>
-        </ul>
-      )}
     </section>
   )
-}
-
-type Overall = { state: LedState; text: string }
-
-// Ein Satz für den Gesamtzustand. Das Wichtigste zuerst: Ohne Server ist alles andere egal.
-function overallOf(
-  status: SystemStatus | null,
-  blink: BlinkStatusInfo | null,
-  serverUnreachable: boolean,
-  statusError: string | null,
-): Overall {
-  if (serverUnreachable) {
-    return { state: 'offline', text: 'Server nicht erreichbar' }
-  }
-  if (statusError !== null) {
-    return { state: 'warning', text: 'Status nicht abrufbar' }
-  }
-  if (status === null) {
-    return { state: 'unknown', text: 'Status wird geprüft …' }
-  }
-  if (status.tuya === 'offline') {
-    return { state: 'warning', text: 'Tuya-Cloud nicht erreichbar' }
-  }
-  if (status.devicesOffline > 0) {
-    const text = status.devicesOffline === 1 ? '1 Gerät ist offline' : `${status.devicesOffline} Geräte sind offline`
-    return { state: 'warning', text }
-  }
-  if (blink?.state === 'loginRequired') {
-    return { state: 'warning', text: 'Blink braucht eine neue Anmeldung' }
-  }
-  return { state: 'online', text: 'Alles in Ordnung' }
 }
 
 function checkedText(status: SystemStatus | null, serverUnreachable: boolean): string {
