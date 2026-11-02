@@ -25,7 +25,13 @@ export function EnergyCard({ devices }: EnergyCardProps) {
         {energy.watt === null ? (
           <>
             <p className="energy-value energy-value-empty">–</p>
-            <p className="energy-meta">Keine aktuellen Messwerte (jünger als {maxMeasurementAgeMinutes} Minuten)</p>
+            {/* Ehrlich sagen, warum leer: Summe nur aus Geräten mit Strommessung, die gerade online sind. */}
+            <p className="energy-empty-reason">Kein Gerät mit Strommessung online</p>
+            <p className="energy-meta">
+              {energy.offlineNames.length > 0
+                ? `${energy.offlineNames.join(', ')} ${energy.offlineNames.length === 1 ? 'ist' : 'sind'} offline.`
+                : `Gezählt werden Steckdosen mit Strommessung, deren Messwert jünger als ${maxMeasurementAgeMinutes} Minuten ist.`}
+            </p>
           </>
         ) : (
           <>

@@ -13,6 +13,9 @@ export type EnergyNow = {
   deviceCount: number
   // Zeitpunkt des neuesten berücksichtigten Messwerts (ISO, UTC)
   newestMeasuredAtUtc: string | null
+  // Geräte, die schon einmal eine Leistung gemeldet haben, aber gerade offline sind (z. B. ausgesteckt).
+  // Damit die Karte ehrlich sagen kann, WARUM keine Summe da ist.
+  offlineNames: string[]
 }
 
 // "Energie jetzt": Summe der Leistung aller Geräte mit aktuellem Messwert. Nicht mitgezählt werden Geräte,
@@ -28,13 +31,15 @@ export function energyNow(devices: Device[], stateOf: (id: string) => OnlineStat
       stateOf(d.id) !== 'offline',
   )
 
+  const offlineNames = devices.filter((d) => d.powerWatt !== null && stateOf(d.id) === 'offline').map((d) => d.name)
+
   if (counted.length === 0) {
-    return { watt: null, deviceCount: 0, newestMeasuredAtUtc: null }
+    return { watt: null, deviceCount: 0, newestMeasuredAtUtc: null, offlineNames }
   }
 
   const watt = counted.reduce((sum, d) => sum + (d.powerWatt ?? 0), 0)
   const newest = counted.map((d) => d.measuredAtUtc as string).sort().at(-1) ?? null
-  return { watt, deviceCount: counted.length, newestMeasuredAtUtc: newest }
+  return { watt, deviceCount: counted.length, newestMeasuredAtUtc: newest, offlineNames }
 }
 
 export type LowestBattery = {

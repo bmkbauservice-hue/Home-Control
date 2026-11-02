@@ -189,6 +189,14 @@ select {
   color: var(--text-muted);
 }
 
+/* Erklärender Hinweis unter dem Inhalt einer Seite */
+.page-note {
+  max-width: 70ch;
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* ---------- Navigation: Handy = unten ---------- */
 
 .nav {
@@ -752,9 +760,11 @@ select {
 }
 
 .summary-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-card .status {
@@ -1018,6 +1028,10 @@ select {
 
 .energy-value-empty {
   color: var(--text-muted);
+}
+
+.energy-empty-reason {
+  font-weight: 700;
 }
 
 .energy-unit {
@@ -1320,8 +1334,8 @@ select.input {
   flex-direction: column;
   gap: 4px;
   padding: 14px 16px;
-  border: 1px solid var(--accent);
-  border-left-width: 6px;
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius-small);
   background: var(--accent-soft);
   font-size: 0.9rem;
@@ -1440,19 +1454,31 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   width: 100%;
   max-width: 420px;
   gap: 16px;
+  padding: 28px;
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--accent);
+  gap: 14px;
+  color: var(--text);
+}
+
+/* Gleiches Logo wie in der Navigation: warmes Licht im abgerundeten Quadrat */
+.login-brand svg {
+  width: 52px;
+  height: 52px;
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffcf7a, #ff9f43);
+  color: #2a1800;
+  box-shadow: 0 0 30px rgba(255, 176, 64, 0.35);
 }
 
 .login-brand h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* Textknopf ohne Rahmen, z. B. "Erstes Konto anlegen" */
