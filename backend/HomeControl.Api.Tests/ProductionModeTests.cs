@@ -18,16 +18,15 @@ public class ProductionModeTests(ProductionModeTests.ProductionApiFactory factor
     {
         public const string SigningKey = "test-signaturschluessel-nur-fuer-tests-0123456789";
 
-        protected override Dictionary<string, string?> Settings => new()
-        {
-            ["Jwt:SigningKey"] = SigningKey,
-        };
-
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
             // Nach base aufgerufen: Die spätere Einstellung gewinnt.
             builder.UseEnvironment("Production");
+            // UseSetting statt Settings: Program.cs liest den Schlüssel schon beim Aufbau
+            // (builder.Configuration). Werte aus ConfigureAppConfiguration kommen bei Minimal APIs
+            // erst später an, UseSetting dagegen sofort (wie UseEnvironment).
+            builder.UseSetting("Jwt:SigningKey", SigningKey);
         }
     }
 

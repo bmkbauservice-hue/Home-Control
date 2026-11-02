@@ -94,15 +94,17 @@ d.page_break()  # Codeblock passt nicht mehr auf Seite 2, Überschrift nicht all
 d.h1("5  Tests: ProductionModeTests")
 d.code("""public class ProductionApiFactory : HomeControlApiFactory
 {
-    protected override Dictionary<string, string?> Settings => new()
-        { ["Jwt:SigningKey"] = SigningKey };
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
-        builder.UseEnvironment("Production");   // später = gewinnt
+        builder.UseEnvironment("Production");             // später = gewinnt
+        builder.UseSetting("Jwt:SigningKey", SigningKey); // sofort sichtbar
     }
 }""")
+d.merksatz("Stolperfalle aus dem ersten Versuch: Den Schlüssel über ConfigureAppConfiguration zu setzen, "
+           "reicht nicht. Program.cs liest ihn schon beim Aufbau (builder.Configuration), und bei Minimal APIs "
+           "kommen diese Werte erst später an. UseSetting (wie UseEnvironment) ist sofort da. Faustregel: Was "
+           "Program.cs vor builder.Build() liest, im Test mit UseSetting setzen.", warn=True)
 d.table([
     ["Test", "prüft"],
     ["Api_Dokumentation_ist_aus", "/scalar und /openapi/v1.json antworten mit 404"],
