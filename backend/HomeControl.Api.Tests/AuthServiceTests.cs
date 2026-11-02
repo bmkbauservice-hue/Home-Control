@@ -154,6 +154,8 @@ public class AuthServiceTests : IDisposable
         Assert.Equal(LoginStatus.InvalidCredentials, login.Status);
         Assert.Null(login.Tokens);
         Assert.Equal(0, await db.RefreshTokens.CountAsync());
+        // Das Konto gibt es: Die Id ist für das Log da.
+        Assert.NotNull(login.UserId);
     }
 
     [Fact]
@@ -165,6 +167,7 @@ public class AuthServiceTests : IDisposable
 
         Assert.Equal(LoginStatus.InvalidCredentials, login.Status);
         Assert.Null(login.Tokens);
+        Assert.Null(login.UserId);
     }
 
     [Fact]

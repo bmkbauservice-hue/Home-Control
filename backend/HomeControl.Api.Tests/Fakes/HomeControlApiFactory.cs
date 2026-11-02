@@ -34,6 +34,11 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
     {
         ["Auth:RequireLoginForReading"] = "false",
         ["Agent:ApiKey"] = "",
+        // Großzügige Grenzen: Die Tests melden sich sehr oft an. Mit den echten Werten aus
+        // appsettings.json (10 pro Minute) bekämen sie 429. Kleine Grenzen nur in RateLimitingTests.
+        // Reicht über ConfigureAppConfiguration, weil die Grenzen erst bei der Anfrage gelesen werden.
+        ["RateLimiting:Login:PermitLimit"] = "100000",
+        ["RateLimiting:Tuya:PermitLimit"] = "100000",
     };
 
     // Zusätzliche Einstellungen für diese Factory (z. B. Auth:RequireLoginForReading).

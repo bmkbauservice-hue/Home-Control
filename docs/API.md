@@ -206,6 +206,7 @@ Alle Fehler kommen im Format **ProblemDetails** (`Content-Type: application/prob
 | 404 | Unbekannter Raum, unbekanntes Gerät oder Ereignis | „Raum nicht gefunden.“ / „Gerät nicht gefunden.“ / „Ereignis nicht gefunden.“ |
 | 401 | Schreibender Endpunkt ohne gültiges Access Token (fehlt, abgelaufen, falsch signiert) | „Unauthorized“ |
 | 403 | Angemeldet, aber nicht Admin | „Forbidden“ |
+| 429 | Rate Limit überschritten (Login/Register/Refresh pro Gerät, `/api/tuya` gemeinsam), mit Header `Retry-After`, siehe [RATE-LIMITING.md](RATE-LIMITING.md). Auch: Konto nach 5 Fehlversuchen gesperrt | „Zu viele Anmeldeversuche. Bitte in 42 Sekunden erneut versuchen.“ |
 | 404 | Unbekannte Route oder ungültige GUID in der URL | „Not Found“ |
 | 500 | Unerwarteter Fehler im Server | „Ein unerwarteter Fehler ist aufgetreten.“ |
 | 502, 503, 504 | Nur Tuya: nicht eingerichtet, abgelehnt, nicht erreichbar (siehe [TUYA.md](TUYA.md)) | „Tuya ist nicht eingerichtet.“ / „Tuya hat die Anfrage abgelehnt.“ |

@@ -8,6 +8,8 @@ Benutzung (siehe lernunterlage_api_schluessel.py):
 
 Braucht: pip install reportlab  und die Schrift DejaVu Sans (unter Linux meist vorhanden).
 """
+import os
+
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
@@ -23,7 +25,12 @@ from reportlab.platypus import (
 FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
 pdfmetrics.registerFont(TTFont("Sans", FONT_DIR + "DejaVuSans.ttf"))
 pdfmetrics.registerFont(TTFont("Sans-Bold", FONT_DIR + "DejaVuSans-Bold.ttf"))
-pdfmetrics.registerFont(TTFont("Sans-Oblique", FONT_DIR + "DejaVuSans-Oblique.ttf"))
+# Die Kursivschrift gehört unter Linux Mint zum Zusatzpaket fonts-dejavu-extra. Fehlt sie, wird die
+# normale Schrift genommen: Die PDF entsteht trotzdem, <i>…</i> erscheint dann nur nicht schräg.
+OBLIQUE = FONT_DIR + "DejaVuSans-Oblique.ttf"
+if not os.path.exists(OBLIQUE):
+    OBLIQUE = FONT_DIR + "DejaVuSans.ttf"
+pdfmetrics.registerFont(TTFont("Sans-Oblique", OBLIQUE))
 pdfmetrics.registerFont(TTFont("Mono", FONT_DIR + "DejaVuSansMono.ttf"))
 pdfmetrics.registerFontFamily("Sans", normal="Sans", bold="Sans-Bold", italic="Sans-Oblique", boldItalic="Sans-Bold")
 

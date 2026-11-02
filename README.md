@@ -32,6 +32,8 @@ Tuya-Cloud.
 - 🔐 **Sicherer Umgang mit Zugangsdaten:** Secrets nur in den .NET User Secrets, nie im Code
   oder im Repository. Das Zugriffstoken wird im Arbeitsspeicher wiederverwendet und
   rechtzeitig vor Ablauf erneuert, auch bei parallelen Anfragen nur einmal.
+- 🚦 **Rate Limiting:** Anmeldeversuche pro Gerät begrenzt (auch hinter `tailscale serve`),
+  Tuya-Abfragen gemeinsam gedeckelt. Antwort 429 mit `Retry-After` ([RATE-LIMITING.md](docs/RATE-LIMITING.md)).
 - 🧱 **Saubere API:** Minimal API mit `MapGroup`, DTOs als Contracts, Validierung mit
   Feldmeldungen, einheitliche Fehler als ProblemDetails und eine OpenAPI-Beschreibung mit
   Scalar-Oberfläche.
@@ -118,6 +120,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Status-LEDs (GET /api/status, Cache, Context-Provider, CSS-LEDs, Barrierefreiheit) | [Lernunterlage-Status-LEDs.pdf](docs/Lernunterlage-Status-LEDs.pdf) |
 | Tuya-Messwerte (Skalierung, Watt/Volt/Akku, Offline-Werte, reproduzierbare Tests) | [Lernunterlage-Tuya-Messwerte.pdf](docs/Lernunterlage-Tuya-Messwerte.pdf) |
 | Production-Modus (Umgebungen, User Secrets im Dienst, Secure-Cookie, Reihenfolge der Konfiguration) | [Lernunterlage-Production-Modus.pdf](docs/Lernunterlage-Production-Modus.pdf) |
+| Rate Limiting (Fixed Window, Sliding, Token Bucket, 429, Retry-After, Proxy-Problem, Middleware-Reihenfolge) | [Lernunterlage-Rate-Limiting.pdf](docs/Lernunterlage-Rate-Limiting.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 

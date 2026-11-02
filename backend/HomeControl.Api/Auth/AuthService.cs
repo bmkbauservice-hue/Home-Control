@@ -95,7 +95,7 @@ public class AuthService(
 
         if (await userManager.IsLockedOutAsync(user))
         {
-            return new LoginResult(LoginStatus.LockedOut, null);
+            return new LoginResult(LoginStatus.LockedOut, null, user.Id);
         }
 
         // Das eingegebene Passwort wird mit demselben Salt gehasht und mit dem gespeicherten
@@ -105,8 +105,8 @@ public class AuthService(
         {
             await userManager.AccessFailedAsync(user);
             return await userManager.IsLockedOutAsync(user)
-                ? new LoginResult(LoginStatus.LockedOut, null)
-                : new LoginResult(LoginStatus.InvalidCredentials, null);
+                ? new LoginResult(LoginStatus.LockedOut, null, user.Id)
+                : new LoginResult(LoginStatus.InvalidCredentials, null, user.Id);
         }
 
         await userManager.ResetAccessFailedCountAsync(user);
@@ -246,7 +246,9 @@ public enum LoginStatus
     LockedOut,
 }
 
-public record LoginResult(LoginStatus Status, AuthTokens? Tokens);
+// UserId ist bei einem Fehlschlag nur gesetzt, wenn es das Konto gibt (für das Log, siehe AuthEndpoints).
+// Nach außen (HTTP-Antwort) geht sie nie: Sonst wüsste man, welche E-Mail-Adressen es gibt.
+public record LoginResult(LoginStatus Status, AuthTokens? Tokens, Guid? UserId = null);
 
 // Alles, was nach Login oder Refresh an den Client geht. RefreshToken landet im Cookie,
 // der Rest im JSON der Antwort.
