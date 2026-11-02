@@ -5,7 +5,7 @@ import { useAuth } from '../auth/authContext'
 import { BlinkCameras } from '../components/BlinkCameras'
 import { EnergyCard } from '../components/EnergyCard'
 import { ChevronRightIcon, PlusIcon, RoomsIcon } from '../components/Icons'
-import { measurementsOf } from '../components/measurements'
+import { measurementsOf, stateLabel } from '../components/measurements'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
 import { StatusBar } from '../components/StatusBar'
@@ -145,9 +145,6 @@ type RoomCardProps = {
   onOpen: () => void
 }
 
-// Anzeige des gespeicherten Zustands: Das Backend speichert EIN/AUS/OFFEN/ZU, gezeigt wird "An", "Aus" usw.
-const stateLabels: Record<string, string> = { EIN: 'An', AUS: 'Aus', OFFEN: 'Offen', ZU: 'Zu' }
-
 // Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter. Darunter je Gerät eine Zeile:
 // LED · Name und Typ · Zustand rechts (groß) mit Messwerten darunter (klein).
 function RoomCard({ room, devices, onOpen }: RoomCardProps) {
@@ -178,7 +175,7 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
           {shown.map((device) => {
             const measurements = measurementsOf(device)
             const warning = measurements.some((m) => m.warning)
-            const main = device.lastValue ? (stateLabels[device.lastValue] ?? device.lastValue) : '–'
+            const main = stateLabel(device.lastValue)
             const sub = measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
             const valueClass = [
               'room-device-value',

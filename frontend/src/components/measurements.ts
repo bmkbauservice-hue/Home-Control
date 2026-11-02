@@ -1,5 +1,13 @@
 import type { Device } from '../api/devices'
 
+// Anzeige des gespeicherten Zustands: Das Backend speichert EIN/AUS/OFFEN/ZU, gezeigt wird "An", "Aus" usw.
+// Unbekannte Werte erscheinen unverändert, null wird zu "–".
+const stateLabels: Record<string, string> = { EIN: 'An', AUS: 'Aus', OFFEN: 'Offen', ZU: 'Zu' }
+
+export function stateLabel(lastValue: string | null): string {
+  return lastValue === null ? '–' : (stateLabels[lastValue] ?? lastValue)
+}
+
 // Ab diesem Akkustand wird die Anzeige gelb: Rechtzeitig Batterie tauschen, bevor der
 // Türsensor ausfällt und keine Ereignisse mehr meldet.
 export const lowBatteryPercent = 20

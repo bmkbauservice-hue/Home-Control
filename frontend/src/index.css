@@ -399,15 +399,101 @@ select {
   background: var(--danger-soft);
 }
 
+/* Zustand eines Geräts groß, Messwerte klein darunter (Geräteseite) */
+.device-state {
+  margin-top: 4px;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.device-state.is-on {
+  color: var(--warm);
+}
+
+.device-state.no-data {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.device-state small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Knopf nur mit Symbol (z. B. Löschen in einer Gerätekachel): quadratisch, wächst nicht mit */
+.tile-actions-row .button-icon {
+  flex: 0 0 44px;
+  padding: 0;
+}
+
+/* "Neues Gerät anlegen" zum Aufklappen */
+.create-details {
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.create-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 0 18px;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.create-summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-details[open] .create-summary {
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.create-details .create-form {
+  margin: 0;
+  padding: 16px 18px 18px;
+}
+
+/* Abgleichen-Leiste: Text links, Knopf rechts */
+.sync-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.sync-text {
+  flex: 1 1 320px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 /* Kleine Zeile mit Messwerten unten in einer Kachel (Räume, Geräte) */
 .tile-values {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
   margin: auto 0 0;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* Ohne Einträge (kein Messwert, keine Tuya-Verknüpfung) keine leere Linie zeigen */
+.tile-values:empty {
+  display: none;
 }
 
 .tile-values dt {
@@ -416,8 +502,9 @@ select {
 
 .tile-values dd {
   margin: 0;
-  color: var(--offline);
-  font-style: italic;
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 /* Kachel mit Aktionen: Messwerte nicht ganz nach unten schieben */
@@ -1320,6 +1407,23 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   gap: 12px;
   min-height: 0;
   margin-bottom: 16px;
+}
+
+/* Handy: Suche über die ganze Breite, Auswahlfelder nebeneinander, so bleibt die Liste sichtbar */
+@media (max-width: 600px) {
+  .filter-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .filter-bar > :first-child,
+  .filter-bar > .button {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar > .button {
+    min-height: 44px;
+  }
 }
 
 /* ---------- Anmeldung ---------- */

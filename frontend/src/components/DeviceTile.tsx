@@ -4,8 +4,9 @@ import type { Room } from '../api/rooms'
 import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
 import { DeviceFields } from './DeviceFields'
-import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
-import { measuredAtText, measurementsOf } from './measurements'
+import { DeviceTypeIcon } from './DeviceTypeIcon'
+import { EditIcon, HistoryIcon, TrashIcon } from './Icons'
+import { measuredAtText, measurementsOf, stateLabel } from './measurements'
 import { StatusLed } from './StatusLed'
 import { useStatus } from '../status/statusContext'
 
@@ -129,25 +130,33 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
           <StatusLed state={onlineState} label={onlineState} />
         )}
       </span>
-      <span className="tile-icon">
-        <DeviceIcon size={28} />
-      </span>
-      <h3 className="tile-title">{device.name}</h3>
-      <p className="tile-text">{getDeviceTypeLabel(device.type)}</p>
+      {/* Kopf wie bei den Räumen: Symbol des Gerätetyps, Name, Typ */}
+      <div className="tile-head">
+        <span className="room-icon">
+          <DeviceTypeIcon type={device.type} />
+        </span>
+        <div className="tile-head-text">
+          <h3 className="tile-title">{device.name}</h3>
+          <p className="tile-text">{getDeviceTypeLabel(device.type)}</p>
+        </div>
+      </div>
+      {/* Zustand groß, Messwerte darunter (feste Ziffernbreite, siehe .device-state) */}
+      <p className={device.lastValue === 'EIN' ? 'device-state is-on' : device.lastValue ? 'device-state' : 'device-state no-data'}>
+        {device.lastValue ? stateLabel(device.lastValue) : 'Noch keine Daten'}
+        {measurements.length > 0 && (
+          <small>
+            {measurements.map((m, index) => (
+              <span key={m.text} className={m.warning ? 'value-warning' : undefined}>
+                {index > 0 && ' · '}
+                {m.text}
+              </span>
+            ))}
+          </small>
+        )}
+      </p>
       <dl className="tile-values">
-        <dt>Zustand</dt>
-        <dd>{device.lastValue ?? 'Noch keine Daten'}</dd>
         {measurements.length > 0 && (
           <>
-            <dt>Messwerte</dt>
-            <dd>
-              {measurements.map((m, index) => (
-                <span key={m.text} className={m.warning ? 'value-warning' : undefined}>
-                  {index > 0 && ' · '}
-                  {m.text}
-                </span>
-              ))}
-            </dd>
             <dt>Gemessen</dt>
             <dd>
               {measuredAtText(device.measuredAtUtc) ?? 'unbekannt'}
@@ -163,20 +172,31 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
           </>
         )}
       </dl>
-      <div className="tile-actions">
-        <button type="button" className="button button-full" onClick={() => setMode('events')}>
+      <div className="tile-actions tile-actions-row">
+        <button type="button" className="button" onClick={() => setMode('events')}>
           <HistoryIcon size={20} />
           Ereignisse
         </button>
         {canEdit && (
           <>
-            <button type="button" className="button" onClick={() => setMode('edit')}>
+            {/* Nur Symbole, damit alle Knöpfe in eine Zeile passen. aria-label/title für Screenreader und Maus. */}
+            <button
+              type="button"
+              className="button button-icon"
+              onClick={() => setMode('edit')}
+              aria-label={`${device.name} bearbeiten`}
+              title="Bearbeiten"
+            >
               <EditIcon size={20} />
-              Bearbeiten
             </button>
-            <button type="button" className="button button-ghost-danger" onClick={() => setMode('confirmDelete')}>
+            <button
+              type="button"
+              className="button button-ghost-danger button-icon"
+              onClick={() => setMode('confirmDelete')}
+              aria-label={`${device.name} löschen`}
+              title="Löschen"
+            >
               <TrashIcon size={20} />
-              Löschen
             </button>
           </>
         )}
