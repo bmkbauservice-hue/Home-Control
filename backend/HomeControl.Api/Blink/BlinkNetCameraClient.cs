@@ -49,6 +49,9 @@ public class BlinkNetCameraClient(
     // Merkhilfe würde jeder weitere Aufruf mit demselben Token erneut einloggen (Sperrrisiko).
     private string? activeRefreshToken;
 
+    // Die Mahnung "Startwert noch in den User Secrets" nur einmal pro Programmstart ins Log schreiben.
+    private bool bootstrapWarningLogged;
+
     private DateTimeOffset lastFetchAtUtc = DateTimeOffset.MinValue;
     private IReadOnlyList<BlinkCameraInfo> lastCameras = [];
 
@@ -198,7 +201,25 @@ public class BlinkNetCameraClient(
         // Blink.NET meldet ein neues Token auch schon während des Logins (OnTokenRefreshed). Nur wenn
         // das nicht passiert ist, gilt noch das Token, mit dem wir uns angemeldet haben.
         activeRefreshToken ??= credential.RefreshToken;
+        WarnIfBootstrapTokenStillConfigured();
         return newClient;
+    }
+
+    // REVIEW.md M-4: Nach dem ersten erfolgreichen Login liegt das Token verschlüsselt in der Datenbank.
+    // Der Startwert Blink:InitialRefreshToken wird dann nicht mehr gebraucht, steht aber im Klartext in
+    // den User Secrets. Das Backend löscht ihn nicht selbst (die User Secrets gehören dem Entwickler),
+    // sondern mahnt deutlich im Log, mit dem Befehl zum Entfernen. Der Wert selbst wird nie ausgegeben.
+    private void WarnIfBootstrapTokenStillConfigured()
+    {
+        if (bootstrapWarningLogged || string.IsNullOrWhiteSpace(options.CurrentValue.InitialRefreshToken))
+        {
+            return;
+        }
+
+        bootstrapWarningLogged = true;
+        logger.LogWarning(
+            "Blink ist verbunden, das Token liegt verschlüsselt in der Datenbank. Bitte den Startwert aus den User Secrets " +
+            "entfernen: dotnet user-secrets remove \"Blink:InitialRefreshToken\" --project backend/HomeControl.Api");
     }
 
     // OnTokenRefreshed ist ein reines Action<string>-Ereignis (kein async). Der Speichervorgang

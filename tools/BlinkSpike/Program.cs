@@ -12,12 +12,22 @@ var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()
     .Build();
 
-const string BackendProjectPath = "../../backend/HomeControl.Api";
+// User-Secrets-Ids aus den .csproj-Dateien. Mit --id statt --project funktioniert das Schreiben
+// unabhängig davon, aus welchem Ordner der Spike gestartet wird.
+const string BackendSecretsId = "b10e47d4-d4f2-44f2-8fbb-5e1249af4daf";   // backend/HomeControl.Api
+const string SpikeSecretsId = "a8cc534d-5044-4fa2-ad90-29fef9954a14";     // tools/BlinkSpike
 
-// Bei einem erneuten Lauf (z. B. nach einem abgelaufenen Token) zuerst mit dem zuletzt
-// gespeicherten Refresh-Token versuchen – dann ist keine neue PIN nötig.
-var savedRefreshToken = config["Blink:RefreshToken"];
+// Dieselbe HardwareId wie beim letzten Mal (kein Geheimnis, aber stabil halten, siehe unten).
 var savedHardwareId = config["Blink:HardwareId"];
+
+// Früher hat der Spike hier zusätzlich eine eigene Kopie des Refresh-Tokens gespeichert
+// (REVIEW.md M-4). Die ist nach dem ersten Login des Backends ohnehin veraltet, weil Blink das Token
+// dabei austauscht, und wäre trotzdem ein Geheimnis im Klartext. Eine alte Kopie wird entfernt.
+if (!string.IsNullOrWhiteSpace(config["Blink:RefreshToken"]))
+{
+    await RemoveUserSecretAsync(SpikeSecretsId, "Blink:RefreshToken");
+    Console.WriteLine("Alte Kopie des Refresh-Tokens aus den User Secrets des Spikes entfernt.");
+}
 
 var client = new BlinkClient
 {
@@ -37,86 +47,73 @@ Console.WriteLine($"HardwareId für diesen Lauf: {Mask(client.HardwareId)}");
 
 var loggedIn = false;
 
-if (!string.IsNullOrWhiteSpace(savedRefreshToken))
+// Jeder Lauf ist ein Login mit E-Mail, Passwort und PIN (der Spike merkt sich kein Token mehr).
+// Die E-Mail wird beim ersten Lauf abgefragt und in den User Secrets des Spikes gemerkt (über stdin,
+// also nicht in der Shell-History). Kein Geheimnis, aber auch nichts für Git.
+var email = config["Blink:Email"];
+if (string.IsNullOrWhiteSpace(email))
 {
-    Console.WriteLine("Vorhandenes Refresh-Token gefunden, versuche Login ohne PIN …");
-    try
-    {
-        loggedIn = await client.TryLoginWithRefreshTokenAsync(savedRefreshToken);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Login mit Refresh-Token fehlgeschlagen: {ex.Message}");
-    }
-
-    if (!loggedIn)
-    {
-        Console.WriteLine("Refresh-Token wurde abgelehnt, es folgt ein normaler Login mit 2FA.");
-    }
-}
-
-if (!loggedIn)
-{
-    var email = config["Blink:Email"];
+    Console.Write("E-Mail-Adresse des Blink-Kontos: ");
+    email = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(email))
     {
-        Console.WriteLine("Fehlende E-Mail. Bitte vorher setzen (wird nirgends ausgegeben):");
-        Console.WriteLine("  dotnet user-secrets set \"Blink:Email\" \"<deine-email>\" --project tools/BlinkSpike");
+        Console.WriteLine("Abgebrochen.");
         return 1;
     }
+    await SetUserSecretsAsync(SpikeSecretsId, new() { ["Blink:Email"] = email });
+}
 
-    // Das Passwort wird NIE gespeichert (weder in User Secrets noch sonst irgendwo) –
-    // jedes Mal verdeckt neu abfragen.
-    Console.Write("Blink-Passwort eingeben (wird nirgends gespeichert): ");
-    var password = ReadMaskedLine();
-    if (string.IsNullOrWhiteSpace(password))
+// Das Passwort wird NIE gespeichert (weder in User Secrets noch sonst irgendwo) –
+// jedes Mal verdeckt neu abfragen.
+Console.Write("Blink-Passwort eingeben (wird nirgends gespeichert): ");
+var password = ReadMaskedLine();
+if (string.IsNullOrWhiteSpace(password))
+{
+    Console.WriteLine("Abgebrochen.");
+    return 1;
+}
+
+Console.WriteLine("Login mit E-Mail/Passwort läuft …");
+bool loginAccepted;
+try
+{
+    loginAccepted = await client.TryLoginAsync(email, password);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Login fehlgeschlagen: {ex.Message}");
+    return 1;
+}
+
+if (!loginAccepted)
+{
+    Console.WriteLine("Login fehlgeschlagen: Zugangsdaten wurden von Blink abgelehnt.");
+    return 1;
+}
+
+Console.WriteLine("E-Mail/Passwort akzeptiert. Blink verlangt jetzt eine PIN (per SMS oder E-Mail).");
+
+while (!loggedIn)
+{
+    Console.Write("PIN eingeben (leer lassen zum Abbrechen): ");
+    var pin = Console.ReadLine();
+    if (string.IsNullOrWhiteSpace(pin))
     {
         Console.WriteLine("Abgebrochen.");
         return 1;
     }
 
-    Console.WriteLine("Login mit E-Mail/Passwort läuft …");
-    bool loginAccepted;
     try
     {
-        loginAccepted = await client.TryLoginAsync(email, password);
+        loggedIn = await client.TryVerifyPinAsync(pin.Trim());
+        if (!loggedIn)
+        {
+            Console.WriteLine("PIN war falsch oder abgelaufen, bitte erneut versuchen.");
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Login fehlgeschlagen: {ex.Message}");
-        return 1;
-    }
-
-    if (!loginAccepted)
-    {
-        Console.WriteLine("Login fehlgeschlagen: Zugangsdaten wurden von Blink abgelehnt.");
-        return 1;
-    }
-
-    Console.WriteLine("E-Mail/Passwort akzeptiert. Blink verlangt jetzt eine PIN (per SMS oder E-Mail).");
-
-    while (!loggedIn)
-    {
-        Console.Write("PIN eingeben (leer lassen zum Abbrechen): ");
-        var pin = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(pin))
-        {
-            Console.WriteLine("Abgebrochen.");
-            return 1;
-        }
-
-        try
-        {
-            loggedIn = await client.TryVerifyPinAsync(pin.Trim());
-            if (!loggedIn)
-            {
-                Console.WriteLine("PIN war falsch oder abgelaufen, bitte erneut versuchen.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"PIN-Prüfung fehlgeschlagen: {ex.Message}");
-        }
+        Console.WriteLine($"PIN-Prüfung fehlgeschlagen: {ex.Message}");
     }
 }
 
@@ -129,19 +126,23 @@ if (string.IsNullOrWhiteSpace(refreshToken))
 
 Console.WriteLine("Anmeldung erfolgreich.");
 
-// Werte nie ausgeben: direkt in die User Secrets schreiben (Backend + dieses Tool selbst).
-await SetUserSecretAsync(BackendProjectPath, "Blink:HardwareId", client.HardwareId);
-await SetUserSecretAsync(BackendProjectPath, "Blink:InitialRefreshToken", refreshToken);
-await SetUserSecretAsync(".", "Blink:HardwareId", client.HardwareId);
-await SetUserSecretAsync(".", "Blink:RefreshToken", refreshToken);
+// Werte nie ausgeben: direkt in die User Secrets schreiben. Das Token nur ins Backend (als Startwert),
+// in den Spike nur die HardwareId (kein Geheimnis).
+await SetUserSecretsAsync(BackendSecretsId, new()
+{
+    ["Blink:HardwareId"] = client.HardwareId,
+    ["Blink:InitialRefreshToken"] = refreshToken,
+});
+await SetUserSecretsAsync(SpikeSecretsId, new() { ["Blink:HardwareId"] = client.HardwareId });
 
-Console.WriteLine("HardwareId und Refresh-Token wurden übernommen in:");
-Console.WriteLine($"  Backend ({BackendProjectPath}): Blink:HardwareId, Blink:InitialRefreshToken");
-Console.WriteLine("  Dieses Tool (tools/BlinkSpike): Blink:HardwareId, Blink:RefreshToken (für einen künftigen Lauf ohne PIN)");
+Console.WriteLine("Übernommen: Blink:HardwareId und Blink:InitialRefreshToken in die User Secrets des Backends.");
 Console.WriteLine();
-Console.WriteLine("Sobald das Backend einmal erfolgreich gestartet ist und das Token in die Datenbank");
-Console.WriteLine("übernommen hat, kann Blink:InitialRefreshToken aus den Backend-User-Secrets wieder");
-Console.WriteLine("entfernt werden (siehe docs/BLINK.md, Abschnitt \"Bootstrap-Token entfernen\").");
+Console.WriteLine("Nächste Schritte:");
+Console.WriteLine("  1. Backend bzw. Dienst einmal /api/blink/status abrufen lassen (Übersicht öffnen).");
+Console.WriteLine("     Das Token wird dabei verschlüsselt in die Datenbank übernommen.");
+Console.WriteLine("  2. DANN den Startwert wieder entfernen (er wird nicht mehr gebraucht):");
+Console.WriteLine("     dotnet user-secrets remove \"Blink:InitialRefreshToken\" --project backend/HomeControl.Api");
+Console.WriteLine("     Solange er dort steht, mahnt das Backend im Log (siehe docs/BLINK.md).");
 Console.WriteLine();
 
 Console.WriteLine("Netzwerke und Kameras:");
@@ -202,29 +203,56 @@ static string ReadMaskedLine()
     }
 }
 
-// Schreibt einen Wert in die User Secrets eines Projekts, ohne ihn jemals über die eigene
-// Konsolenausgabe laufen zu lassen (gleiches Vorgehen wie tuya-secrets-einrichten.sh).
-static async Task SetUserSecretAsync(string projectPath, string key, string value)
+// Schreibt Werte in die User Secrets, ohne sie auszugeben und ohne sie als Kommandozeilenargument zu
+// übergeben (REVIEW.md M-4): Argumente stehen während des Aufrufs in der Prozessliste (/proc/*/cmdline)
+// und sind dort für andere Programme lesbar. Stattdessen geht ein JSON-Objekt über stdin an
+// "dotnet user-secrets set", wie in tuya-secrets-einrichten.sh. Vorhandene andere Schlüssel bleiben stehen.
+static async Task SetUserSecretsAsync(string secretsId, Dictionary<string, string> values)
+{
+    using var process = StartUserSecrets("set", secretsId, redirectInput: true);
+    await process.StandardInput.WriteAsync(JsonSerializer.Serialize(values));
+    process.StandardInput.Close();   // Ende der Eingabe: erst jetzt liest user-secrets das JSON
+    await WaitForSuccessAsync(process, "set");
+}
+
+// Entfernt einen Schlüssel. Hier steht nur der NAME in der Kommandozeile, nie ein Wert.
+static async Task RemoveUserSecretAsync(string secretsId, string key)
+{
+    using var process = StartUserSecrets("remove", secretsId, redirectInput: false, key);
+    await WaitForSuccessAsync(process, "remove");
+}
+
+static Process StartUserSecrets(string command, string secretsId, bool redirectInput, string? key = null)
 {
     var startInfo = new ProcessStartInfo("dotnet")
     {
+        RedirectStandardInput = redirectInput,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         UseShellExecute = false,
     };
     startInfo.ArgumentList.Add("user-secrets");
-    startInfo.ArgumentList.Add("set");
-    startInfo.ArgumentList.Add(key);
-    startInfo.ArgumentList.Add(value);
-    startInfo.ArgumentList.Add("--project");
-    startInfo.ArgumentList.Add(projectPath);
+    startInfo.ArgumentList.Add(command);
+    if (key is not null)
+    {
+        startInfo.ArgumentList.Add(key);
+    }
+    startInfo.ArgumentList.Add("--id");
+    startInfo.ArgumentList.Add(secretsId);
 
-    using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("dotnet user-secrets konnte nicht gestartet werden.");
+    return Process.Start(startInfo) ?? throw new InvalidOperationException("dotnet user-secrets konnte nicht gestartet werden.");
+}
+
+static async Task WaitForSuccessAsync(Process process, string command)
+{
+    // Ausgaben lesen, damit der Prozess nicht an einem vollen Puffer hängen bleibt.
+    var output = process.StandardOutput.ReadToEndAsync();
+    var error = process.StandardError.ReadToEndAsync();
     await process.WaitForExitAsync();
+    await output;
     if (process.ExitCode != 0)
     {
-        var error = await process.StandardError.ReadToEndAsync();
-        throw new InvalidOperationException($"dotnet user-secrets set für \"{key}\" in \"{projectPath}\" ist fehlgeschlagen: {error}");
+        throw new InvalidOperationException($"dotnet user-secrets {command} ist fehlgeschlagen: {await error}");
     }
 }
 

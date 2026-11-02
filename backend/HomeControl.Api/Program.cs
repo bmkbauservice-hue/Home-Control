@@ -29,7 +29,8 @@ var builder = WebApplication.CreateBuilder(args);
 // HomeControl:UseUserSecrets (im Dienst als Umgebungsvariable HomeControl__UseUserSecrets=true).
 if (!builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("HomeControl:UseUserSecrets"))
 {
-    builder.Configuration.AddUserSecrets<Program>(optional: false);
+    // reloadOnChange: Neue Werte (z. B. ein Blink-Token aus tools/BlinkSpike) gelten ohne Neustart des Dienstes.
+    builder.Configuration.AddUserSecrets<Program>(optional: false, reloadOnChange: true);
     // Später hinzugefügte Quellen gewinnen. Umgebungsvariablen noch einmal anhängen, damit z. B. der
     // Connection String aus dem Dienst weiterhin vor den User Secrets gilt.
     builder.Configuration.AddEnvironmentVariables();
