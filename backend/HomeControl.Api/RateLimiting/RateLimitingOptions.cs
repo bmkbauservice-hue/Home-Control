@@ -19,6 +19,9 @@ public class RateLimitingOptions
     // Blink-Vorschaubilder: pro Gerät (Client-IP). Das Backend hält Bilder ohnehin 60 Sekunden vor, die Grenze
     // schützt vor einer Flut von Anfragen (z. B. eine Schleife im Browser).
     public FixedWindowLimit BlinkThumbnails { get; set; } = new() { PermitLimit = 30, WindowSeconds = 60 };
+
+    // Blink "Neues Bild": pro KAMERA höchstens 1 pro Minute. Jedes neue Bild weckt eine Akku-Kamera auf.
+    public FixedWindowLimit BlinkSnapshot { get; set; } = new() { PermitLimit = 1, WindowSeconds = 60 };
 }
 
 // Ein festes Zeitfenster: höchstens PermitLimit Anfragen pro WindowSeconds Sekunden.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getBlinkCameras, type BlinkCamera } from '../api/blink'
+import { useAuth } from '../auth/authContext'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import { useStatus } from '../status/statusContext'
 import { BlinkCameraCard } from './BlinkCameraCard'
@@ -9,6 +10,7 @@ import { BlinkStatus } from './BlinkStatus'
 // warum nicht (z. B. "Blink in der Entwicklung aus"). Jede Minute neu, das Backend hält Bilder 60 s vor.
 export function BlinkCameras() {
   const { blink } = useStatus()
+  const { isAdmin } = useAuth()
   const connected = blink?.state === 'connected'
   const [cameras, setCameras] = useState<BlinkCamera[] | null>(null)
   const [loadedAt, setLoadedAt] = useState('')
@@ -57,7 +59,12 @@ export function BlinkCameras() {
     <div className="camera-grid">
       {cameras.map((camera) => (
         // Neues Bild laden, wenn Blink einen neuen Aufnahmezeitpunkt meldet; ohne Zeitpunkt bei jedem Neuladen.
-        <BlinkCameraCard key={camera.id} camera={camera} refreshKey={camera.thumbnailTakenAtUtc ?? loadedAt} />
+        <BlinkCameraCard
+          key={camera.id}
+          camera={camera}
+          refreshKey={camera.thumbnailTakenAtUtc ?? loadedAt}
+          canRequestNewImage={isAdmin}
+        />
       ))}
     </div>
   )

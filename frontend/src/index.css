@@ -1174,10 +1174,42 @@ select {
   font-weight: 800;
 }
 
-.camera-taken,
 .camera-state {
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+/* Aufnahmezeit groß und gut lesbar: Ein Vorschaubild ist kein Livebild. */
+.camera-taken {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Älter als ein Tag: gelb */
+.camera-taken-old {
+  color: var(--warning);
+}
+
+/* Knopf "Neues Bild" (nur Admin) mit Hinweis auf den Akku */
+.camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 16px 16px;
+}
+
+.camera-hint,
+.camera-snapshot-message {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.camera-snapshot-message {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .camera-message {

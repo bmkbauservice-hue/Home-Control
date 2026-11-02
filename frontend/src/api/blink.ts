@@ -1,6 +1,6 @@
 import { send } from './http'
 
-// Aufrufe für die Blink-Kameras (nur lesend).
+// Aufrufe für die Blink-Kameras. Alles nur lesend, mit einer bewussten Ausnahme: requestNewThumbnail().
 
 // Eine Kamera aus GET /api/blink/cameras (entspricht BlinkCameraResponse im Backend).
 export type BlinkCamera = {
@@ -28,6 +28,26 @@ export async function getBlinkCameras(): Promise<BlinkCamera[]> {
 export async function getBlinkThumbnail(cameraId: string): Promise<{ image: Blob; takenAtUtc: string | null }> {
   const response = await send(`/api/blink/cameras/${encodeURIComponent(cameraId)}/thumbnail`)
   return { image: await response.blob(), takenAtUtc: response.headers.get('X-Thumbnail-Taken-At') }
+}
+
+// Antwort von POST /api/blink/cameras/{id}/snapshot (entspricht BlinkSnapshotResponse im Backend).
+export type BlinkSnapshot = {
+  // false = Blink hat den Befehl angenommen, aber nicht rechtzeitig fertig gemeldet
+  completed: boolean
+  thumbnailTakenAtUtc: string | null
+}
+
+// "Neues Bild": Die Kamera nimmt ein neues Vorschaubild auf. Bewusste Ausnahme von "nur lesend":
+// kostet Akku, schaltet aber nichts. Nur Admin, höchstens einmal pro Minute und Kamera (sonst 429).
+export async function requestNewThumbnail(cameraId: string): Promise<BlinkSnapshot> {
+  const response = await send(`/api/blink/cameras/${encodeURIComponent(cameraId)}/snapshot`, { method: 'POST' })
+  return (await response.json()) as BlinkSnapshot
+}
+
+// Älter als einen Tag? Dann zeigt die Karte die Aufnahmezeit gelb, damit niemand ein altes Bild für live hält.
+export function isOldThumbnail(timestamp: string, now: Date = new Date()): boolean {
+  const date = new Date(timestamp)
+  return !Number.isNaN(date.getTime()) && now.getTime() - date.getTime() > 24 * 60 * 60 * 1000
 }
 
 // "Akku ok" / "Akku schwach" / null (nichts anzeigen)

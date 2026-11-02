@@ -2,6 +2,8 @@
 
 Home Control liest (nur lesend) Status und Kameras eines Blink-Systems. Wie bei Tuya wird
 nie geschaltet – hier zusätzlich: nie scharf-/unscharfgeschaltet und nie ein Clip gelöscht.
+**Einzige bewusste Ausnahme:** der Knopf „Neues Bild“ (siehe unten). Er lässt eine Kamera ein neues
+Vorschaubild aufnehmen, kostet Akku, schaltet aber nichts.
 
 ## 1. Wichtig: keine offizielle API
 
@@ -118,13 +120,14 @@ nichts.
 
 ## 4. Endpunkte
 
-Nur lesend, alle unter `/api/blink`:
+Alle unter `/api/blink`. Nur lesend bis auf `POST …/snapshot` (bewusste Ausnahme):
 
 | Endpunkt | Zweck |
 |---|---|
 | `GET /api/blink/status` | `state`: `connected`, `loginRequired`, `notConfigured` oder `disabled` (in diesem Prozess aus), plus Zeitpunkt des letzten erfolgreichen Abrufs |
 | `GET /api/blink/cameras` | Liste der Kameras aus dem Homescreen (`cameras`, `owls`, `doorbells`): Id, Name, Akku (`ok`/`low`), Online (nur bei eindeutigem `status`), `hasThumbnail`, `thumbnailTakenAtUtc`. Temperatur vorerst `null`, siehe Abschnitt 5 |
 | `GET /api/blink/cameras/{id}/thumbnail` | Letztes Vorschaubild, nur mit JWT-Anmeldung (siehe unten) |
+| `POST /api/blink/cameras/{id}/snapshot` | **Neues Bild** aufnehmen lassen: nur Admin, höchstens 1× pro Minute und Kamera (siehe unten) |
 
 ### Vorschaubilder: `GET /api/blink/cameras/{id}/thumbnail`
 
@@ -137,7 +140,7 @@ Bild weiter (Proxy statt Direktlink). Blink-Token und Blink-Adressen erreichen d
 |---|---|
 | Wer darf? | Nur angemeldete Menschen per JWT (Policy `SignedInUser`). Der Agenten-Schlüssel wird abgelehnt (401), auch wenn `Auth:RequireLoginForReading` aus ist. |
 | Antwort | `image/jpeg` (oder `image/png`), Header `Cache-Control: no-store`, Aufnahmezeit in `X-Thumbnail-Taken-At` (falls bekannt) |
-| Kein neues Foto | Nur `GET` auf das vorhandene Bild. Ein neues Foto (`POST …/thumbnail`) würde Akku-Kameras wecken. |
+| Kein neues Foto | Nur `GET` auf das vorhandene Bild. Ein neues Foto gibt es nur über den Knopf „Neues Bild“ (nächster Abschnitt). |
 | Schutz für Blink | Bilder 60 s im Server-Cache, Rate-Limit-Regel `blink-bilder` (30 pro Minute und Gerät) |
 | Bildpfad | aus dem Homescreen-Feld `thumbnail`, wie in blinkpy: nur ein Zeitstempel (neues Format) oder ein Pfad (altes Format, plus `.jpg`). Nur relative Pfade ohne `..` und `://`, nur `image/jpeg`/`image/png`, höchstens 5 MB. |
 | Fehler | Kamera unbekannt oder kein Bild: `404`; Blink lehnt ab: `502`; Blink antwortet nicht: `504`; ausgeschaltet, nicht eingerichtet oder Neu-Login nötig: `503` |
@@ -153,6 +156,27 @@ passiert höchstens alle zwei Minuten (siehe `BlinkHttpCameraClient.MinPollInter
 häufigere Aufrufe bekommen den zwischengespeicherten Stand. Das schützt vor einer Sperrung
 durch Blink. Ist die Blink-Cloud nicht erreichbar, antwortet nicht rechtzeitig oder lehnt ab (z. B. `426`), liefern
 beide Endpunkte `502` bzw. `504` (ProblemDetails) statt eines allgemeinen Serverfehlers.
+
+### Neues Bild: `POST /api/blink/cameras/{id}/snapshot` (bewusste Ausnahme)
+
+**Zum Lernen:** [Lernunterlage-Blink-Neues-Bild.pdf](Lernunterlage-Blink-Neues-Bild.pdf)
+
+Blink erneuert das Vorschaubild nur bei einer Bewegung oder auf Anforderung. Ohne Bewegung kann das letzte
+Bild Tage alt sein. Deshalb gibt es **eine** bewusste Ausnahme von „nur lesend“ (Entscheidung vom 02.11.2026):
+
+| Regel | Umsetzung |
+|---|---|
+| Was passiert? | Die Kamera wacht auf und nimmt **ein Standbild** auf, wie „Bild aktualisieren“ in der Blink-App. Kein Clip, nicht scharf/unscharf, keine Einstellung wird geändert. |
+| Warum Ausnahme? | Kostet **Akku** (Kamera wacht auf, sendet über WLAN), verändert aber nichts am System. |
+| Wer darf? | Nur **Admin** per JWT (Policy `AdminOnly`). User bekommen 403, der Agenten-Schlüssel 401. Im Frontend sehen nur Admins den Knopf. |
+| Wie oft? | Nur auf Knopfdruck, **höchstens 1× pro Minute und Kamera** (Rate-Limit-Regel `blink-neues-bild`, gezählt pro Kamera-Id, sonst 429 mit `Retry-After`). Kein automatisches Auslösen. |
+| Ablauf | `POST` an Blink (gleiche Adressen wie blinkpy: `…/camera/{id}/thumbnail`, Mini `…/owls/{id}/thumbnail`, Türklingel `…/doorbells/{id}/thumbnail`). Blink antwortet mit einer Befehls-Id. Das Backend fragt `GET /network/{n}/command/{id}` jede Sekunde, höchstens 40-mal, bis `complete`. Danach Homescreen und Bild-Cache verwerfen und neu holen. |
+| Antwort | `{ "completed": true, "thumbnailTakenAtUtc": "…" }`. `completed: false` heißt: Blink hat den Befehl angenommen, aber nicht rechtzeitig fertig gemeldet. |
+| Log | Jede Anforderung steht im Log („neues Vorschaubild für Kamera … angefordert“), ohne Token. |
+| Fehler | wie beim Bild: unbekannte Kamera `404`, aus/nicht eingerichtet/Neu-Login `503`, Blink lehnt ab `502`, keine Antwort `504` |
+
+Die Kamerakarte zeigt die **Aufnahmezeit groß** darunter, **gelb**, wenn das Bild älter als einen Tag ist. So
+hält niemand ein altes Bild für ein Livebild.
 
 ## 5. Bekannte Grenzen
 

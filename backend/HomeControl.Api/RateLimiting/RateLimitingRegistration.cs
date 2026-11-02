@@ -18,6 +18,9 @@ public static class RateLimitPolicies
 
     // GET /api/blink/cameras/{id}/thumbnail. Gezählt pro Client-IP.
     public const string BlinkThumbnails = "blink-bilder";
+
+    // POST /api/blink/cameras/{id}/snapshot ("Neues Bild"). Gezählt pro KAMERA, egal von welchem Gerät.
+    public const string BlinkSnapshot = "blink-neues-bild";
 }
 
 // Richtet den eingebauten Rate Limiter von ASP.NET Core ein (REVIEW.md M-2, M-3).
@@ -30,7 +33,7 @@ public static class RateLimitingRegistration
         // statt erst bei der ersten Anfrage aufzufallen.
         services.AddOptions<RateLimitingOptions>()
             .Bind(configuration.GetSection(RateLimitingOptions.SectionName))
-            .Validate(o => o.Login.IsValid && o.Tuya.IsValid && o.BlinkThumbnails.IsValid,
+            .Validate(o => o.Login.IsValid && o.Tuya.IsValid && o.BlinkThumbnails.IsValid && o.BlinkSnapshot.IsValid,
                 "RateLimiting: PermitLimit und WindowSeconds müssen größer als 0 sein.")
             .ValidateOnStart();
 
@@ -62,6 +65,15 @@ public static class RateLimitingRegistration
                 var limit = GetOptions(context).BlinkThumbnails;
                 var client = context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt";
                 return RateLimitPartition.GetFixedWindowLimiter(client, _ => CreateFixedWindow(limit));
+            });
+
+            // Schlüssel = Kamera-Id aus der Adresse: Jede Kamera hat ihren eigenen Zähler. Schützt den Akku der
+            // Kamera, egal ob die Anfragen von einem oder mehreren Geräten kommen.
+            options.AddPolicy(RateLimitPolicies.BlinkSnapshot, context =>
+            {
+                var limit = GetOptions(context).BlinkSnapshot;
+                var camera = context.Request.RouteValues["id"]?.ToString() ?? "unbekannt";
+                return RateLimitPartition.GetFixedWindowLimiter(camera, _ => CreateFixedWindow(limit));
             });
 
             options.OnRejected = WriteRejectionAsync;
@@ -112,6 +124,7 @@ public static class RateLimitingRegistration
             RateLimitPolicies.Login => $"Zu viele Anmeldeversuche. Bitte {wait} erneut versuchen.",
             RateLimitPolicies.Tuya => $"Zu viele Anfragen an die Tuya-Cloud. Bitte {wait} erneut versuchen.",
             RateLimitPolicies.BlinkThumbnails => $"Zu viele Kamerabilder angefordert. Bitte {wait} erneut versuchen.",
+            RateLimitPolicies.BlinkSnapshot => $"Neues Bild für diese Kamera höchstens einmal pro Minute. Bitte {wait} erneut versuchen.",
             _ => $"Zu viele Anfragen. Bitte {wait} erneut versuchen.",
         };
 

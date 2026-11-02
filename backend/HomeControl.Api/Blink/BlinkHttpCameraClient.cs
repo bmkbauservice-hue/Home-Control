@@ -71,6 +71,15 @@ public class BlinkHttpCameraClient(
     // Bildpfad je Kamera-Id aus dem letzten Homescreen. Bleibt im Backend, erreicht nie den Browser.
     private IReadOnlyDictionary<string, string> thumbnailPaths = new Dictionary<string, string>();
 
+    // Art (cameras/owls/doorbells) und Netzwerk je Kamera-Id: nötig, um für "Neues Bild" die richtige Adresse zu bauen.
+    private IReadOnlyDictionary<string, CameraTarget> cameraTargets = new Dictionary<string, CameraTarget>();
+
+    private sealed record CameraTarget(string Kind, long NetworkId);
+
+    // "Neues Bild": so lange und so oft fragen wir nach, ob Blink den Befehl erledigt hat (wie blinkpy: jede Sekunde).
+    public TimeSpan CommandPollInterval { get; init; } = TimeSpan.FromSeconds(1);
+    private const int MaxCommandPolls = 40;
+
     // Vorschaubilder höchstens so lange zwischenspeichern, dann neu bei Blink holen (Schutz vor Flut).
     public static readonly TimeSpan ThumbnailCacheDuration = TimeSpan.FromSeconds(60);
 
@@ -149,7 +158,7 @@ public class BlinkHttpCameraClient(
 
             using var homescreen = await GetHomescreenAsync(cancellationToken);
             var accountId = session?.AccountId ?? 0;
-            (lastCameras, thumbnailPaths) = MapCameras(homescreen.RootElement, accountId);
+            (lastCameras, thumbnailPaths, cameraTargets) = MapCameras(homescreen.RootElement, accountId);
             lastFetchAtUtc = timeProvider.GetUtcNow();
         }
         finally
@@ -193,8 +202,122 @@ public class BlinkHttpCameraClient(
         }
     }
 
+    public async Task<BlinkSnapshotResult?> RequestNewThumbnailAsync(string cameraId, CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
+        await EnsureFreshAsync(cancellationToken);
+        if (!cameraTargets.TryGetValue(cameraId, out var target))
+        {
+            return null;
+        }
+
+        var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+        // Gleiche Adressen wie blinkpy: normale Kamera, Mini ("owls") oder Türklingel ("doorbells"). Nur feste Teile
+        // und Zahlen aus dem Homescreen, nichts frei Zusammengesetztes.
+        var path = target.Kind switch
+        {
+            "owls" => $"/api/v1/accounts/{current.AccountId}/networks/{target.NetworkId}/owls/{cameraId}/thumbnail",
+            "doorbells" => $"/api/v1/accounts/{current.AccountId}/networks/{target.NetworkId}/doorbells/{cameraId}/thumbnail",
+            _ => $"/network/{target.NetworkId}/camera/{cameraId}/thumbnail",
+        };
+
+        logger.LogInformation("Blink: neues Vorschaubild für Kamera {CameraId} angefordert (Admin, Knopf \"Neues Bild\").", cameraId);
+        using var first = await SendAsync(HttpMethod.Post, current, path, cancellationToken);
+        HttpResponseMessage response = first;
+        HttpResponseMessage? second = null;
+        if (first.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            var renewed = await GetSessionAsync(forceRenew: true, cancellationToken);
+            second = await SendAsync(HttpMethod.Post, renewed, path, cancellationToken);
+            if (second.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                second.Dispose();
+                MarkLoginRequired(renewed.RefreshToken);
+                throw new BlinkLoginRequiredException("Blink hat die Anmeldung abgelehnt. Bitte tools/BlinkSpike erneut ausführen.");
+            }
+            response = second;
+        }
+
+        long? commandId;
+        try
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new BlinkApiException($"Blink hat das neue Bild abgelehnt (HTTP {(int)response.StatusCode}).");
+            }
+
+            using var json = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            commandId = json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("id", out var idElement) && idElement.TryGetInt64(out var id) ? id : null;
+        }
+        finally
+        {
+            second?.Dispose();
+        }
+
+        var completed = commandId is { } command && await WaitForCommandAsync(target.NetworkId, command, cancellationToken);
+
+        // Homescreen und Bild-Zwischenspeicher verwerfen: Der nächste Abruf holt den neuen Bildpfad und das neue Bild.
+        lastFetchAtUtc = DateTimeOffset.MinValue;
+        await thumbnailLock.WaitAsync(cancellationToken);
+        try
+        {
+            thumbnailCache.Remove(cameraId);
+        }
+        finally
+        {
+            thumbnailLock.Release();
+        }
+
+        await EnsureFreshAsync(cancellationToken);
+        var camera = lastCameras.FirstOrDefault(c => c.Id == cameraId);
+        return new BlinkSnapshotResult(completed, camera?.ThumbnailTakenAtUtc);
+    }
+
+    // Fragt jede Sekunde nach, ob Blink den Befehl erledigt hat (wie blinkpy wait_for_command).
+    // true = erledigt, false = Blink meldet einen Fehler oder es dauert länger als 40 Versuche.
+    private async Task<bool> WaitForCommandAsync(long networkId, long commandId, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < MaxCommandPolls; attempt++)
+        {
+            var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+            using var response = await SendAsync(HttpMethod.Get, current, $"/network/{networkId}/command/{commandId}", cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                using var json = await JsonDocument.ParseAsync(
+                    await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+                var root = json.RootElement;
+                if (root.TryGetProperty("complete", out var complete) && complete.ValueKind == JsonValueKind.True)
+                {
+                    return true;
+                }
+                // 908 heißt bei Blink "läuft noch". Ein anderer Code: Befehl gescheitert, nicht weiter warten.
+                if (root.TryGetProperty("status_code", out var code) && code.TryGetInt32(out var statusCode) && statusCode != 908)
+                {
+                    return false;
+                }
+            }
+
+            await Task.Delay(CommandPollInterval, timeProvider, cancellationToken);
+        }
+
+        return false;
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, Session current, string path, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(method, $"https://rest-{current.Tier}.immedia-semi.com{path}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", current.AccessToken);
+        return await httpClientFactory.CreateClient(HttpClientName).SendAsync(request, cancellationToken);
+    }
+
     // Lädt das Bild mit UNSEREM Token. Bei 401 einmal erneuern, dann Fehler (wie beim Homescreen).
-    // Nur GET: Es wird nie ein neues Foto angefordert.
+    // Nur GET: Diese Methode fordert nie ein neues Foto an (das macht nur RequestNewThumbnailAsync).
     private async Task<BlinkThumbnail> DownloadThumbnailAsync(string path, CancellationToken cancellationToken)
     {
         var current = await GetSessionAsync(forceRenew: false, cancellationToken);
@@ -504,12 +627,14 @@ public class BlinkHttpCameraClient(
     // Kameras aus dem Homescreen. Blink unterscheidet normale Kameras ("cameras"), Mini ("owls") und
     // Türklingeln ("doorbells"). Id, Name und Akku wie in blinkpy. Online und Temperatur bleiben null,
     // bis die echten Felder geprüft sind (siehe docs/BLINK.md, "Bekannte Grenzen").
-    private (List<BlinkCameraInfo> Cameras, Dictionary<string, string> ThumbnailPaths) MapCameras(JsonElement homescreen, long accountId)
+    private (List<BlinkCameraInfo> Cameras, Dictionary<string, string> ThumbnailPaths, Dictionary<string, CameraTarget> Targets)
+        MapCameras(JsonElement homescreen, long accountId)
     {
         LogFieldNamesOnce(homescreen);
 
         var cameras = new List<BlinkCameraInfo>();
         var paths = new Dictionary<string, string>();
+        var targets = new Dictionary<string, CameraTarget>();
         foreach (var listName in new[] { "cameras", "owls", "doorbells" })
         {
             if (!homescreen.TryGetProperty(listName, out var list) || list.ValueKind != JsonValueKind.Array)
@@ -523,6 +648,11 @@ public class BlinkHttpCameraClient(
                 if (id is null)
                 {
                     continue;
+                }
+
+                if (item.TryGetProperty("network_id", out var networkElement) && networkElement.TryGetInt64(out var networkId) && networkId > 0)
+                {
+                    targets[id] = new CameraTarget(listName, networkId);
                 }
 
                 var path = BuildThumbnailPath(item, id, accountId);
@@ -548,7 +678,7 @@ public class BlinkHttpCameraClient(
             }
         }
 
-        return (cameras, paths);
+        return (cameras, paths, targets);
     }
 
     // Bildpfad wie im aktuellen blinkpy. Zwei Formate:

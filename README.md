@@ -92,9 +92,10 @@ Tuya-Cloud.
 **Bewusste Grenzen des aktuellen Stands:**
 
 - Tuya ist **nur lesend** angebunden, inzwischen für alle verknüpften Geräte.
-- Blink ist **nur lesend** angebunden (`GET /api/blink/status`, `GET /api/blink/cameras`);
-  die Einrichtung läuft über ein separates Konsolenprojekt (`tools/BlinkSpike`), die
-  Oberfläche zeigt noch keine echten Kameras an. Details: [docs/BLINK.md](docs/BLINK.md).
+- Blink ist **nur lesend** angebunden (Status, Kameras, letztes Vorschaubild). Einzige bewusste
+  Ausnahme: der Knopf „Neues Bild“ (nur Admin, 1× pro Minute und Kamera, kostet Akku, schaltet nichts).
+  Die Einrichtung läuft über ein separates Konsolenprojekt (`tools/BlinkSpike`). Details:
+  [docs/BLINK.md](docs/BLINK.md).
 - Woher ein Ereignis kommt (manuell oder vom Gerät), wird noch nicht gespeichert.
 
 **Geplant:**
@@ -131,6 +132,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Hintergrund-Abgleich (BackgroundService, PeriodicTimer, Scopes im Singleton, Kontingent-Rechnung, Backoff, Polling vs. Push) | [Lernunterlage-Hintergrund-Abgleich.pdf](docs/Lernunterlage-Hintergrund-Abgleich.pdf) |
 | Blink-Anbindung (Geheimnisse über stdin, Token-Rotation, eigener Client statt Blink.NET, kein Login-Kreisel) | [Lernunterlage-Blink-Anbindung.pdf](docs/Lernunterlage-Blink-Anbindung.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
+| Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
