@@ -151,7 +151,10 @@ d.bullets([
     "<b>Online/Offline bis zu 15 Minuten alt</b>, weil die LEDs nur noch den letzten Durchlauf lesen.",
     "<b>Ein Takt für alle Geräte.</b> Mehr Geräte = mehr Aufrufe: jedes weitere Gerät +2 880/Monat.",
     "<b>Takt ändern erfordert einen Neustart</b> des Dienstes.",
-    "<b>Eine Backend-Instanz.</b> Bei mehreren Instanzen würde jede selbst abgleichen (doppeltes Kontingent).",
+    "<b>Eine Backend-Instanz.</b> Bei mehreren Instanzen würde jede selbst abgleichen (doppeltes Kontingent). "
+    "Deshalb ist der Hintergrund-Abgleich beim Entwickeln aus (" + M + "Tuya:AutoSyncSeconds = 0" + E +
+    " in appsettings.Development.json): Dienst und app-starten.sh teilen sich dieselbe Datenbank. Einschalten nur "
+    "bei gestopptem Dienst.",
 ])
 
 # ------------------------------------------------------------------ 9

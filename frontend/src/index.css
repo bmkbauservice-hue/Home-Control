@@ -1037,6 +1037,33 @@ select {
   font-size: 0.8rem;
 }
 
+/* Echtes Vorschaubild: gleiches 16:9-Format wie der Platzhalter, damit nichts springt */
+.camera-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 6px;
+  border-radius: var(--radius-small);
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.camera-taken {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Blink-Seite: Karten größer, auf dem Handy untereinander */
+.camera-panel-wide {
+  max-width: none;
+}
+
+@media (max-width: 599px) {
+  .camera-panel-wide .camera-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- Geräte ---------- */
 
 select.input {

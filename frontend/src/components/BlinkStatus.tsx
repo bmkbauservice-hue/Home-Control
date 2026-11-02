@@ -20,6 +20,13 @@ export function BlinkStatus() {
           Neue Anmeldung nötig
         </span>
       )
+    case 'disabled':
+      return (
+        <span className="status status-offline">
+          <span className="status-dot" aria-hidden="true" />
+          Blink in der Entwicklung aus
+        </span>
+      )
     case 'notConfigured':
       return (
         <span className="status status-offline">

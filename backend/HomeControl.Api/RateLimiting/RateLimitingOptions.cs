@@ -15,6 +15,10 @@ public class RateLimitingOptions
     // Alle Endpunkte, die echte Aufrufe bei der Tuya-Cloud auslösen: EIN gemeinsamer Zähler für alle,
     // weil das Tuya-Kontingent auch nur einmal da ist.
     public FixedWindowLimit Tuya { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
+
+    // Blink-Vorschaubilder: pro Gerät (Client-IP). Das Backend hält Bilder ohnehin 60 Sekunden vor, die Grenze
+    // schützt vor einer Flut von Anfragen (z. B. eine Schleife im Browser).
+    public FixedWindowLimit BlinkThumbnails { get; set; } = new() { PermitLimit = 30, WindowSeconds = 60 };
 }
 
 // Ein festes Zeitfenster: höchstens PermitLimit Anfragen pro WindowSeconds Sekunden.

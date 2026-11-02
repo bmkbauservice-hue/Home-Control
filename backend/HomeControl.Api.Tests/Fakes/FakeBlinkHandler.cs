@@ -13,6 +13,7 @@ public class FakeBlinkHandler : HttpMessageHandler
     private readonly Lock sync = new();
     private readonly List<string> tokenRequestBodies = [];
     private readonly List<HttpRequestMessage> homescreenRequests = [];
+    private readonly List<HttpRequestMessage> imageRequests = [];
     private int tierInfoCount;
 
     // Bekommt die laufende Nummer des Token-Abrufs (ab 1). Standard: gültiges Token, neues Refresh-Token.
@@ -29,6 +30,12 @@ public class FakeBlinkHandler : HttpMessageHandler
     public IReadOnlyList<string> TokenRequestBodies { get { lock (sync) return tokenRequestBodies.ToList(); } }
 
     public IReadOnlyList<HttpRequestMessage> HomescreenRequests { get { lock (sync) return homescreenRequests.ToList(); } }
+
+    // Bekommt die laufende Nummer des Bild-Abrufs (ab 1). Standard: ein kleines "JPEG".
+    public Func<int, (HttpStatusCode Status, byte[] Body, string ContentType)> ImageResponse { get; set; } =
+        _ => (HttpStatusCode.OK, BlinkJson.FakeJpeg, "image/jpeg");
+
+    public IReadOnlyList<HttpRequestMessage> ImageRequests { get { lock (sync) return imageRequests.ToList(); } }
 
     public int TierInfoCount { get { lock (sync) return tierInfoCount; } }
 
@@ -67,6 +74,21 @@ public class FakeBlinkHandler : HttpMessageHandler
             return Respond(HomescreenResponse(number));
         }
 
+        if (url.StartsWith("https://rest-e006.immedia-semi.com/media/", StringComparison.Ordinal)
+            || url.StartsWith("https://rest-e006.immedia-semi.com/api/v3/media/", StringComparison.Ordinal))
+        {
+            int number;
+            lock (sync)
+            {
+                imageRequests.Add(request);
+                number = imageRequests.Count;
+            }
+            var (status, body, contentType) = ImageResponse(number);
+            var content = new ByteArrayContent(body);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            return new HttpResponseMessage(status) { Content = content };
+        }
+
         return new HttpResponseMessage(HttpStatusCode.NotFound);
     }
 
@@ -83,16 +105,23 @@ public static class BlinkJson
         ? $$"""{ "access_token": "{{accessToken}}", "expires_in": {{expiresIn}}, "token_type": "Bearer" }"""
         : $$"""{ "access_token": "{{accessToken}}", "refresh_token": "{{refreshToken}}", "expires_in": {{expiresIn}}, "token_type": "Bearer" }""";
 
+    // Zeitstempel im neuen Bildformat (02.11.2026, 14:11:37 UTC).
+    public const long ThumbnailTs = 1793628697;
+
+    public static readonly byte[] FakeJpeg = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46];
+
     // Zwei normale Kameras und eine Mini. thumbnail und serial dürfen nie nach außen gelangen.
-    public static string Homescreen() => """
+    // Garten: altes Bildformat (Pfad). Einfahrt: verdächtiger Pfad zu fremdem Server → kein Bild.
+    // Flur Mini: neues Format (nur Zeitstempel).
+    public static string Homescreen() => $$"""
         {
           "account": { "id": 4711 },
           "networks": [ { "id": 1, "name": "Muju Home" } ],
           "cameras": [
-            { "id": 101, "name": "Garten", "network_id": 1, "battery": "ok", "serial": "GEHEIM-SERIAL", "thumbnail": "/media/e006/account/4711/network/1/camera/101/geheim" },
-            { "id": 102, "name": "Einfahrt", "network_id": 1, "battery": "low" }
+            { "id": 101, "name": "Garten", "network_id": 1, "type": "catalina", "battery": "ok", "status": "online", "serial": "GEHEIM-SERIAL", "thumbnail": "/media/e006/account/4711/network/1/camera/101/clip_abc" },
+            { "id": 102, "name": "Einfahrt", "network_id": 1, "type": "catalina", "battery": "low", "status": "offline", "thumbnail": "//evil.example.com/x" }
           ],
-          "owls": [ { "id": 201, "name": "Flur Mini", "network_id": 1 } ],
+          "owls": [ { "id": 201, "name": "Flur Mini", "network_id": 1, "type": "owl", "status": "done", "thumbnail": "{{ThumbnailTs}}" } ],
           "doorbells": []
         }
         """;

@@ -15,6 +15,9 @@ public static class RateLimitPolicies
 
     // Alle Endpunkte unter /api/tuya (echte Aufrufe bei der Tuya-Cloud). Ein Zähler für alle.
     public const string Tuya = "tuya";
+
+    // GET /api/blink/cameras/{id}/thumbnail. Gezählt pro Client-IP.
+    public const string BlinkThumbnails = "blink-bilder";
 }
 
 // Richtet den eingebauten Rate Limiter von ASP.NET Core ein (REVIEW.md M-2, M-3).
@@ -27,7 +30,7 @@ public static class RateLimitingRegistration
         // statt erst bei der ersten Anfrage aufzufallen.
         services.AddOptions<RateLimitingOptions>()
             .Bind(configuration.GetSection(RateLimitingOptions.SectionName))
-            .Validate(o => o.Login.IsValid && o.Tuya.IsValid,
+            .Validate(o => o.Login.IsValid && o.Tuya.IsValid && o.BlinkThumbnails.IsValid,
                 "RateLimiting: PermitLimit und WindowSeconds müssen größer als 0 sein.")
             .ValidateOnStart();
 
@@ -52,6 +55,13 @@ public static class RateLimitingRegistration
             {
                 var limit = GetOptions(context).Tuya;
                 return RateLimitPartition.GetFixedWindowLimiter("alle", _ => CreateFixedWindow(limit));
+            });
+
+            options.AddPolicy(RateLimitPolicies.BlinkThumbnails, context =>
+            {
+                var limit = GetOptions(context).BlinkThumbnails;
+                var client = context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt";
+                return RateLimitPartition.GetFixedWindowLimiter(client, _ => CreateFixedWindow(limit));
             });
 
             options.OnRejected = WriteRejectionAsync;
@@ -101,6 +111,7 @@ public static class RateLimitingRegistration
         {
             RateLimitPolicies.Login => $"Zu viele Anmeldeversuche. Bitte {wait} erneut versuchen.",
             RateLimitPolicies.Tuya => $"Zu viele Anfragen an die Tuya-Cloud. Bitte {wait} erneut versuchen.",
+            RateLimitPolicies.BlinkThumbnails => $"Zu viele Kamerabilder angefordert. Bitte {wait} erneut versuchen.",
             _ => $"Zu viele Anfragen. Bitte {wait} erneut versuchen.",
         };
 
@@ -112,7 +123,7 @@ public static class RateLimitingRegistration
             {
                 Status = StatusCodes.Status429TooManyRequests,
                 Title = title,
-                Detail = "Diese Grenze schützt vor Passwort-Raten und davor, dass das Tuya-Kontingent aufgebraucht wird.",
+                Detail = "Diese Grenze schützt vor Passwort-Raten und davor, dass Tuya oder Blink mit Anfragen geflutet werden.",
             },
         });
     }

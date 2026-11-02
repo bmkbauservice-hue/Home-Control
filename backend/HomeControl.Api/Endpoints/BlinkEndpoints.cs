@@ -1,14 +1,16 @@
+using System.Globalization;
+using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
 using HomeControl.Api.Contracts;
+using HomeControl.Api.RateLimiting;
 
 namespace HomeControl.Api.Endpoints;
 
 public static class BlinkEndpoints
 {
     private const string StatusNote =
-        "Blink hat keine offizielle API (reverse engineered). Kamera-Felder Online und " +
-        "Temperatur sind vorerst immer leer, bis die Feldnamen gegen einen echten Account " +
-        "geprüft sind, siehe docs/BLINK.md.";
+        "Blink hat keine offizielle API (reverse engineered). Online kommt aus dem Feld \"status\" " +
+        "(nur \"online\"/\"offline\", sonst unbekannt), die Temperatur ist noch nicht geprüft, siehe docs/BLINK.md.";
 
     // Registriert die Endpunkte unter /api/blink. Nur lesend: kein Schalten, kein Scharf-/
     // Unscharfschalten, kein Löschen von Clips. Der Thumbnail-Endpunkt folgt erst nach einem
@@ -23,6 +25,14 @@ public static class BlinkEndpoints
 
         blink.MapGet("/status", GetStatus);
         blink.MapGet("/cameras", GetCameras);
+
+        // Letztes Vorschaubild einer Kamera. Das Backend holt es mit SEINEM Blink-Token und reicht nur das Bild
+        // weiter: Token und Blink-Adressen erreichen den Browser nie (Proxy statt Direktlink).
+        // Nur für angemeldete Menschen (JWT), nie mit dem Agenten-Schlüssel. Eigene Rate-Limit-Regel.
+        blink.MapGet("/cameras/{id:long}/thumbnail", GetThumbnail)
+            .RequireAuthorization(AuthPolicies.SignedInUser)
+            .RequireRateLimiting(RateLimitPolicies.BlinkThumbnails)
+            .WithSummary("Letztes Vorschaubild einer Kamera (image/jpeg, nur mit Anmeldung)");
     }
 
     private static async Task<IResult> GetStatus(
@@ -37,6 +47,7 @@ public static class BlinkEndpoints
             {
                 BlinkConnectionState.Connected => "connected",
                 BlinkConnectionState.LoginRequired => "loginRequired",
+                BlinkConnectionState.Disabled => "disabled",
                 _ => "notConfigured",
             };
 
@@ -57,7 +68,8 @@ public static class BlinkEndpoints
         {
             var cameras = await client.GetCamerasAsync(cancellationToken);
             var response = cameras
-                .Select(c => new BlinkCameraResponse(c.Id, c.Name, c.Battery, c.TemperatureCelsius, c.Online))
+                .Select(c => new BlinkCameraResponse(c.Id, c.Name, c.Battery, c.TemperatureCelsius, c.Online,
+                    c.HasThumbnail, c.ThumbnailTakenAtUtc))
                 .ToList();
 
             return Results.Ok(response);
@@ -69,6 +81,13 @@ public static class BlinkEndpoints
                 title: "Blink ist nicht eingerichtet.",
                 detail: ex.Message);
         }
+        catch (BlinkDisabledException ex)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist in dieser Umgebung ausgeschaltet.",
+                detail: ex.Message);
+        }
         catch (BlinkLoginRequiredException ex)
         {
             logger.LogWarning("Blink-Anmeldung nötig ({ExceptionType}): {Message}", ex.GetType().Name, ex.Message);
@@ -76,6 +95,56 @@ public static class BlinkEndpoints
                 statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Blink-Anmeldung nötig.",
                 detail: ex.Message);
+        }
+        catch (Exception ex) when (TryMapTransportError(ex, logger, cancellationToken, out var problem))
+        {
+            return problem!;
+        }
+    }
+
+    // GET /api/blink/cameras/{id}/thumbnail
+    private static async Task<IResult> GetThumbnail(
+        long id,
+        IBlinkCameraClient client,
+        HttpContext http,
+        ILogger<IBlinkCameraClient> logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var thumbnail = await client.GetThumbnailAsync(id.ToString(CultureInfo.InvariantCulture), cancellationToken);
+            if (thumbnail is null)
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Für diese Kamera gibt es kein Vorschaubild.");
+            }
+
+            // no-store: Kamerabilder nicht im Browser-Cache oder in einem Proxy ablegen (Datenschutz).
+            http.Response.Headers.CacheControl = "no-store";
+            if (thumbnail.TakenAtUtc is { } takenAt)
+            {
+                // Aufnahmezeitpunkt als Header, damit das Frontend "Aufnahme von …" zeigen kann.
+                http.Response.Headers["X-Thumbnail-Taken-At"] = takenAt.ToString("O", CultureInfo.InvariantCulture);
+            }
+
+            return Results.File(thumbnail.Content, thumbnail.ContentType);
+        }
+        catch (BlinkDisabledException ex)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist in dieser Umgebung ausgeschaltet.", detail: ex.Message);
+        }
+        catch (BlinkNotConfiguredException ex)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist nicht eingerichtet.", detail: ex.Message);
+        }
+        catch (BlinkLoginRequiredException ex)
+        {
+            logger.LogWarning("Blink-Anmeldung nötig ({ExceptionType}): {Message}", ex.GetType().Name, ex.Message);
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink-Anmeldung nötig.", detail: ex.Message);
         }
         catch (Exception ex) when (TryMapTransportError(ex, logger, cancellationToken, out var problem))
         {

@@ -39,6 +39,7 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
         // Reicht über ConfigureAppConfiguration, weil die Grenzen erst bei der Anfrage gelesen werden.
         ["RateLimiting:Login:PermitLimit"] = "100000",
         ["RateLimiting:Tuya:PermitLimit"] = "100000",
+        ["RateLimiting:BlinkThumbnails:PermitLimit"] = "100000",
         // Hintergrund-Abgleich fest aus: Er würde sonst beim Start der Test-API mit den echten
         // User Secrets die echte Tuya-Cloud fragen und in die Testdatenbank schreiben.
         // Getestet wird er für sich in TuyaSyncBackgroundServiceTests.
