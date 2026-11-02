@@ -164,6 +164,8 @@ beide Endpunkte `502` bzw. `504` (ProblemDetails) statt eines allgemeinen Server
   - **Beim Entwickeln ist Blink aus** (`"Blink": { "Enabled": false }` in `appsettings.Development.json`).
     Die Übersicht zeigt „Blink in der Entwicklung aus“. Einschalten nur, wenn der Dienst gestoppt ist:
     `systemctl --user stop home-control`, dann `Blink__Enabled=true ./app-starten.sh`.
+  - Dasselbe gilt für den **Tuya-Hintergrund-Abgleich**: beim Entwickeln aus (`Tuya:AutoSyncSeconds = 0`),
+    sonst gliche er doppelt ab (siehe [TUYA.md](TUYA.md)).
   - **Vor jeder Erneuerung** liest der Client das Token frisch aus der Datenbank. Hat ein anderer Prozess
     inzwischen erneuert, wird dessen neueres Token benutzt. Das hilft bei nacheinander laufenden
     Erneuerungen, nicht bei genau gleichzeitigen.

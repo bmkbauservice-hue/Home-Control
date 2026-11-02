@@ -265,7 +265,14 @@ niemand die App offen hat.
 
 | Einstellung | Standard | Bedeutung |
 |---|---|---|
-| `Tuya:AutoSyncSeconds` | `900` (15 min) | Abstand zwischen zwei Durchläufen. `0` = aus. Werte von 1 bis 59 werden auf 60 angehoben. |
+| `Tuya:AutoSyncSeconds` | `900` (15 min), **beim Entwickeln `0`** | Abstand zwischen zwei Durchläufen. `0` = aus. Werte von 1 bis 59 werden auf 60 angehoben. |
+
+**Beim Entwickeln aus** (`appsettings.Development.json`): Dienst (Port 5200) und `./app-starten.sh` (Port 5111)
+benutzen dieselbe Datenbank. Liefen beide Hintergrund-Abgleiche, würde doppelt bei Tuya gefragt (doppeltes
+Kontingent) und doppelt in dieselbe Datenbank geschrieben. Gleiches Prinzip wie bei Blink („ein Prozess pro
+Datenbank“, siehe [BLINK.md](BLINK.md)). Ohne Hintergrund-Abgleich fragen die Status-LEDs beim Entwickeln Tuya
+selbst, höchstens alle 5 Minuten. Einschalten nur bei gestopptem Dienst:
+`systemctl --user stop home-control`, dann `Tuya__AutoSyncSeconds=900 ./app-starten.sh`.
 
 - **Ablauf:** erster Durchlauf beim Start, danach im Takt (`PeriodicTimer`). Pro Durchlauf ein eigener
   Scope, dann dieselbe Methode wie der Knopf (`TuyaDeviceSyncer.ReadAllAsync(apply: true)`). Die Sperre
