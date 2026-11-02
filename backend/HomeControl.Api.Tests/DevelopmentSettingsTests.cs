@@ -7,18 +7,20 @@ namespace HomeControl.Api.Tests;
 // mit fremden Diensten spricht. Dieser Test prüft die Datei selbst (die Testfabrik setzt eigene Werte).
 public class DevelopmentSettingsTests
 {
-    private static IConfiguration LoadDevelopmentSettings()
+    private static IConfiguration LoadDevelopmentSettings() => LoadSettings("appsettings.Development.json");
+
+    private static IConfiguration LoadSettings(string fileName)
     {
         // Vom Ausgabeordner der Tests nach oben suchen, bis backend/HomeControl.Api gefunden ist.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "HomeControl.Api", "appsettings.Development.json")))
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "HomeControl.Api", fileName)))
         {
             dir = dir.Parent;
         }
         Assert.NotNull(dir);
 
         return new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(dir.FullName, "HomeControl.Api", "appsettings.Development.json"))
+            .AddJsonFile(Path.Combine(dir.FullName, "HomeControl.Api", fileName))
             .Build();
     }
 
@@ -32,5 +34,12 @@ public class DevelopmentSettingsTests
     public void Blink_ist_beim_Entwickeln_aus()
     {
         Assert.False(LoadDevelopmentSettings().GetValue("Blink:Enabled", true));
+    }
+
+    // Im Dauerbetrieb schrieb EF Core jede SQL-Abfrage ins Journal (jede Minute mehrere). Nur noch Warnungen.
+    [Fact]
+    public void SQL_Befehle_werden_nicht_geloggt()
+    {
+        Assert.Equal("Warning", LoadSettings("appsettings.json")["Logging:LogLevel:Microsoft.EntityFrameworkCore.Database.Command"]);
     }
 }
