@@ -78,10 +78,23 @@ public static class AuthEndpoints
         AuthService authService,
         HttpContext http,
         IWebHostEnvironment environment,
+        ILogger<AuthService> logger,
         CancellationToken cancellationToken)
     {
         // Pflichtfelder sind schon geprüft (DataAnnotations an LoginRequest), bewusst ohne Passwortregeln.
         var login = await authService.LoginAsync(request.Email, request.Password, cancellationToken);
+
+        // Fehlversuche mit Warnstufe ins Log (REVIEW.md M-3, N-9): Grund, Benutzer-Id und Herkunft.
+        // NIE das Passwort und auch nicht die eingegebene E-Mail (dort landet manchmal versehentlich
+        // ein Passwort, und unbekannte Adressen gehören nicht ins Log).
+        if (login.Status != LoginStatus.Success)
+        {
+            logger.LogWarning("Anmeldung fehlgeschlagen ({Reason}), Benutzer {UserId}, von {RemoteIp}",
+                login.Status == LoginStatus.LockedOut ? "Konto gesperrt" : "falsche Zugangsdaten",
+                login.UserId?.ToString() ?? "unbekannt",
+                http.Connection.RemoteIpAddress);
+        }
+
         if (login.Status == LoginStatus.LockedOut)
         {
             return Results.Problem(
