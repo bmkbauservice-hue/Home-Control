@@ -179,9 +179,10 @@ select {
 }
 
 .page-header h1 {
-  font-size: 1.9rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .page-subtitle {
@@ -306,15 +307,17 @@ select {
   gap: 16px;
 }
 
+/* Kachel = Glas-Karte wie auf der Übersicht */
 .tile {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 150px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-large);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
   box-shadow: var(--shadow);
   text-align: left;
 }
@@ -327,8 +330,7 @@ select {
 
 .tile-link:hover {
   border-color: var(--accent);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow), var(--shadow-accent);
+  background: var(--glass-strong);
 }
 
 .tile-link:active {
@@ -347,10 +349,25 @@ select {
   color: var(--accent);
 }
 
+/* Kopf einer Kachel: Symbol links, Titel und Untertitel rechts daneben */
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tile-head-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .tile-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+  font-size: 1.15rem;
+  font-weight: 800;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .tile-text {
@@ -367,6 +384,14 @@ select {
 
 .tile-actions .button {
   flex: 1;
+}
+
+/* Aktionen nebeneinander und etwas kleiner (z. B. Bearbeiten · Löschen) */
+.tile-actions-row .button {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.9rem;
 }
 
 .tile-danger {
@@ -448,15 +473,17 @@ select {
   width: 100%;
   min-height: var(--touch);
   padding: 0 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-small);
-  background: var(--bg);
-  font-size: 1.05rem;
+  background: rgba(7, 11, 20, 0.55);
+  font-size: 1rem;
 }
 
+/* Fokus deutlich sichtbar: Rahmen in Akzentfarbe plus weicher Ring */
 .input:focus {
   border-color: var(--accent);
   outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------- Buttons ---------- */
@@ -468,10 +495,10 @@ select {
   gap: 8px;
   min-height: var(--touch);
   padding: 0 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-small);
-  background: var(--surface-raised);
-  font-weight: 600;
+  background: var(--glass-strong);
+  font-weight: 700;
   cursor: pointer;
 }
 
