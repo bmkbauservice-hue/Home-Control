@@ -7,12 +7,13 @@ Rate Limiting begrenzt, wie viele Anfragen in einer bestimmten Zeit erlaubt sind
 Rate Limiter von ASP.NET Core (`AddRateLimiter`, `UseRateLimiter`, `RequireRateLimiting`), siehe
 [REVIEW.md](../REVIEW.md) Findings M-2 und M-3.
 
-## Die beiden Regeln
+## Die Regeln
 
 | Regel | Endpunkte | Gezählt | Standard | Schützt vor |
 |---|---|---|---|---|
 | `login` | `POST /api/auth/login`, `/register`, `/refresh` (ein gemeinsamer Zähler) | pro Gerät (Client-IP) | 10 pro 60 s | Passwort-Raten, Massen-Registrierung |
 | `tuya` | alle Endpunkte unter `/api/tuya` | **ein** Zähler für alle | 20 pro 60 s | Aufbrauchen des Tuya-Kontingents |
+| `blink-bilder` | `GET /api/blink/cameras/{id}/thumbnail` | pro Gerät (Client-IP) | 30 pro 60 s | Flut von Bildanfragen (Bilder liegen zusätzlich 60 s im Server-Cache) |
 
 - `GET /api/status` hat **kein** Rate Limit: Er liest die Online-Liste aus dem `TuyaOnlineCache`, den der
   Tuya-Hintergrund-Abgleich füllt. Ohne Hintergrund-Abgleich fragt er Tuya höchstens alle 5 Minuten,

@@ -118,16 +118,34 @@ nichts.
 
 ## 4. Endpunkte
 
-Nur lesend, beide unter `/api/blink`:
+Nur lesend, alle unter `/api/blink`:
 
 | Endpunkt | Zweck |
 |---|---|
-| `GET /api/blink/status` | `state`: `connected`, `loginRequired` oder `notConfigured`, plus Zeitpunkt des letzten erfolgreichen Abrufs |
-| `GET /api/blink/cameras` | Liste der Kameras aus dem Homescreen (`cameras`, `owls`, `doorbells`): Id, Name, Akku (`ok`/`low`). Online-Status und Temperatur stehen vorerst auf `null`, siehe Abschnitt 5 |
+| `GET /api/blink/status` | `state`: `connected`, `loginRequired`, `notConfigured` oder `disabled` (in diesem Prozess aus), plus Zeitpunkt des letzten erfolgreichen Abrufs |
+| `GET /api/blink/cameras` | Liste der Kameras aus dem Homescreen (`cameras`, `owls`, `doorbells`): Id, Name, Akku (`ok`/`low`), Online (nur bei eindeutigem `status`), `hasThumbnail`, `thumbnailTakenAtUtc`. Temperatur vorerst `null`, siehe Abschnitt 5 |
+| `GET /api/blink/cameras/{id}/thumbnail` | Letztes Vorschaubild, nur mit JWT-Anmeldung (siehe unten) |
 
-Ein Endpunkt für Vorschaubilder (`GET /api/blink/cameras/{id}/thumbnail`) folgt als nächster Schritt
-(Branch `feature/blink-bilder`): nur mit JWT-Anmeldung, nicht mit dem Agenten-Schlüssel, und nur das
-zuletzt vorhandene Bild, nie ein neues.
+### Vorschaubilder: `GET /api/blink/cameras/{id}/thumbnail`
+
+**Zum Lernen:** [Lernunterlage-Blink-Kamerabilder.pdf](Lernunterlage-Blink-Kamerabilder.pdf)
+
+Das Backend holt das **letzte vorhandene** Vorschaubild mit **seinem eigenen** Blink-Token und gibt nur das
+Bild weiter (Proxy statt Direktlink). Blink-Token und Blink-Adressen erreichen den Browser nie.
+
+| Eigenschaft | Umsetzung |
+|---|---|
+| Wer darf? | Nur angemeldete Menschen per JWT (Policy `SignedInUser`). Der Agenten-Schlüssel wird abgelehnt (401), auch wenn `Auth:RequireLoginForReading` aus ist. |
+| Antwort | `image/jpeg` (oder `image/png`), Header `Cache-Control: no-store`, Aufnahmezeit in `X-Thumbnail-Taken-At` (falls bekannt) |
+| Kein neues Foto | Nur `GET` auf das vorhandene Bild. Ein neues Foto (`POST …/thumbnail`) würde Akku-Kameras wecken. |
+| Schutz für Blink | Bilder 60 s im Server-Cache, Rate-Limit-Regel `blink-bilder` (30 pro Minute und Gerät) |
+| Bildpfad | aus dem Homescreen-Feld `thumbnail`, wie in blinkpy: nur ein Zeitstempel (neues Format) oder ein Pfad (altes Format, plus `.jpg`). Nur relative Pfade ohne `..` und `://`, nur `image/jpeg`/`image/png`, höchstens 5 MB. |
+| Fehler | Kamera unbekannt oder kein Bild: `404`; Blink lehnt ab: `502`; Blink antwortet nicht: `504`; ausgeschaltet, nicht eingerichtet oder Neu-Login nötig: `503` |
+
+In der Kameraliste stehen dazu `hasThumbnail` und `thumbnailTakenAtUtc`. Das Frontend lädt das Bild per
+`fetch` mit dem Access Token (ein `<img src>` kann keinen `Authorization`-Header schicken), zeigt es als
+Object-URL an und gibt diese beim Verlassen der Seite wieder frei. Gespeichert wird kein Bild, weder auf dem
+Server (außer 60 s im Arbeitsspeicher) noch im Browser-Cache.
 
 **Beide Endpunkte lösen einen echten Abruf bei Blink aus**, auch `GET /api/blink/status` (er
 ruft intern denselben Homescreen ab, nur ohne die Kameras zurückzugeben). Das
@@ -157,10 +175,13 @@ beide Endpunkte `502` bzw. `504` (ProblemDetails) statt eines allgemeinen Server
   `doorbells`, `sync_modules`, `networks`. Je Kamera: `id`, `name`, `battery`, `status`, `signals`,
   `thumbnail`, `updated_at`, `serial`, `enabled`, `local_storage_enabled` u. a. Beim ersten Abruf nach
   dem Start stehen nur die **Namen** im Log, nie Werte.
-- **Online und Temperatur noch `null`.** `status` und `signals` sind vorhanden, ihre Werte (z. B.
-  Fahrenheit oder Celsius bei `signals.temp`) sind aber noch nicht an echten Daten geprüft. Nicht raten.
-- **Noch kein Thumbnail-Endpunkt.** Siehe Abschnitt 4. Ein neues Bild anfordern weckt Akku-Kameras
-  auf und kostet Batterie; der Endpunkt reicht deshalb nur das zuletzt bekannte Bild durch.
+- **Temperatur noch `null`.** `signals` ist vorhanden, ob `signals.temp` Fahrenheit oder Celsius ist, ist aber
+  noch nicht an echten Daten geprüft. Nicht raten.
+- **Nur das letzte Bild.** Ein neues Bild anfordern weckt Akku-Kameras auf und kostet Batterie; der Endpunkt
+  reicht deshalb nur das zuletzt vorhandene Bild durch. Es kann Stunden alt sein, deshalb steht die
+  Aufnahmezeit dabei (oder „Aufnahmezeit unbekannt“ beim alten Bildformat).
+- **Online nur bei eindeutigem Status.** `status` = `online` → online, `offline` → offline, alles andere
+  (z. B. `done`) bleibt „unbekannt“. Die tatsächlichen Werte deines Kontos sind noch nicht geprüft.
 - **Clip-IDs verfallen.** Lokale Clip-IDs sind laut Blink.NET-Doku nur rund 10–20 Minuten
   gültig. Betrifft Home Control aktuell nicht (keine Clip-Endpunkte), ist aber relevant,
   falls das später dazukommt.

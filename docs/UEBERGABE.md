@@ -17,7 +17,8 @@ was offen ist und welche Regeln gelten.
 | API-Schlüssel für den KI-Agenten (nur lesen) | fertig, getestet; **Leseschutz im Dienst an** (seit 02.11.), Schlüssel in n8n noch nicht eingetragen | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Tuya: Geräteliste, Status, Abgleich aller verknüpften Geräte (nur lesend) | fertig, getestet; verknüpft: Bar Licht, Heizdecke, Stehlampe, Tür | [TUYA.md](TUYA.md) |
 | Tuya-Messwerte: Watt, Volt, Akku (letzter Stand, Offline-Schutz) | fertig, getestet (124 Tests), Migration `TuyaMesswerteErgaenzt` | [TUYA.md](TUYA.md) „Messwerte“ |
-| Blink: Status und Kameras (nur lesend, inoffizielle API) | **eingerichtet und verbunden** (02.11.): eigener Client statt Blink.NET (426 bei Blink.NET), 2 Kameras (Wohnzimmer, Flur); Oberfläche zeigt nur den Status; Branch `fix/blink-einrichtung` | [BLINK.md](BLINK.md) |
+| Blink: Status und Kameras (nur lesend, inoffizielle API) | **eingerichtet und verbunden** (02.11.): eigener Client statt Blink.NET (426 bei Blink.NET), 2 Kameras (Wohnzimmer, Flur) | [BLINK.md](BLINK.md) |
+| Blink-Vorschaubilder: Proxy-Endpunkt (nur JWT, no-store, 60 s Cache, Rate Limit), Kamerakarten in Übersicht und Blink-Seite; beim Entwickeln Blink aus (ein Prozess pro Datenbank) | getestet (189 Tests), **Bild-Abruf noch nicht live gegen das echte Konto geprüft**; Branch `feature/blink-bilder` | [BLINK.md](BLINK.md) „Vorschaubilder“ |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
