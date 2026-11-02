@@ -19,6 +19,7 @@ was offen ist und welche Regeln gelten.
 | Tuya-Messwerte: Watt, Volt, Akku (letzter Stand, Offline-Schutz) | fertig, getestet (124 Tests), Migration `TuyaMesswerteErgaenzt` | [TUYA.md](TUYA.md) „Messwerte“ |
 | Blink: Status und Kameras (nur lesend, inoffizielle API) | **eingerichtet und verbunden** (02.11.): eigener Client statt Blink.NET (426 bei Blink.NET), 2 Kameras (Wohnzimmer, Flur) | [BLINK.md](BLINK.md) |
 | Blink-Vorschaubilder: Proxy-Endpunkt (nur JWT, no-store, 60 s Cache, Rate Limit), Kamerakarten in Übersicht und Blink-Seite; beim Entwickeln Blink aus (ein Prozess pro Datenbank) | getestet (189 Tests), am 02.11. live gegen das echte Konto geprüft (Bilder von Wohnzimmer und Flur sichtbar); Branch `feature/blink-bilder` | [BLINK.md](BLINK.md) „Vorschaubilder“ |
+| Blink „Neues Bild“: bewusste Ausnahme von „nur lesend“ (nur Admin, 1× pro Minute und Kamera, kostet Akku), Aufnahmezeit groß und gelb ab 1 Tag | getestet, live noch nicht ausgelöst; Branch `feature/blink-neues-bild` | [BLINK.md](BLINK.md) „Neues Bild“ |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Design „Nachtlicht“: alle Seiten (Übersicht, Räume, Geräte, Reports, Blink, Anmeldung), Design-Tokens, Schrift lokal, „Energie jetzt“ und Batterien statt Karte „Licht (Tuya)“ | fertig, Screenshots Desktop und 390 px; Branch `design/nachtlicht` | [DESIGN.md](DESIGN.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
@@ -43,8 +44,9 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **Präsentation am Montag 09.11.** Design „Nachtlicht“ ist fertig (Branch `design/nachtlicht`). Als Nächstes
-   Blink-Knopf „Neues Bild“ (nur Admin, 1× pro Minute und Kamera). Danach, wenn Zeit bleibt: Clips vom USB-Stick
+1. **Präsentation am Montag 09.11.** Design „Nachtlicht“ ist fertig (Branch `design/nachtlicht`), Blink-Knopf
+   „Neues Bild“ ebenfalls (Branch `feature/blink-neues-bild`, nach dem Merge einmal live ausprobieren). Danach,
+   wenn Zeit bleibt: Clips vom USB-Stick
    (`feature/blink-lokale-clips`, Recherche liegt vor). Barlicht-Steckdose bis Montag einstecken, sonst bleibt
    „Energie jetzt“ leer (zeigt dann ehrlich „Kein Gerät mit Strommessung online“).
    - Offen: Backend-Teil des alten Tuya-Testgeräts (`/api/tuya/test-device/*`, `TuyaSwitchRecorder`,
@@ -84,7 +86,8 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
   (Skripte `*-einrichten.sh`). `homecontrol.db` und `*.bak` sind in `.gitignore`.
 - **Zu jedem Schritt eine Lern-PDF** in `docs/`, erzeugt mit `tools/lernpdf` (Beispiel unten), in der README verlinkt.
 - **Kommentare auf Deutsch, kurz, für Anfänger erklärbar.** Keine unnötig komplexe Architektur.
-- **Tuya und Blink bleiben nur lesend.** Es wird nichts geschaltet.
+- **Tuya und Blink bleiben nur lesend.** Es wird nichts geschaltet. Einzige bewusste Ausnahme: Blink „Neues Bild“
+  (nur Admin, 1× pro Minute und Kamera, siehe [BLINK.md](BLINK.md)). Weitere nur nach Zustimmung.
 
 Lern-PDF erzeugen (Muster: `tools/lernpdf/lernunterlage_rate_limiting.py` kopieren und anpassen). Braucht `reportlab`
 (`pip install reportlab`, am besten in einer venv). Fehlt die Kursivschrift (`fonts-dejavu-extra`), nimmt
@@ -103,7 +106,7 @@ React + TypeScript + Vite. Ich bin in der Umschulung und muss den Code in der Pr
 
 Lies zuerst docs/UEBERGABE.md und die zum Thema passende Datei in docs/.
 Regeln: nie direkt auf main, Branch + PR; vor jedem Commit ./pruefen.sh; alte Migrationen nie ändern;
-keine Geheimnisse ins Repo; Tuya/Blink nur lesend; kurze deutsche Kommentare; zu jedem Schritt eine
+keine Geheimnisse ins Repo; Tuya/Blink nur lesend (Ausnahme nur Blink „Neues Bild“); kurze deutsche Kommentare; zu jedem Schritt eine
 Lern-PDF mit tools/lernpdf in docs/ und in der README verlinken. Erkläre nach jedem Schritt:
 Was wurde gemacht? Warum? Was muss ich für die Schule wissen?
 

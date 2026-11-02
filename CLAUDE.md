@@ -2,7 +2,9 @@
 
 Home Control: Smart-Home-Übersicht (Umschulungsprojekt von Mario, wird in der Schule präsentiert).
 ASP.NET Core 10 Minimal API + EF Core/SQLite + Identity/JWT, React 19 + TypeScript + Vite.
-Tuya und Blink sind **nur lesend** angebunden, es wird nie etwas geschaltet.
+Tuya und Blink sind **nur lesend** angebunden, es wird nie etwas geschaltet. **Einzige bewusste Ausnahme:**
+Blink-Knopf „Neues Bild“ (nur Admin, höchstens 1× pro Minute und Kamera, kostet Akku, schaltet nichts),
+siehe `docs/BLINK.md`. Weitere Ausnahmen nur nach ausdrücklicher Zustimmung.
 
 **Zuerst lesen:** `docs/UEBERGABE.md` (Stand, offene Punkte, Regeln) und die passende Datei in `docs/`.
 Sicherheitsthemen: `REVIEW.md` (Abschnitt „Umsetzungsstand“).

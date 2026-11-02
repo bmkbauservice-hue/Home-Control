@@ -53,7 +53,7 @@ Die Endpunkte sind in sechs Gruppen aufgeteilt:
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
 | `TuyaEndpoints.cs` | `/api/tuya` (bei Tuya nur lesend; der Abgleich `POST /sync` speichert den Zustand in der Datenbank, siehe [TUYA.md](TUYA.md)) |
-| `BlinkEndpoints.cs` | `/api/blink` (nur lesend: `GET /status`, `GET /cameras`, siehe [BLINK.md](BLINK.md)) |
+| `BlinkEndpoints.cs` | `/api/blink` (lesend: `GET /status`, `GET /cameras`, `GET /cameras/{id}/thumbnail`; einzige Ausnahme `POST /cameras/{id}/snapshot` „Neues Bild“, siehe [BLINK.md](BLINK.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
 

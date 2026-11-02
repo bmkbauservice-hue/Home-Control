@@ -14,6 +14,7 @@ Rate Limiter von ASP.NET Core (`AddRateLimiter`, `UseRateLimiter`, `RequireRateL
 | `login` | `POST /api/auth/login`, `/register`, `/refresh` (ein gemeinsamer Zähler) | pro Gerät (Client-IP) | 10 pro 60 s | Passwort-Raten, Massen-Registrierung |
 | `tuya` | alle Endpunkte unter `/api/tuya` | **ein** Zähler für alle | 20 pro 60 s | Aufbrauchen des Tuya-Kontingents |
 | `blink-bilder` | `GET /api/blink/cameras/{id}/thumbnail` | pro Gerät (Client-IP) | 30 pro 60 s | Flut von Bildanfragen (Bilder liegen zusätzlich 60 s im Server-Cache) |
+| `blink-neues-bild` | `POST /api/blink/cameras/{id}/snapshot` | pro **Kamera** (Id aus der Adresse) | 1 pro 60 s | leerer Akku durch wiederholtes „Neues Bild“, egal von welchem Gerät |
 
 - `GET /api/status` hat **kein** Rate Limit: Er liest die Online-Liste aus dem `TuyaOnlineCache`, den der
   Tuya-Hintergrund-Abgleich füllt. Ohne Hintergrund-Abgleich fragt er Tuya höchstens alle 5 Minuten,
@@ -31,6 +32,9 @@ In `backend/HomeControl.Api/appsettings.json`:
   "Tuya":  { "PermitLimit": 20, "WindowSeconds": 60 }
 }
 ```
+
+Die Blink-Regeln (`BlinkThumbnails` 30 pro 60 s, `BlinkSnapshot` 1 pro 60 s) stehen nur als Standardwert im Code
+und lassen sich genauso überschreiben, z. B. `RateLimiting__BlinkSnapshot__WindowSeconds=120`.
 
 Werte 0 oder kleiner verhindern den Start (Prüfung mit `ValidateOnStart`). Im Dienst lässt sich ein Wert auch
 per Umgebungsvariable überschreiben, z. B. `RateLimiting__Login__PermitLimit=5`.
@@ -82,6 +86,7 @@ Ansehen: `journalctl --user -u home-control -f`
 ## Tests
 
 `backend/HomeControl.Api.Tests/RateLimitingTests.cs` (kleine Grenzen: login 3, tuya 2) und
-`LoginLoggingTests.cs`. Die normale Testfabrik setzt großzügige Grenzen (100 000), damit die vielen Logins der
+`LoginLoggingTests.cs`. „Neues Bild“ 1× pro Minute und Kamera: `BlinkThumbnailEndpointTests.cs` (dort gilt der
+Standardwert). Die normale Testfabrik setzt großzügige Grenzen (100 000), damit die vielen Logins der
 übrigen Tests nicht in 429 laufen. `FakeRemoteIpStartupFilter` spielt die Verbindungsadresse, die der
 TestServer sonst nicht hat.
