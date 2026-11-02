@@ -23,6 +23,9 @@ Produktionsmodus und eine Begrenzung der Aufrufrate.
 |----|-------|
 | H-1 | Im Betrieb erledigt (02.11.2026): Leseschutz im Dienst an, Agenten-Schlüssel neu erzeugt. Offen: Standard auf sicher umstellen, Tailscale-ACLs. |
 | M-1 | Erledigt (02.11.2026): Dienst läuft als `Production`, User Secrets nur mit Schalter `HomeControl:UseUserSecrets`, Prüfung des JWT-Schlüssels in `dienst-einrichten.sh`, Tests in `ProductionModeTests`. |
+| M-2 | Erledigt (02.11.2026): Rate-Limit-Regel `tuya` für alle Endpunkte unter `/api/tuya` (Fixed Window, ein gemeinsamer Zähler, Standard 20 pro 60 s). `UseRateLimiter` steht nach der Autorisierung, Anfragen ohne Anmeldung verbrauchen nichts. `/api/status` bleibt ohne Limit (60-s-Cache). Tests in `RateLimitingTests`, Doku in `docs/RATE-LIMITING.md`. |
+| M-3 | Erledigt (02.11.2026): Rate-Limit-Regel `login` für login, register und refresh, pro Gerät (Standard 10 pro 60 s). Hinter `tailscale serve` zählt die Tailscale-IP aus `X-Forwarded-For`, akzeptiert nur von `127.0.0.1`/`::1`. 429 mit `Retry-After`. Fehlgeschlagene Logins werden mit Warnstufe geloggt (Grund, Benutzer-Id, IP; nie Passwort oder E-Mail). Bleibt offen: Ein einzelnes Konto lässt sich mit 5 Fehlversuchen weiterhin kurz sperren (5 liegt unter der Login-Grenze). |
+| N-9 | Teilweise (02.11.2026): Fehlgeschlagene Logins und überschrittene Rate Limits stehen mit Warnstufe im Log. Offen: Audit-Log für Admin-Aktionen. |
 
 ## Findings
 

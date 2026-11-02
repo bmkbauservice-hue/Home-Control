@@ -1,6 +1,6 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 02.11.2026, 12:00 Uhr.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 02.11.2026, nachmittags.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
@@ -21,8 +21,9 @@ was offen ist und welche Regeln gelten.
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
+| Rate Limiting: Login pro Gerät, Tuya gemeinsam, 429 mit Retry-After; Fehlversuche im Log | fertig, getestet (139 Tests), Branch `fix/rate-limiting` | [RATE-LIMITING.md](RATE-LIMITING.md) |
 | PWA (App auf dem Home-Bildschirm) | vorbereitet | [BETRIEB.md](BETRIEB.md) |
-| Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft als Production** (seit 02.11.): Dienst auf 127.0.0.1:5200, https://muju-ms-7c95.tail0b69aa.ts.net | [BETRIEB.md](BETRIEB.md) |
+| Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft als Production** (seit 02.11.): Dienst auf 127.0.0.1:5200, `https://<rechner>.<tailnet>.ts.net` | [BETRIEB.md](BETRIEB.md) |
 
 ## 2. Prüfen, starten, betreiben
 
@@ -39,9 +40,10 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1 und M-1 sind
-   erledigt. Als Nächstes M-2/M-3 (Rate Limiting), N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` entfernen).
-   Jeweils eigener Branch.
+1. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1, M-1, M-2 und
+   M-3 sind erledigt. Nach dem Merge von `fix/rate-limiting` einmal `./dienst-einrichten.sh` ausführen, damit der
+   Dienst das Rate Limiting bekommt. Als Nächstes N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` entfernen),
+   dann M-4/M-5 (Blink). Jeweils eigener Branch.
 2. **KI-Agent:** neuen Schlüssel mit `KEY=$(./agent-schluessel-einrichten.sh)` erzeugen (erscheint nicht auf dem
    Bildschirm), `systemctl --user restart home-control`, mit `echo "$KEY"` einmal in n8n eintragen (Header `X-Api-Key`).
 3. **iPhone/iPad:** https-Link in Safari öffnen → „Zum Home-Bildschirm“. Im Chrome am PC lud der https-Link
@@ -69,7 +71,9 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 - **Kommentare auf Deutsch, kurz, für Anfänger erklärbar.** Keine unnötig komplexe Architektur.
 - **Tuya und Blink bleiben nur lesend.** Es wird nichts geschaltet.
 
-Lern-PDF erzeugen (Muster: `tools/lernpdf/lernunterlage_status_leds.py` kopieren und anpassen):
+Lern-PDF erzeugen (Muster: `tools/lernpdf/lernunterlage_rate_limiting.py` kopieren und anpassen). Braucht `reportlab`
+(`pip install reportlab`, am besten in einer venv). Fehlt die Kursivschrift (`fonts-dejavu-extra`), nimmt
+`lernpdf.py` die normale Schrift:
 
 ```bash
 PYTHONPATH=tools/lernpdf python3 tools/lernpdf/lernunterlage_<thema>.py
@@ -99,6 +103,7 @@ Aufgabe: <hier die Aufgabe, z. B. Punkt 4 aus docs/UEBERGABE.md>
 | `backend/HomeControl.Api/Auth/` | Identity, JWT, Refresh-Token, API-Schlüssel, Rechte (Policies) |
 | `backend/HomeControl.Api/Endpoints/` | Ein File pro Bereich: Räume, Geräte, Ereignisse, Reports, Tuya, Blink, Anmeldung, Status |
 | `backend/HomeControl.Api/Tuya/`, `Blink/`, `Status/` | Anbindungen und Status-LEDs |
+| `backend/HomeControl.Api/RateLimiting/` | Rate-Limit-Regeln `login` und `tuya`, Grenzen aus appsettings.json |
 | `backend/HomeControl.Api/Migrations/` | Datenbankänderungen (nie alte ändern) |
 | `backend/HomeControl.Api.Tests/` | xUnit-Tests, `Fakes/` spielt Tuya und die Uhr |
 | `frontend/src/api/` | Aufrufe ans Backend (`http.ts`: Bearer + Refresh) |
