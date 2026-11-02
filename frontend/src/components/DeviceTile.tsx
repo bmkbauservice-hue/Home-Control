@@ -5,6 +5,7 @@ import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
 import { DeviceFields } from './DeviceFields'
 import { DeviceIcon, EditIcon, HistoryIcon, TrashIcon } from './Icons'
+import { measuredAtText, measurementsOf } from './measurements'
 import { StatusLed } from './StatusLed'
 import { useStatus } from '../status/statusContext'
 
@@ -30,6 +31,7 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
   const [busy, setBusy] = useState(false)
   const { stateOf } = useStatus()
   const onlineState = stateOf(device.id)
+  const measurements = measurementsOf(device)
 
   async function handleSave(event: FormEvent) {
     event.preventDefault()
@@ -135,6 +137,25 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
       <dl className="tile-values">
         <dt>Zustand</dt>
         <dd>{device.lastValue ?? 'Noch keine Daten'}</dd>
+        {measurements.length > 0 && (
+          <>
+            <dt>Messwerte</dt>
+            <dd>
+              {measurements.map((m, index) => (
+                <span key={m.text} className={m.warning ? 'value-warning' : undefined}>
+                  {index > 0 && ' · '}
+                  {m.text}
+                </span>
+              ))}
+            </dd>
+            <dt>Gemessen</dt>
+            <dd>
+              {measuredAtText(device.measuredAtUtc) ?? 'unbekannt'}
+              {/* Offline: Tuya kennt nur den alten Stand, das soll man sehen. */}
+              {onlineState === 'offline' && ' (Gerät offline, letzter Stand)'}
+            </dd>
+          </>
+        )}
         {device.tuyaDeviceId && (
           <>
             <dt>Tuya</dt>

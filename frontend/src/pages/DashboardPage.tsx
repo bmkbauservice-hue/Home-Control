@@ -5,6 +5,7 @@ import { useAuth } from '../auth/authContext'
 import { BlinkStatus } from '../components/BlinkStatus'
 import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
 import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
+import { measurementsOf } from '../components/measurements'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
 import { StatusBar } from '../components/StatusBar'
@@ -223,26 +224,32 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
         <p className="room-empty">Noch keine Geräte in diesem Raum.</p>
       ) : (
         <ul className="room-devices">
-          {shown.map((device) => (
-            <li key={device.id} className="room-device">
-              <span className="room-device-icon">
-                <DeviceTypeIcon type={device.type} />
-              </span>
-              <span className="room-device-text">
-                <span className="room-device-name-row">
-                  <StatusLed state={stateOf(device.id)} />
-                  <span className="room-device-name" title={device.name}>
-                    {device.name}
+          {shown.map((device) => {
+            // Zustand und Messwerte in einer Zeile, z. B. "AUS · 0,0 W · 227 V" oder "ZU · Akku 83 %".
+            const measurements = measurementsOf(device)
+            const parts = [...(device.lastValue ? [device.lastValue] : []), ...measurements.map((m) => m.text)]
+            const warning = measurements.some((m) => m.warning)
+            const valueClass =
+              parts.length === 0 ? 'room-device-value no-data' : warning ? 'room-device-value value-warning' : 'room-device-value'
+            return (
+              <li key={device.id} className="room-device">
+                <span className="room-device-icon">
+                  <DeviceTypeIcon type={device.type} />
+                </span>
+                <span className="room-device-text">
+                  <span className="room-device-name-row">
+                    <StatusLed state={stateOf(device.id)} />
+                    <span className="room-device-name" title={device.name}>
+                      {device.name}
+                    </span>
                   </span>
+                  <span className="room-device-type">{getDeviceTypeLabel(device.type)}</span>
+                  {/* Ehrlich: Ohne Geräteanbindung gibt es noch keine Messwerte. */}
+                  <span className={valueClass}>{parts.length > 0 ? parts.join(' · ') : 'Noch keine Daten'}</span>
                 </span>
-                <span className="room-device-type">{getDeviceTypeLabel(device.type)}</span>
-                {/* Ehrlich: Ohne Geräteanbindung gibt es noch keine Messwerte. */}
-                <span className={device.lastValue ? 'room-device-value' : 'room-device-value no-data'}>
-                  {device.lastValue ?? 'Noch keine Daten'}
-                </span>
-              </span>
-            </li>
-          ))}
+              </li>
+            )
+          })}
           {hidden > 0 && <li className="room-device-more">+ {hidden} weitere</li>}
         </ul>
       )}

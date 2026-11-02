@@ -13,6 +13,12 @@ export type Device = {
   lastValue: string | null
   // Id des verknüpften Geräts in der Tuya-Cloud, null = nicht verknüpft
   tuyaDeviceId: string | null
+  // Letzte Messwerte von Tuya, null = das Gerät liefert diesen Wert nicht (siehe measurements.ts)
+  powerWatt: number | null
+  voltageVolt: number | null
+  batteryPercent: number | null
+  // Wann die Messwerte zuletzt von einem ONLINE-Gerät kamen (ISO-Zeit, UTC)
+  measuredAtUtc: string | null
 }
 
 // Das schickt das Frontend beim Anlegen und Bearbeiten.
