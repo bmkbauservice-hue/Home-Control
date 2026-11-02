@@ -33,6 +33,13 @@ public static class BlinkEndpoints
             .RequireAuthorization(AuthPolicies.SignedInUser)
             .RequireRateLimiting(RateLimitPolicies.BlinkThumbnails)
             .WithSummary("Letztes Vorschaubild einer Kamera (image/jpeg, nur mit Anmeldung)");
+
+        // BEWUSSTE AUSNAHME von "nur lesen" (docs/BLINK.md, CLAUDE.md): Die Kamera nimmt ein neues Vorschaubild auf.
+        // Kostet Akku, schaltet aber nichts. Nur Admin (JWT), höchstens 1× pro Minute und Kamera.
+        blink.MapPost("/cameras/{id:long}/snapshot", RequestSnapshot)
+            .RequireAuthorization(AuthPolicies.AdminOnly)
+            .RequireRateLimiting(RateLimitPolicies.BlinkSnapshot)
+            .WithSummary("Neues Vorschaubild aufnehmen lassen (nur Admin, 1× pro Minute und Kamera, kostet Akku)");
     }
 
     private static async Task<IResult> GetStatus(
@@ -95,6 +102,42 @@ public static class BlinkEndpoints
                 statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Blink-Anmeldung nötig.",
                 detail: ex.Message);
+        }
+        catch (Exception ex) when (TryMapTransportError(ex, logger, cancellationToken, out var problem))
+        {
+            return problem!;
+        }
+    }
+
+    // POST /api/blink/cameras/{id}/snapshot
+    private static async Task<IResult> RequestSnapshot(
+        long id,
+        IBlinkCameraClient client,
+        ILogger<IBlinkCameraClient> logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await client.RequestNewThumbnailAsync(id.ToString(CultureInfo.InvariantCulture), cancellationToken);
+            return result is null
+                ? Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Diese Kamera gibt es nicht.")
+                : Results.Ok(new BlinkSnapshotResponse(result.Completed, result.ThumbnailTakenAtUtc));
+        }
+        catch (BlinkDisabledException ex)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist in dieser Umgebung ausgeschaltet.", detail: ex.Message);
+        }
+        catch (BlinkNotConfiguredException ex)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink ist nicht eingerichtet.", detail: ex.Message);
+        }
+        catch (BlinkLoginRequiredException ex)
+        {
+            logger.LogWarning("Blink-Anmeldung nötig ({ExceptionType}): {Message}", ex.GetType().Name, ex.Message);
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Blink-Anmeldung nötig.", detail: ex.Message);
         }
         catch (Exception ex) when (TryMapTransportError(ex, logger, cancellationToken, out var problem))
         {

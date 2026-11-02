@@ -91,6 +91,42 @@ public class BlinkThumbnailEndpointTests(BlinkThumbnailEndpointTests.ThumbnailAp
         Assert.Equal("Blink hat die Anfrage abgelehnt.", problem!.Title);
     }
 
+    // ---------- "Neues Bild": nur Admin, 1× pro Minute und Kamera ----------
+
+    private static string SnapshotUrl(int cameraId) => $"/api/blink/cameras/{cameraId}/snapshot";
+
+    [Fact]
+    public async Task Neues_Bild_als_User_403_mit_Agenten_Schluessel_401()
+    {
+        var (_, userToken) = await factory.GetTokensAsync();
+        using var user = factory.CreateClientWithToken(userToken);
+        using var agent = factory.CreateClient();
+        agent.DefaultRequestHeaders.Add("X-Api-Key", ThumbnailApiFactory.AgentApiKey);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await user.PostAsync(SnapshotUrl(11), null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await agent.PostAsync(SnapshotUrl(11), null)).StatusCode);
+        Assert.DoesNotContain("11", factory.Blink.RequestedSnapshots);
+    }
+
+    [Fact]
+    public async Task Neues_Bild_als_Admin_hoechstens_einmal_pro_Minute_und_Kamera()
+    {
+        var (adminToken, _) = await factory.GetTokensAsync();
+        using var admin = factory.CreateClientWithToken(adminToken);
+
+        var first = await admin.PostAsync(SnapshotUrl(12), null);
+        var second = await admin.PostAsync(SnapshotUrl(12), null);
+        var otherCamera = await admin.PostAsync(SnapshotUrl(13), null);
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.True((await first.Content.ReadFromJsonAsync<HomeControl.Api.Contracts.BlinkSnapshotResponse>())!.Completed);
+        Assert.Equal(HttpStatusCode.TooManyRequests, second.StatusCode);
+        Assert.True(second.Headers.Contains("Retry-After"));
+        Assert.Contains("höchstens einmal pro Minute", (await second.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+        // Eine andere Kamera hat ihren eigenen Zähler.
+        Assert.Equal(HttpStatusCode.OK, otherCamera.StatusCode);
+    }
+
     [Fact]
     public async Task Kein_Bild_ergibt_404()
     {
