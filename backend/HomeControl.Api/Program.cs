@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
@@ -5,12 +6,14 @@ using HomeControl.Api.Data;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
+using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -156,9 +159,34 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // nur im Development-Modus. So beantwortet der GlobalExceptionHandler sie überall gleich (400).
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 
+// Hinter "tailscale serve" kommt jede Verbindung von 127.0.0.1. Die echte Adresse des Geräts schickt
+// Tailscale im Header X-Forwarded-For mit (es überschreibt dabei einen vom Client gefälschten Wert).
+// Diesem Header glauben wir NUR, wenn die Verbindung selbst von 127.0.0.1 bzw. ::1 kommt. Sonst könnte
+// jeder mit einem erfundenen Header so tun, als wäre er ein anderes Gerät. Gebraucht wird das für das
+// Rate Limiting pro Gerät (siehe RateLimiting/RateLimitingRegistration.cs, docs/RATE-LIMITING.md).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // Nur die Client-Adresse. Host und Protokoll übernehmen wir bewusst nicht.
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    // Genau ein Proxy (tailscale serve): nur den letzten Eintrag im Header auswerten.
+    options.ForwardLimit = 1;
+    // Standardlisten leeren und nur die beiden Loopback-Adressen eintragen, damit klar ist, wem wir trauen.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+});
+
+// Rate Limiting (REVIEW.md M-2, M-3): Login pro Gerät, Tuya für alle gemeinsam. Grenzen in appsettings.json.
+builder.Services.AddHomeControlRateLimiting(builder.Configuration);
+
 var app = builder.Build();
 
-// Reihenfolge ist wichtig: Der Exception Handler steht ganz vorne,
+// Ganz vorne: Ab hier ist Connection.RemoteIpAddress die echte Adresse des Geräts (siehe oben).
+// Alles Spätere (Logs, Rate Limiting) sieht schon die richtige Adresse.
+app.UseForwardedHeaders();
+
+// Reihenfolge ist wichtig: Der Exception Handler steht weit vorne,
 // damit er Fehler aus allen folgenden Schritten abfangen kann.
 app.UseExceptionHandler();
 
@@ -187,6 +215,10 @@ if (servesFrontend)
 // ihre Fehler einheitlich als ProblemDetails ankommen (401 und 403 über UseStatusCodePages).
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Rate Limiting NACH der Autorisierung: Eine Anfrage ohne Anmeldung bekommt schon vorher 401 und
+// verbraucht so keine der gemeinsamen Tuya-Anfragen. Sonst könnte ein Fremder sie leer laufen lassen.
+app.UseRateLimiter();
 
 if (usesTemporaryJwtKey)
 {

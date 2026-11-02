@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
+using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Tuya;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,11 @@ public static class TuyaEndpoints
     // zusätzlich in unserer Datenbank (siehe TuyaSwitchRecorder).
     public static void MapTuyaEndpoints(this WebApplication app)
     {
-        var tuya = app.MapGroup("/api/tuya").WithTags("Tuya");
+        // Jeder Endpunkt hier löst echte Aufrufe bei der Tuya-Cloud aus. Deshalb gilt für die ganze Gruppe
+        // die Rate-Limit-Regel "tuya": ein gemeinsamer Zähler für alle Geräte (schützt das Tuya-Kontingent).
+        // GET /api/status braucht das nicht: Dort sorgt der TuyaOnlineCache für höchstens einen
+        // Tuya-Aufruf pro Minute, egal wie oft gefragt wird.
+        var tuya = app.MapGroup("/api/tuya").WithTags("Tuya").RequireRateLimiting(RateLimitPolicies.Tuya);
 
         tuya.MapGet("/devices", GetCloudDevices);
         tuya.MapGet("/test-device/status", GetTestDeviceStatus);

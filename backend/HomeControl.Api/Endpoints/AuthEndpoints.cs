@@ -2,6 +2,7 @@ using System.Security.Claims;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Models;
+using HomeControl.Api.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 
 namespace HomeControl.Api.Endpoints;
@@ -23,9 +24,14 @@ public static class AuthEndpoints
         // Diese vier sind immer offen (auch mit "Auth:RequireLoginForReading"): Wer sich erst
         // anmelden will, hat noch kein Token. register prüft die Rolle selbst, refresh und logout
         // arbeiten mit dem Refresh-Cookie.
-        auth.MapPost("/register", Register).AllowAnonymous().WithSummary("Benutzer anlegen (erster Benutzer wird Admin, danach nur durch Admin)");
-        auth.MapPost("/login", Login).AllowAnonymous().WithSummary("Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie");
-        auth.MapPost("/refresh", Refresh).AllowAnonymous().WithSummary("Neues Access Token mit dem Refresh-Cookie (Rotation)");
+        // register, login und refresh teilen sich die Rate-Limit-Regel "login" (pro Gerät, siehe
+        // RateLimiting/RateLimitingRegistration.cs): bremst Passwort-Raten, ohne andere Geräte auszusperren.
+        auth.MapPost("/register", Register).AllowAnonymous().RequireRateLimiting(RateLimitPolicies.Login)
+            .WithSummary("Benutzer anlegen (erster Benutzer wird Admin, danach nur durch Admin)");
+        auth.MapPost("/login", Login).AllowAnonymous().RequireRateLimiting(RateLimitPolicies.Login)
+            .WithSummary("Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie");
+        auth.MapPost("/refresh", Refresh).AllowAnonymous().RequireRateLimiting(RateLimitPolicies.Login)
+            .WithSummary("Neues Access Token mit dem Refresh-Cookie (Rotation)");
         auth.MapPost("/logout", Logout).AllowAnonymous().WithSummary("Abmelden: Refresh-Token widerrufen, Cookie löschen");
         // Nur mit gültigem Access Token (Authorization: Bearer ...), sonst 401.
         auth.MapGet("/profile", GetProfile).RequireAuthorization().WithSummary("Eigenes Profil (Access Token nötig)");
