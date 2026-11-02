@@ -68,6 +68,21 @@ public class BlinkHttpCameraClient(
     private DateTimeOffset lastFetchAtUtc = DateTimeOffset.MinValue;
     private IReadOnlyList<BlinkCameraInfo> lastCameras = [];
 
+    // Bildpfad je Kamera-Id aus dem letzten Homescreen. Bleibt im Backend, erreicht nie den Browser.
+    private IReadOnlyDictionary<string, string> thumbnailPaths = new Dictionary<string, string>();
+
+    // Vorschaubilder höchstens so lange zwischenspeichern, dann neu bei Blink holen (Schutz vor Flut).
+    public static readonly TimeSpan ThumbnailCacheDuration = TimeSpan.FromSeconds(60);
+
+    // Größer als ein Vorschaubild je sein sollte. Schützt den Arbeitsspeicher vor einer seltsamen Antwort.
+    private const int MaxThumbnailBytes = 5 * 1024 * 1024;
+
+    private readonly SemaphoreSlim thumbnailLock = new(1, 1);
+    private readonly Dictionary<string, CachedThumbnail> thumbnailCache = [];
+    private bool thumbnailShapeLogged;
+
+    private sealed record CachedThumbnail(string Path, BlinkThumbnail Thumbnail, DateTimeOffset FetchedAtUtc);
+
     // Alles, was nach einer erfolgreichen Anmeldung bekannt ist. Bleibt nur im Arbeitsspeicher.
     private sealed record Session(
         string HardwareId,
@@ -133,13 +148,117 @@ public class BlinkHttpCameraClient(
             }
 
             using var homescreen = await GetHomescreenAsync(cancellationToken);
-            lastCameras = MapCameras(homescreen.RootElement);
+            var accountId = session?.AccountId ?? 0;
+            (lastCameras, thumbnailPaths) = MapCameras(homescreen.RootElement, accountId);
             lastFetchAtUtc = timeProvider.GetUtcNow();
         }
         finally
         {
             fetchLock.Release();
         }
+    }
+
+    public async Task<BlinkThumbnail?> GetThumbnailAsync(string cameraId, CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
+        // Kamera und Bildpfad aus dem Homescreen (höchstens 2 Minuten alt).
+        await EnsureFreshAsync(cancellationToken);
+        if (!thumbnailPaths.TryGetValue(cameraId, out var path))
+        {
+            return null;
+        }
+
+        await thumbnailLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Gleiches Bild (gleicher Pfad) und jünger als 60 Sekunden: nicht noch einmal bei Blink holen.
+            if (thumbnailCache.TryGetValue(cameraId, out var cached)
+                && cached.Path == path
+                && timeProvider.GetUtcNow() - cached.FetchedAtUtc < ThumbnailCacheDuration)
+            {
+                return cached.Thumbnail;
+            }
+
+            var thumbnail = await DownloadThumbnailAsync(path, cancellationToken);
+            thumbnailCache[cameraId] = new CachedThumbnail(path, thumbnail, timeProvider.GetUtcNow());
+            return thumbnail;
+        }
+        finally
+        {
+            thumbnailLock.Release();
+        }
+    }
+
+    // Lädt das Bild mit UNSEREM Token. Bei 401 einmal erneuern, dann Fehler (wie beim Homescreen).
+    // Nur GET: Es wird nie ein neues Foto angefordert.
+    private async Task<BlinkThumbnail> DownloadThumbnailAsync(string path, CancellationToken cancellationToken)
+    {
+        var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+        using var first = await SendThumbnailRequestAsync(current, path, cancellationToken);
+        if (first.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            return await ReadThumbnailAsync(first, path, cancellationToken);
+        }
+
+        var renewed = await GetSessionAsync(forceRenew: true, cancellationToken);
+        using var second = await SendThumbnailRequestAsync(renewed, path, cancellationToken);
+        if (second.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            MarkLoginRequired(renewed.RefreshToken);
+            throw new BlinkLoginRequiredException("Blink hat die Anmeldung abgelehnt. Bitte tools/BlinkSpike erneut ausführen.");
+        }
+
+        return await ReadThumbnailAsync(second, path, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendThumbnailRequestAsync(Session current, string path, CancellationToken cancellationToken)
+    {
+        // Pfad stammt aus dem Homescreen und wurde in BuildThumbnailPath geprüft (relativ, kein "..").
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://rest-{current.Tier}.immedia-semi.com{path}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", current.AccessToken);
+        return await httpClientFactory.CreateClient(HttpClientName)
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+    }
+
+    private async Task<BlinkThumbnail> ReadThumbnailAsync(HttpResponseMessage response, string path, CancellationToken cancellationToken)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new BlinkApiException($"Blink hat das Vorschaubild nicht geliefert (HTTP {(int)response.StatusCode}).");
+        }
+
+        // Nur echte Bilder weiterreichen, nie z. B. eine HTML- oder JSON-Fehlerseite als Bild.
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+        if (contentType is not ("image/jpeg" or "image/png"))
+        {
+            throw new BlinkApiException("Blink hat kein Bild geliefert.");
+        }
+
+        if (response.Content.Headers.ContentLength is > MaxThumbnailBytes)
+        {
+            throw new BlinkApiException("Das Vorschaubild von Blink ist unerwartet groß.");
+        }
+
+        var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        if (content.Length > MaxThumbnailBytes)
+        {
+            throw new BlinkApiException("Das Vorschaubild von Blink ist unerwartet groß.");
+        }
+
+        return new BlinkThumbnail(content, contentType, GetTakenAt(path));
+    }
+
+    // Aufnahmezeitpunkt aus "ts=<Unix-Sekunden>" im Bildpfad. Ohne ts kennt Blink ihn hier nicht: null.
+    private static DateTimeOffset? GetTakenAt(string path)
+    {
+        var match = Regex.Match(path, @"[?&]ts=(\d{9,11})(&|$)");
+        return match.Success && long.TryParse(match.Groups[1].Value, out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
+            : null;
     }
 
     // Holt den Homescreen. Antwortet Blink mit 401 (Access Token abgelaufen oder widerrufen), wird
@@ -385,11 +504,12 @@ public class BlinkHttpCameraClient(
     // Kameras aus dem Homescreen. Blink unterscheidet normale Kameras ("cameras"), Mini ("owls") und
     // Türklingeln ("doorbells"). Id, Name und Akku wie in blinkpy. Online und Temperatur bleiben null,
     // bis die echten Felder geprüft sind (siehe docs/BLINK.md, "Bekannte Grenzen").
-    private List<BlinkCameraInfo> MapCameras(JsonElement homescreen)
+    private (List<BlinkCameraInfo> Cameras, Dictionary<string, string> ThumbnailPaths) MapCameras(JsonElement homescreen, long accountId)
     {
         LogFieldNamesOnce(homescreen);
 
         var cameras = new List<BlinkCameraInfo>();
+        var paths = new Dictionary<string, string>();
         foreach (var listName in new[] { "cameras", "owls", "doorbells" })
         {
             if (!homescreen.TryGetProperty(listName, out var list) || list.ValueKind != JsonValueKind.Array)
@@ -405,16 +525,90 @@ public class BlinkHttpCameraClient(
                     continue;
                 }
 
+                var path = BuildThumbnailPath(item, id, accountId);
+                if (path is not null)
+                {
+                    paths[id] = path;
+                }
+
                 cameras.Add(new BlinkCameraInfo(
                     Id: id,
                     Name: GetString(item, "name") ?? "Unbenannte Kamera",
                     Battery: GetString(item, "battery") ?? GetString(item, "battery_state"),
                     TemperatureCelsius: null,
-                    Online: null));
+                    Online: GetString(item, "status") switch
+                    {
+                        // Nur eindeutige Werte übersetzen, alles andere bleibt "unbekannt" (nicht raten).
+                        "online" => true,
+                        "offline" => false,
+                        _ => null,
+                    },
+                    HasThumbnail: path is not null,
+                    ThumbnailTakenAtUtc: path is null ? null : GetTakenAt(path)));
             }
         }
 
-        return cameras;
+        return (cameras, paths);
+    }
+
+    // Bildpfad wie im aktuellen blinkpy. Zwei Formate:
+    // - neu: "thumbnail" ist nur ein Zeitstempel → /api/v3/media/accounts/{a}/networks/{n}/{type}/{id}/thumbnail/thumbnail.jpg?ts=…&ext=
+    // - alt: "thumbnail" ist ein Pfad → Pfad + ".jpg" (endet er schon auf "&ext=", unverändert)
+    // Nur relative Pfade ohne ".." und ohne "://": So kann eine seltsame Antwort uns nie zu einem fremden
+    // Server schicken. Alles andere: kein Bild.
+    private string? BuildThumbnailPath(JsonElement item, string cameraId, long accountId)
+    {
+        if (!item.TryGetProperty("thumbnail", out var thumbnail))
+        {
+            return null;
+        }
+
+        var raw = thumbnail.ValueKind switch
+        {
+            JsonValueKind.String => thumbnail.GetString(),
+            JsonValueKind.Number => thumbnail.GetRawText(),
+            _ => null,
+        };
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        LogThumbnailShapeOnce(raw);
+
+        string path;
+        if (raw.All(char.IsAsciiDigit))
+        {
+            var networkId = item.TryGetProperty("network_id", out var n) && n.TryGetInt64(out var nid) ? nid : 0;
+            var type = GetString(item, "type");
+            if (accountId <= 0 || networkId <= 0 || type is null || !TierPattern.IsMatch(type))
+            {
+                return null;
+            }
+
+            path = $"/api/v3/media/accounts/{accountId}/networks/{networkId}/{type}/{cameraId}/thumbnail/thumbnail.jpg?ts={raw}&ext=";
+        }
+        else
+        {
+            path = raw.EndsWith("&ext=", StringComparison.Ordinal) ? raw : raw + ".jpg";
+        }
+
+        var safe = path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal)
+            && !path.Contains("..", StringComparison.Ordinal) && !path.Contains("://", StringComparison.Ordinal)
+            && !path.Contains('\\') && !path.Any(char.IsWhiteSpace);
+        return safe ? path : null;
+    }
+
+    // Einmal pro Start: die FORM des Bildpfads ins Log, Ziffern durch # ersetzt (keine Ids, keine Zeitstempel).
+    private void LogThumbnailShapeOnce(string raw)
+    {
+        if (thumbnailShapeLogged)
+        {
+            return;
+        }
+
+        thumbnailShapeLogged = true;
+        logger.LogInformation("Blink-Homescreen: Form des Bildpfads {Shape}", Regex.Replace(raw, "[0-9]+", "#"));
     }
 
     // Einmal pro Programmstart: nur die NAMEN der Felder ins Log, nie Werte (keine Bild-Adressen,

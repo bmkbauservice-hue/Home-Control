@@ -251,6 +251,97 @@ public class BlinkHttpCameraClientTests : IDisposable
         Assert.Empty(blink.HomescreenRequests);
     }
 
+    // ---------- Vorschaubilder ----------
+
+    [Fact]
+    public async Task Online_nur_bei_eindeutigem_Status_und_Bild_Infos_in_der_Liste()
+    {
+        var cameras = await client.GetCamerasAsync(CancellationToken.None);
+
+        Assert.Equal([true, false, null], cameras.Select(c => c.Online));
+        Assert.Equal([true, false, true], cameras.Select(c => c.HasThumbnail));
+        Assert.Null(cameras[0].ThumbnailTakenAtUtc);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(BlinkJson.ThumbnailTs), cameras[2].ThumbnailTakenAtUtc);
+    }
+
+    [Fact]
+    public async Task Altes_Bildformat_Pfad_plus_jpg_mit_unserem_Token()
+    {
+        var thumbnail = await client.GetThumbnailAsync("101", CancellationToken.None);
+
+        Assert.Equal(BlinkJson.FakeJpeg, thumbnail!.Content);
+        Assert.Equal("image/jpeg", thumbnail.ContentType);
+        Assert.Null(thumbnail.TakenAtUtc);
+        var request = Assert.Single(blink.ImageRequests);
+        Assert.Equal("https://rest-e006.immedia-semi.com/media/e006/account/4711/network/1/camera/101/clip_abc.jpg",
+            request.RequestUri!.ToString());
+        Assert.Equal(HttpMethod.Get, request.Method);   // nur lesen, nie ein neues Foto (POST)
+        Assert.Equal("access-1", request.Headers.Authorization?.Parameter);
+    }
+
+    [Fact]
+    public async Task Neues_Bildformat_aus_Zeitstempel_mit_Aufnahmezeit()
+    {
+        var thumbnail = await client.GetThumbnailAsync("201", CancellationToken.None);
+
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(BlinkJson.ThumbnailTs), thumbnail!.TakenAtUtc);
+        Assert.Equal(
+            $"https://rest-e006.immedia-semi.com/api/v3/media/accounts/4711/networks/1/owl/201/thumbnail/thumbnail.jpg?ts={BlinkJson.ThumbnailTs}&ext=",
+            Assert.Single(blink.ImageRequests).RequestUri!.ToString());
+    }
+
+    [Fact]
+    public async Task Verdaechtiger_Pfad_und_unbekannte_Kamera_ergeben_kein_Bild_und_keine_Anfrage()
+    {
+        Assert.Null(await client.GetThumbnailAsync("102", CancellationToken.None));
+        Assert.Null(await client.GetThumbnailAsync("999", CancellationToken.None));
+        Assert.Empty(blink.ImageRequests);
+    }
+
+    [Fact]
+    public async Task Bild_wird_60_Sekunden_vorgehalten()
+    {
+        await client.GetThumbnailAsync("101", CancellationToken.None);
+        clock.Advance(TimeSpan.FromSeconds(59));
+        await client.GetThumbnailAsync("101", CancellationToken.None);
+        Assert.Single(blink.ImageRequests);
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await client.GetThumbnailAsync("101", CancellationToken.None);
+        Assert.Equal(2, blink.ImageRequests.Count);
+    }
+
+    [Fact]
+    public async Task Bild_bei_401_einmal_erneuern_dann_Fehler()
+    {
+        blink.ImageResponse = n => n == 1
+            ? (HttpStatusCode.Unauthorized, [], "application/json")
+            : (HttpStatusCode.OK, BlinkJson.FakeJpeg, "image/jpeg");
+        Assert.NotNull(await client.GetThumbnailAsync("101", CancellationToken.None));
+        Assert.Equal(2, blink.TokenRequestBodies.Count);
+
+        blink.ImageResponse = _ => (HttpStatusCode.Unauthorized, [], "application/json");
+        clock.Advance(TimeSpan.FromSeconds(60));
+        await Assert.ThrowsAsync<BlinkLoginRequiredException>(() => client.GetThumbnailAsync("101", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Keine_Bilddaten_von_Blink_ergeben_einen_Fehler()
+    {
+        blink.ImageResponse = _ => (HttpStatusCode.OK, "<html>Fehler</html>"u8.ToArray(), "text/html");
+
+        await Assert.ThrowsAsync<BlinkApiException>(() => client.GetThumbnailAsync("101", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Form_des_Bildpfads_ohne_Ziffern_im_Log()
+    {
+        await client.GetCamerasAsync(CancellationToken.None);
+
+        Assert.Contains(logs.Entries, e => e.Message.Contains("Form des Bildpfads /media/e#/account/#/network/#/camera/#/clip_abc"));
+        Assert.DoesNotContain(logs.Entries, e => e.Message.Contains("4711"));
+    }
+
     // ---------- Andere Fehler ----------
 
     [Fact]

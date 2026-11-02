@@ -12,8 +12,17 @@ public static class AuthPolicies
     // Ohne gültiges Token: 401. Angemeldet, aber kein Admin: 403.
     public const string AdminOnly = "AdminOnly";
 
+    // Nur ein angemeldeter MENSCH (JWT aus dem Login), egal welche Rolle. Der API-Schlüssel des Agenten
+    // zählt hier ausdrücklich NICHT, auch wenn "Auth:RequireLoginForReading" aus ist. Benutzt für
+    // Kamerabilder: Die sollen nur Menschen sehen, die sich angemeldet haben.
+    public const string SignedInUser = "SignedInUser";
+
     public static AuthorizationBuilder AddHomeControlPolicies(this AuthorizationBuilder builder) =>
-        builder.AddPolicy(AdminOnly, policy => policy.RequireRole(Roles.Admin));
+        builder
+            .AddPolicy(AdminOnly, policy => policy.RequireRole(Roles.Admin))
+            .AddPolicy(SignedInUser, policy => policy
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser());
 
     // Regel für alles, was gelesen wird, sobald "Auth:RequireLoginForReading" an ist: angemeldet
     // per JWT (Frontend) ODER per API-Schlüssel (Agent). Sie gilt als Fallback für jeden Endpunkt

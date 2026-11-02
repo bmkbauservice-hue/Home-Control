@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { getDevices, getDeviceTypeLabel, type Device } from '../api/devices'
 import { createRoom, getRooms, type Room } from '../api/rooms'
 import { useAuth } from '../auth/authContext'
+import { BlinkCameras } from '../components/BlinkCameras'
 import { BlinkStatus } from '../components/BlinkStatus'
 import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
 import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
@@ -13,9 +14,6 @@ import { StatusLed } from '../components/StatusLed'
 import { TuyaLightCard } from '../components/TuyaLightCard'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import { useStatus } from '../status/statusContext'
-
-// Zwei Plätze für die Blink-Kameras. Echte Namen und Bilder kommen erst mit der Blink-Anbindung.
-const cameraSlots = ['Kamera 1', 'Kamera 2']
 
 // So viele Geräte zeigt eine Raumkarte, der Rest wird als "+ N weitere" zusammengefasst.
 const devicesPerCard = 4
@@ -178,20 +176,8 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
             </div>
 
             <div className="camera-panel">
-              <BlinkStatus />
-              <div className="camera-grid">
-                {cameraSlots.map((name) => (
-                  <article key={name} className="camera-card">
-                    {/* Bewusst kein Bild: Ohne Verbindung gibt es noch keine Aufnahmen. */}
-                    <div className="camera-preview">
-                      <CameraIcon size={20} />
-                      <span>Kein Kamerabild</span>
-                    </div>
-                    <h3 className="camera-name">{name}</h3>
-                    <p className="camera-state">Noch nicht verbunden</p>
-                  </article>
-                ))}
-              </div>
+              {/* Echte Kameras aus /api/blink/cameras mit letztem Vorschaubild (oder warum es keine gibt). */}
+              <BlinkCameras />
             </div>
           </section>
         </div>

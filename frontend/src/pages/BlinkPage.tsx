@@ -1,28 +1,25 @@
+import { BlinkCameras } from '../components/BlinkCameras'
 import { BlinkStatus } from '../components/BlinkStatus'
-import { CameraIcon } from '../components/Icons'
 
-// Platzhalter-Seite: Die Anbindung an Blink folgt in einem späteren Schritt.
+// Blink-Kameras mit ihrem letzten Vorschaubild. Nur lesend: Es wird nie ein neues Foto ausgelöst.
 export function BlinkPage() {
   return (
     <section>
       <header className="page-header">
         <h1>Blink</h1>
-        <p className="page-subtitle">Kameras und Bewegungsmelder</p>
+        <p className="page-subtitle">
+          Kameras mit ihrem letzten Vorschaubild · <BlinkStatus />
+        </p>
       </header>
 
-      <div className="tile blink-card">
-        <span className="tile-icon">
-          <CameraIcon size={40} />
-        </span>
-        <BlinkStatus />
-        <p className="tile-text">
-          Die Verbindung zu Blink ist vorbereitet, aber noch nicht eingerichtet. Sobald sie steht,
-          erscheinen hier deine Kameras.
-        </p>
-        <button type="button" className="button" disabled>
-          Verbinden (folgt)
-        </button>
+      <div className="camera-panel camera-panel-wide">
+        <BlinkCameras />
       </div>
+
+      <p className="tile-text">
+        Die Bilder holt der Server mit seiner eigenen Blink-Anmeldung und gibt nur das Bild weiter. Sie werden nicht
+        gespeichert und nicht im Browser zwischengespeichert.
+      </p>
     </section>
   )
 }

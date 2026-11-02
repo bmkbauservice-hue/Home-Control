@@ -25,12 +25,19 @@ public record BlinkStatusResult(BlinkConnectionState State, DateTimeOffset? Last
 // Eine Kamera, wie wir sie nach außen zeigen. Battery/Temperature/Online stammen aus
 // unbenannten Feldern der Blink-Antwort (siehe BlinkHttpCameraClient) und sind deshalb
 // "best effort": Sie können fehlen, bis die echten Feldnamen per Spike geprüft wurden.
+// HasThumbnail/ThumbnailTakenAtUtc: Gibt es ein letztes Vorschaubild, und wann wurde es aufgenommen
+// (null, wenn Blink den Zeitpunkt nicht mitliefert)? Die Bild-Adresse selbst bleibt im Backend.
 public record BlinkCameraInfo(
     string Id,
     string Name,
     string? Battery,
     double? TemperatureCelsius,
-    bool? Online);
+    bool? Online,
+    bool HasThumbnail = false,
+    DateTimeOffset? ThumbnailTakenAtUtc = null);
+
+// Das letzte vorhandene Vorschaubild einer Kamera.
+public record BlinkThumbnail(byte[] Content, string ContentType, DateTimeOffset? TakenAtUtc);
 
 // Blink ist nicht eingerichtet: weder Datenbank noch Bootstrap-Wert haben ein Token.
 public class BlinkNotConfiguredException(string detail) : Exception(detail);
@@ -50,4 +57,7 @@ public interface IBlinkCameraClient
     Task<BlinkStatusResult> GetStatusAsync(CancellationToken cancellationToken);
 
     Task<IReadOnlyList<BlinkCameraInfo>> GetCamerasAsync(CancellationToken cancellationToken);
+
+    // Letztes VORHANDENES Vorschaubild (löst nie ein neues Foto aus). null: Kamera unbekannt oder kein Bild.
+    Task<BlinkThumbnail?> GetThumbnailAsync(string cameraId, CancellationToken cancellationToken);
 }
