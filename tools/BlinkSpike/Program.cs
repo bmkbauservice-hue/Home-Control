@@ -17,7 +17,33 @@ var config = new ConfigurationBuilder()
 const string BackendSecretsId = "b10e47d4-d4f2-44f2-8fbb-5e1249af4daf";   // backend/HomeControl.Api
 const string SpikeSecretsId = "a8cc534d-5044-4fa2-ad90-29fef9954a14";     // tools/BlinkSpike
 
-// Dieselbe HardwareId wie beim letzten Mal (kein Geheimnis, aber stabil halten, siehe unten).
+// Version beim Start anzeigen: So ist sofort klar, welcher Stand des Spikes läuft.
+Console.WriteLine("BlinkSpike, Stand 02.11.2026 (E-Mail-Abfrage, Secrets über stdin, feste HardwareId)");
+Console.WriteLine("Optionen: --email-pruefen (nur prüfen, kein Login), --neue-email (E-Mail neu eingeben)");
+Console.WriteLine();
+
+// --email-pruefen: Zeigt nur Länge, Domain und Auffälligkeiten der gespeicherten E-Mail, nie die
+// ganze Adresse, und loggt sich NICHT ein (zählt also nicht als Fehlversuch bei Blink).
+if (args.Contains("--email-pruefen"))
+{
+    var stored = config["Blink:Email"];
+    if (string.IsNullOrEmpty(stored))
+    {
+        Console.WriteLine("Keine E-Mail gespeichert. Beim nächsten normalen Start wird sie abgefragt.");
+        return 0;
+    }
+
+    var at = stored.IndexOf('@');
+    Console.WriteLine($"Gespeicherte E-Mail: {stored.Length} Zeichen, Domain \"{(at >= 0 ? stored[(at + 1)..] : "(kein @)")}\"");
+    Console.WriteLine($"  Leerzeichen am Anfang/Ende: {(stored != stored.Trim() ? "JA (Fehlerquelle!)" : "nein")}");
+    Console.WriteLine($"  Großbuchstaben enthalten:   {(stored != stored.ToLowerInvariant() ? "ja" : "nein")}");
+    Console.WriteLine($"  Zeichen vor dem @:          {(at >= 0 ? at : stored.Length)}");
+    return 0;
+}
+
+// Dieselbe HardwareId bei JEDEM Lauf, auch nach Fehlversuchen: Für Blink ist eine neue HardwareId ein
+// neues Gerät. Deshalb wird sie beim allerersten Start erzeugt und SOFORT gespeichert, nicht erst nach
+// einem erfolgreichen Login (das war ein Fehler: Jeder fehlgeschlagene Versuch hatte eine neue Id).
 var savedHardwareId = config["Blink:HardwareId"];
 
 // Früher hat der Spike hier zusätzlich eine eigene Kopie des Refresh-Tokens gespeichert
@@ -41,16 +67,22 @@ if (!string.IsNullOrWhiteSpace(savedHardwareId))
     // Dieselbe HardwareId wie beim letzten Mal verwenden: verbessert laut Blink.NET-Doku
     // die Stabilität des Refresh-Tokens.
     client.HardwareId = savedHardwareId;
+    Console.WriteLine($"HardwareId: {Mask(client.HardwareId)} (gespeichert, wird wiederverwendet)");
 }
-
-Console.WriteLine($"HardwareId für diesen Lauf: {Mask(client.HardwareId)}");
+else
+{
+    // Blink.NET erzeugt beim Anlegen des Clients eine zufällige Id. Die merken wir uns sofort.
+    await SetUserSecretsAsync(SpikeSecretsId, new() { ["Blink:HardwareId"] = client.HardwareId });
+    Console.WriteLine($"HardwareId: {Mask(client.HardwareId)} (neu erzeugt und gespeichert, bleibt ab jetzt gleich)");
+}
 
 var loggedIn = false;
 
 // Jeder Lauf ist ein Login mit E-Mail, Passwort und PIN (der Spike merkt sich kein Token mehr).
 // Die E-Mail wird beim ersten Lauf abgefragt und in den User Secrets des Spikes gemerkt (über stdin,
 // also nicht in der Shell-History). Kein Geheimnis, aber auch nichts für Git.
-var email = config["Blink:Email"];
+// --neue-email: gespeicherte Adresse ignorieren und neu abfragen (z. B. nach einem Tippfehler).
+var email = args.Contains("--neue-email") ? null : config["Blink:Email"]?.Trim();
 if (string.IsNullOrWhiteSpace(email))
 {
     Console.Write("E-Mail-Adresse des Blink-Kontos: ");
@@ -87,7 +119,15 @@ catch (Exception ex)
 
 if (!loginAccepted)
 {
-    Console.WriteLine("Login fehlgeschlagen: Zugangsdaten wurden von Blink abgelehnt.");
+    // Blink.NET meldet hier jede Antwort 400, 401 oder 403 der Blink-Anmeldeseite gleich. Das kann ein
+    // falsches Passwort, eine falsche E-Mail oder eine vorübergehende Sperre nach Fehlversuchen sein.
+    Console.WriteLine("Login fehlgeschlagen: Blink hat die Anmeldung abgelehnt.");
+    Console.WriteLine("Mögliche Gründe: falsches Passwort, falsche E-Mail (prüfen mit --email-pruefen)");
+    Console.WriteLine("oder eine vorübergehende Sperre nach mehreren Fehlversuchen.");
+    // Laut Blink-Hilfe: nach 5 Fehlversuchen 10 Minuten gesperrt (beim 5. kommt eine Reset-E-Mail).
+    Console.WriteLine("Bitte NICHT sofort wiederholen: erst in der Blink-App mit denselben Daten anmelden.");
+    Console.WriteLine("Blink sperrt das Konto nach 5 Fehlversuchen für 10 Minuten. Sicherheitshalber");
+    Console.WriteLine("15 Minuten warten (siehe docs/BLINK.md, \"Fehlversuche\").");
     return 1;
 }
 
