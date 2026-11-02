@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/http'
 import { getBlinkStatus, getStatus, type BlinkStatusInfo, type OnlineState, type SystemStatus } from '../api/status'
+import { refreshIntervalMs } from '../hooks/useAutoRefresh'
 import { StatusContext, type StatusContextValue } from './statusContext'
 
-// Alle 60 Sekunden neu fragen. Das Backend merkt sich die Tuya-Antwort ebenfalls 60 Sekunden,
-// es entstehen also höchstens ein Tuya-Aufruf pro Minute, egal wie viele Geräte die App offen haben.
-const refreshIntervalMs = 60_000
+// Alle 60 Sekunden neu fragen (derselbe Takt wie die Geräteseiten, hooks/useAutoRefresh.ts).
+// Kostet kein Tuya-Kontingent: Läuft der Hintergrund-Abgleich, liest das Backend nur seinen Speicher,
+// sonst fragt es Tuya höchstens alle 5 Minuten, egal wie viele Geräte die App offen haben.
 
 // Fragt den Status regelmäßig ab und stellt ihn der ganzen App bereit (Context API), damit
 // Status-Leiste, Raumkarten und Geräte-Kacheln dieselben Daten benutzen und nicht jede Komponente
