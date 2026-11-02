@@ -27,6 +27,15 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
 
     private Task<(string AdminToken, string UserToken)>? tokens;
 
+    // Feste Werte für alle Tests. Im Development-Modus liest die App auch die echten User Secrets
+    // des Entwicklers. Ohne diese Zeilen hinge das Testergebnis davon ab, was dort gerade
+    // eingestellt ist (z. B. Leseschutz im Dauerbetrieb eingeschaltet).
+    private static readonly Dictionary<string, string?> FixedSettings = new()
+    {
+        ["Auth:RequireLoginForReading"] = "false",
+        ["Agent:ApiKey"] = "",
+    };
+
     // Zusätzliche Einstellungen für diese Factory (z. B. Auth:RequireLoginForReading).
     // Unterklassen überschreiben das; im Standard ändert sich nichts.
     protected virtual Dictionary<string, string?> Settings => [];
@@ -36,7 +45,10 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
         // Development: Ohne Jwt:SigningKey nimmt die App dann einen zufälligen Schlüssel.
         builder.UseEnvironment("Development");
 
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(Settings));
+        // Später hinzugefügte Quellen gewinnen: erst die festen Werte, dann die der Unterklasse.
+        builder.ConfigureAppConfiguration((_, config) => config
+            .AddInMemoryCollection(FixedSettings)
+            .AddInMemoryCollection(Settings));
 
         // Läuft nach Program.cs und hängt eine weitere Einstellung an den DbContext an.
         // Das zweite UseSqlite ersetzt den Connection String aus appsettings.json.
