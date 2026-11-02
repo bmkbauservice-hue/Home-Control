@@ -9,13 +9,13 @@ using Microsoft.Extensions.Options;
 namespace HomeControl.Api.Blink;
 
 // Liest und schreibt die eine BlinkCredential-Zeile. Scoped wie der DbContext (siehe
-// BlinkNetCameraClient, der als Singleton bei Bedarf einen eigenen Scope dafür aufmacht).
+// BlinkHttpCameraClient, der als Singleton bei Bedarf einen eigenen Scope dafür aufmacht).
 //
 // Das Refresh-Token liegt nie im Klartext in der Datenbank: IDataProtector verschlüsselt es
 // mit einem Schlüssel, der außerhalb des Repos liegt (siehe PersistKeysToFileSystem in
 // Program.cs und docs/BLINK.md). Ohne diesen Schlüssel ist der Datenbankinhalt wertlos –
 // protector.Unprotect wirft dann eine CryptographicException (vom Aufrufer zu behandeln,
-// siehe BlinkNetCameraClient).
+// siehe BlinkHttpCameraClient).
 public class BlinkCredentialStore(
     ApplicationDbContext db,
     IDataProtectionProvider dataProtection,
@@ -69,7 +69,7 @@ public class BlinkCredentialStore(
     }
 
     // Legt die Zeile an oder überschreibt sie, OHNE den Bootstrap-Hash zu ändern. Wird vom
-    // OnTokenRefreshed-Ereignis aus Blink.NET aufgerufen, sobald Blink während des Betriebs
+    // BlinkHttpCameraClient aufgerufen, sobald Blink bei der Token-Erneuerung
     // ein neues Token ausstellt – das hat nichts mit den User Secrets zu tun.
     public Task SaveAsync(string hardwareId, string refreshToken, CancellationToken cancellationToken) =>
         SaveInternalAsync(hardwareId, refreshToken, updateBootstrapHash: false, cancellationToken);
