@@ -27,6 +27,10 @@ Tuya-Cloud.
 
 ## Highlights
 
+- 🌙 **Design „Nachtlicht“:** Glas-Karten, ruhige Status-Leiste als Satz, Raumkarten mit Gerätezeilen,
+  „Energie jetzt“ und Batterien, Kameras mit Aufnahmezeit. Eigenes CSS mit Design-Tokens, Schrift lokal,
+  Handy zuerst, barrierearm ([DESIGN.md](docs/DESIGN.md)).
+
 - 🔌 **Echte Geräteanbindung:** Ein Tuya-Gerät wird live aus der Cloud gelesen. Ändert sich
   sein Zustand, landet er automatisch im Geräteverlauf. Geschaltet wird bewusst nichts.
 - ⏱️ **Hintergrund-Abgleich:** Ein `BackgroundService` gleicht alle verknüpften Geräte alle 15 Minuten
@@ -127,6 +131,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Hintergrund-Abgleich (BackgroundService, PeriodicTimer, Scopes im Singleton, Kontingent-Rechnung, Backoff, Polling vs. Push) | [Lernunterlage-Hintergrund-Abgleich.pdf](docs/Lernunterlage-Hintergrund-Abgleich.pdf) |
 | Blink-Anbindung (Geheimnisse über stdin, Token-Rotation, eigener Client statt Blink.NET, kein Login-Kreisel) | [Lernunterlage-Blink-Anbindung.pdf](docs/Lernunterlage-Blink-Anbindung.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
+| Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 

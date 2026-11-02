@@ -20,6 +20,7 @@ was offen ist und welche Regeln gelten.
 | Blink: Status und Kameras (nur lesend, inoffizielle API) | **eingerichtet und verbunden** (02.11.): eigener Client statt Blink.NET (426 bei Blink.NET), 2 Kameras (Wohnzimmer, Flur) | [BLINK.md](BLINK.md) |
 | Blink-Vorschaubilder: Proxy-Endpunkt (nur JWT, no-store, 60 s Cache, Rate Limit), Kamerakarten in Übersicht und Blink-Seite; beim Entwickeln Blink aus (ein Prozess pro Datenbank) | getestet (189 Tests), am 02.11. live gegen das echte Konto geprüft (Bilder von Wohnzimmer und Flur sichtbar); Branch `feature/blink-bilder` | [BLINK.md](BLINK.md) „Vorschaubilder“ |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
+| Design „Nachtlicht“: alle Seiten (Übersicht, Räume, Geräte, Reports, Blink, Anmeldung), Design-Tokens, Schrift lokal, „Energie jetzt“ und Batterien statt Karte „Licht (Tuya)“ | fertig, Screenshots Desktop und 390 px; Branch `design/nachtlicht` | [DESIGN.md](DESIGN.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Rate Limiting: Login pro Gerät, Tuya gemeinsam, 429 mit Retry-After; Fehlversuche im Log | fertig, getestet (139 Tests), Branch `fix/rate-limiting` | [RATE-LIMITING.md](RATE-LIMITING.md) |
@@ -42,10 +43,15 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **Blink-Bilder bis Mittwoch 04.11. abends** (Branch `feature/blink-bilder`, danach `feature/blink-lokale-clips`
-   nur nach Recherche und OK). Läuft das bis dahin nicht stabil: Blink parken (Karte zeigt ehrlich „Blink: derzeit
-   nicht verfügbar“) und mit dem Design weitermachen. **Präsentation am Montag 09.11.**, davor Design (Branch
-   `design/konzept`: 3 Richtungen als Vorschau, dann Umsetzung Seite für Seite).
+1. **Präsentation am Montag 09.11.** Design „Nachtlicht“ ist fertig (Branch `design/nachtlicht`). Als Nächstes
+   Blink-Knopf „Neues Bild“ (nur Admin, 1× pro Minute und Kamera). Danach, wenn Zeit bleibt: Clips vom USB-Stick
+   (`feature/blink-lokale-clips`, Recherche liegt vor). Barlicht-Steckdose bis Montag einstecken, sonst bleibt
+   „Energie jetzt“ leer (zeigt dann ehrlich „Kein Gerät mit Strommessung online“).
+   - Offen: Backend-Teil des alten Tuya-Testgeräts (`/api/tuya/test-device/*`, `TuyaSwitchRecorder`,
+     `Tuya:TestDeviceId`/`LinkedDeviceId`) wird im Frontend nicht mehr benutzt. Erst entfernen, wenn klar ist, dass
+     der n8n-Agent ihn nicht abfragt; die Konstanten aus `TuyaSwitchRecorder` braucht `TuyaDeviceSyncer`.
+   - Offen: Die Anmeldeseite zeigt „Noch kein Konto? Erstes Konto anlegen“ immer, auch wenn es schon Konten gibt
+     (das Backend lehnt dann ab). Nur anzeigen, solange es keinen Benutzer gibt (passt zu REVIEW.md N-4).
 2. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1, M-1 bis M-5 sind
    erledigt. Nach dem Merge von `feature/tuya-hintergrund-abgleich` und `fix/blink-einrichtung` einmal
    `./dienst-einrichten.sh` ausführen. Als Nächstes N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` und
