@@ -52,7 +52,7 @@ public static class TuyaEndpoints
     }
 
     // POST /api/tuya/sync – liest alle verknüpften Geräte und überträgt bekannte Zustände
-    // (switch_1, doorcontact_state) auf unsere Geräte. Schaltet nichts.
+    // (switch_1, doorcontact_state) und Messwerte (Watt, Volt, Akku) auf unsere Geräte. Schaltet nichts.
     private static async Task<IResult> SyncLinkedDevices(
         TuyaDeviceSyncer syncer,
         IOptionsMonitor<TuyaOptions> options,

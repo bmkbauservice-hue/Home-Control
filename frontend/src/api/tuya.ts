@@ -16,7 +16,7 @@ export type TuyaDeviceStatus = {
 export type SwitchState = 'on' | 'off' | 'unknown'
 
 // Was beim Abgleich in unserer Datenbank passiert ist (TuyaSyncResults im Backend).
-export type TuyaSyncResult = 'changed' | 'unchanged' | 'notLinked' | 'deviceNotFound' | 'unknownValue'
+export type TuyaSyncResult = 'changed' | 'unchanged' | 'notLinked' | 'deviceNotFound' | 'unknownValue' | 'measured'
 
 // Antwort von POST /api/tuya/test-device/sync: Status wie oben plus Ergebnis des Abgleichs.
 export type TuyaDeviceSync = TuyaDeviceStatus & {

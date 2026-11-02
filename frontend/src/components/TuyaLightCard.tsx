@@ -15,6 +15,7 @@ const syncLabels: Record<TuyaSyncResult, string> = {
   notLinked: 'Kein Gerät verknüpft, es wird nichts gespeichert.',
   deviceNotFound: 'Das verknüpfte Gerät wurde nicht gefunden, es wird nichts gespeichert.',
   unknownValue: 'Zustand unbekannt, es wird nichts gespeichert.',
+  measured: 'Nur Messwerte aktualisiert, kein Ereignis gespeichert.',
 }
 
 // Karte für das konfigurierte Tuya-Testgerät. Zeigt nur den zuletzt von Tuya gemeldeten

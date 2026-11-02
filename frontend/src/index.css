@@ -830,6 +830,13 @@ select {
   font-style: italic;
 }
 
+/* Messwert mit Hinweis, z. B. fast leerer Akku */
+.value-warning,
+.room-device-value.value-warning {
+  color: var(--warning);
+  font-weight: 600;
+}
+
 .room-device-more {
   display: flex;
   align-items: center;

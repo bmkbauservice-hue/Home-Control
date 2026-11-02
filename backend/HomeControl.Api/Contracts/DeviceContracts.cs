@@ -6,5 +6,16 @@ namespace HomeControl.Api.Contracts;
 public record DeviceRequest(string Name, string Type, Guid RoomId, string? TuyaDeviceId = null);
 
 // Daten, die die API zurückgibt. LastValue bleibt null, solange es keine echten Messwerte gibt.
+// PowerWatt, VoltageVolt, BatteryPercent und MeasuredAtUtc kommen von Tuya (null = kein Wert).
 public record DeviceResponse(
-    Guid Id, string Name, string Type, Guid RoomId, string RoomName, string? LastValue, string? TuyaDeviceId);
+    Guid Id,
+    string Name,
+    string Type,
+    Guid RoomId,
+    string RoomName,
+    string? LastValue,
+    string? TuyaDeviceId,
+    double? PowerWatt,
+    double? VoltageVolt,
+    int? BatteryPercent,
+    DateTimeOffset? MeasuredAtUtc);

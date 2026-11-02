@@ -80,7 +80,9 @@ public static class DeviceEndpoints
         var devices = await query
             .OrderBy(d => d.Room.Name)
             .ThenBy(d => d.Name)
-            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId))
+            .Select(d => new DeviceResponse(
+                d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -139,6 +141,10 @@ public static class DeviceEndpoints
         {
             device.IsActive = false;
             device.LastValue = null;
+            device.PowerWatt = null;
+            device.VoltageVolt = null;
+            device.BatteryPercent = null;
+            device.MeasuredAtUtc = null;
         }
 
         device.Name = request.Name.Trim();
@@ -180,7 +186,9 @@ public static class DeviceEndpoints
     {
         return db.Devices
             .Where(d => d.Id == id)
-            .Select(d => new DeviceResponse(d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId))
+            .Select(d => new DeviceResponse(
+                d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc))
             .FirstOrDefaultAsync();
     }
 

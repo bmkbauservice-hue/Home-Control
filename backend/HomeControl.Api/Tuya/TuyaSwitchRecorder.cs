@@ -23,6 +23,10 @@ public static class TuyaSyncResults
 
     // switch_1 fehlt oder ist kein echter Boolean: nichts gespeichert, nichts geraten
     public const string UnknownValue = "unknownValue";
+
+    // Kein Schalter und kein Türkontakt, aber Messwerte (z. B. nur Akku): Messwerte gespeichert,
+    // kein Ereignis
+    public const string Measured = "measured";
 }
 
 // Überträgt den von Tuya gemeldeten Schaltzustand (switch_1) auf ein Gerät in unserer Datenbank.

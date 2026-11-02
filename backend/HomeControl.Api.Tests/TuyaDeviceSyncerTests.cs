@@ -150,14 +150,105 @@ public class TuyaDeviceSyncerTests : IDisposable
     }
 
     [Fact]
-    public void UnbekannteCodes_WerdenNochNichtGespeichert()
+    public void UnbekannteCodes_WerdenNichtGespeichert()
     {
-        // Temperatur, Leistung und Akku folgen, sobald die echten Rohwerte bekannt sind.
-        var result = Apply(socket, Status(("va_temperature", "215"), ("cur_power", "1234"), ("battery_percentage", "80")));
+        // Temperatur liefert bisher kein verknüpftes Gerät, der Faktor ist unbekannt: nichts raten.
+        var result = Apply(socket, Status(("va_temperature", "215")));
 
         Assert.Equal(TuyaSyncResults.UnknownValue, result);
         Assert.Null(socket.LastValue);
+        Assert.Null(socket.MeasuredAtUtc);
         Assert.Empty(Events(socket));
+    }
+
+    // --- Messwerte: genau die Rohwerte, die tuya-rohwerte-anzeigen.sh am 02.11.2026 gezeigt hat ---
+
+    [Fact]
+    public void Barlicht_EchteRohwerte_SchalterUndMesswerte()
+    {
+        var result = Apply(socket, Status(
+            ("switch_1", "false"),
+            ("cur_current", "0"),
+            ("cur_power", "0"),
+            ("cur_voltage", "2271"),
+            ("relay_status", "\"power_on\"")));
+
+        Assert.Equal(TuyaSyncResults.Changed, result);
+        Assert.Equal("AUS", socket.LastValue);
+        Assert.Equal(0.0, socket.PowerWatt);
+        Assert.Equal(227.1, socket.VoltageVolt!.Value, precision: 3);
+        Assert.Null(socket.BatteryPercent);
+        Assert.Equal(RetrievedAt, socket.MeasuredAtUtc);
+        // Nur das Schalt-Ereignis, Messwerte erzeugen keins.
+        Assert.Equal("turned_off", Assert.Single(Events(socket)).Action);
+    }
+
+    [Fact]
+    public void Tuerkontakt_EchteRohwerte_ZuUndAkku()
+    {
+        var result = Apply(door, Status(("doorcontact_state", "false"), ("battery_percentage", "83")));
+
+        Assert.Equal(TuyaSyncResults.Changed, result);
+        Assert.Equal("ZU", door.LastValue);
+        Assert.Equal(83, door.BatteryPercent);
+        Assert.Null(door.PowerWatt);
+        Assert.Equal("door_closed", Assert.Single(Events(door)).Action);
+    }
+
+    [Fact]
+    public void Leistung_Aendert_sich_ohne_neues_Ereignis()
+    {
+        Apply(socket, Status(("switch_1", "true"), ("cur_power", "605")));
+
+        var result = Apply(socket, Status(("switch_1", "true"), ("cur_power", "1234")));
+
+        Assert.Equal(TuyaSyncResults.Unchanged, result);
+        Assert.Equal(123.4, socket.PowerWatt!.Value, precision: 3);
+        Assert.Single(Events(socket));
+    }
+
+    [Fact]
+    public void NurMesswerte_ErgebnisMeasured()
+    {
+        var result = Apply(door, Status(("battery_percentage", "12")));
+
+        Assert.Equal(TuyaSyncResults.Measured, result);
+        Assert.Equal(12, door.BatteryPercent);
+        Assert.Null(door.LastValue);
+        Assert.Empty(Events(door));
+    }
+
+    [Fact]
+    public void Offline_MesswerteBleibenUnveraendert()
+    {
+        Apply(socket, Status(("cur_voltage", "2300")));
+
+        // Tuya liefert für ein Offline-Gerät den letzten bekannten Stand, der zählt nicht als neu.
+        var later = RetrievedAt.AddMinutes(5);
+        var result = TuyaDeviceSyncer.Apply(db, socket, Status(("switch_1", "true"), ("cur_voltage", "2271")), later, online: false);
+        db.SaveChanges();
+
+        Assert.Equal(TuyaSyncResults.Changed, result);
+        Assert.Equal(230.0, socket.VoltageVolt!.Value, precision: 3);
+        Assert.Equal(RetrievedAt, socket.MeasuredAtUtc);
+    }
+
+    [Theory]
+    [InlineData("battery_percentage", "\"83\"")]
+    [InlineData("battery_percentage", "150")]
+    [InlineData("battery_percentage", "-1")]
+    [InlineData("cur_power", "12.5")]
+    [InlineData("cur_power", "true")]
+    [InlineData("cur_voltage", "-5")]
+    public void UnplausibleMesswerte_WerdenNichtGeraten(string code, string json)
+    {
+        var result = Apply(door, Status((code, json)));
+
+        Assert.Equal(TuyaSyncResults.UnknownValue, result);
+        Assert.Null(door.BatteryPercent);
+        Assert.Null(door.PowerWatt);
+        Assert.Null(door.VoltageVolt);
+        Assert.Null(door.MeasuredAtUtc);
     }
 
     [Fact]
