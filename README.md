@@ -125,6 +125,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Production-Modus (Umgebungen, User Secrets im Dienst, Secure-Cookie, Reihenfolge der Konfiguration) | [Lernunterlage-Production-Modus.pdf](docs/Lernunterlage-Production-Modus.pdf) |
 | Rate Limiting (Fixed Window, Sliding, Token Bucket, 429, Retry-After, Proxy-Problem, Middleware-Reihenfolge) | [Lernunterlage-Rate-Limiting.pdf](docs/Lernunterlage-Rate-Limiting.pdf) |
 | Hintergrund-Abgleich (BackgroundService, PeriodicTimer, Scopes im Singleton, Kontingent-Rechnung, Backoff, Polling vs. Push) | [Lernunterlage-Hintergrund-Abgleich.pdf](docs/Lernunterlage-Hintergrund-Abgleich.pdf) |
+| Blink-Anbindung (Geheimnisse über stdin, Token-Rotation, eigener Client statt Blink.NET, kein Login-Kreisel) | [Lernunterlage-Blink-Anbindung.pdf](docs/Lernunterlage-Blink-Anbindung.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 

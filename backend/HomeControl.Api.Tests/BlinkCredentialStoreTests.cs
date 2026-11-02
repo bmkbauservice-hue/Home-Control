@@ -128,7 +128,7 @@ public class BlinkCredentialStoreTests : IDisposable
 
     // Deckt Punkt 4 aus dem Review ab: Ohne den passenden Data-Protection-Schlüssel wirft
     // Unprotect eine CryptographicException. BlinkCredentialStore fängt sie bewusst NICHT ab
-    // (siehe Kommentar dort) – BlinkNetCameraClient wandelt sie in "Neu-Login nötig" um.
+    // (siehe Kommentar dort) – BlinkHttpCameraClient wandelt sie in "Neu-Login nötig" um.
     [Fact]
     public async Task GetCredentialAsync_wirft_CryptographicException_bei_falschem_Schluessel()
     {

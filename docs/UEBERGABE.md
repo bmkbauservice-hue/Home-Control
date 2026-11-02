@@ -1,6 +1,6 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 02.11.2026, abends.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 02.11.2026, 15 Uhr.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
@@ -17,7 +17,7 @@ was offen ist und welche Regeln gelten.
 | API-Schlüssel für den KI-Agenten (nur lesen) | fertig, getestet; **Leseschutz im Dienst an** (seit 02.11.), Schlüssel in n8n noch nicht eingetragen | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Tuya: Geräteliste, Status, Abgleich aller verknüpften Geräte (nur lesend) | fertig, getestet; verknüpft: Bar Licht, Heizdecke, Stehlampe, Tür | [TUYA.md](TUYA.md) |
 | Tuya-Messwerte: Watt, Volt, Akku (letzter Stand, Offline-Schutz) | fertig, getestet (124 Tests), Migration `TuyaMesswerteErgaenzt` | [TUYA.md](TUYA.md) „Messwerte“ |
-| Blink: Status und Kameras (nur lesend, inoffizielle API) | Backend fertig, Oberfläche zeigt nur den Status | [BLINK.md](BLINK.md) |
+| Blink: Status und Kameras (nur lesend, inoffizielle API) | **eingerichtet und verbunden** (02.11.): eigener Client statt Blink.NET (426 bei Blink.NET), 2 Kameras (Wohnzimmer, Flur); Oberfläche zeigt nur den Status; Branch `fix/blink-einrichtung` | [BLINK.md](BLINK.md) |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
@@ -41,24 +41,25 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1, M-1, M-2 und
-   M-3 sind erledigt. Nach dem Merge von `fix/rate-limiting` und `feature/tuya-hintergrund-abgleich` einmal
-   `./dienst-einrichten.sh` ausführen, damit der Dienst beides bekommt. Als Nächstes N-1 (Tailscale-IP aus
-   `tuya-rohwerte-anzeigen.sh` und Rechnername aus `tools/lernpdf/lernunterlage_betrieb.py` entfernen),
-   dann M-4/M-5 (Blink). Jeweils eigener Branch.
-2. **Tuya-Kontingent prüfen:** platform.tuya.com → Cloud → My Services → IoT Core: Edition, Ablaufdatum und
+1. **Blink-Bilder bis Mittwoch 04.11. abends** (Branch `feature/blink-bilder`, danach `feature/blink-lokale-clips`
+   nur nach Recherche und OK). Läuft das bis dahin nicht stabil: Blink parken (Karte zeigt ehrlich „Blink: derzeit
+   nicht verfügbar“) und mit dem Design weitermachen. **Präsentation am Montag 09.11.**, davor Design (Branch
+   `design/konzept`: 3 Richtungen als Vorschau, dann Umsetzung Seite für Seite).
+2. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1, M-1 bis M-5 sind
+   erledigt. Nach dem Merge von `feature/tuya-hintergrund-abgleich` und `fix/blink-einrichtung` einmal
+   `./dienst-einrichten.sh` ausführen. Als Nächstes N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` und
+   Rechnername aus `tools/lernpdf/lernunterlage_betrieb.py` entfernen). Jeweils eigener Branch.
+3. **Tuya-Kontingent prüfen:** platform.tuya.com → Cloud → My Services → IoT Core: Edition, Ablaufdatum und
    Kontingent ansehen. Der Hintergrund-Abgleich braucht bei 4 Geräten und 15 min etwa 14 400 Aufrufe/Monat
    (Rechnung in [TUYA.md](TUYA.md) „Kontingent“). Ist mehr da, `Tuya:AutoSyncSeconds` kleiner stellen.
    Später günstiger: Tuyas Sammel-Abruf für den Status mehrerer Geräte (1 Aufruf statt 4), vorher an den echten
    Geräten prüfen.
-3. **KI-Agent:** neuen Schlüssel mit `KEY=$(./agent-schluessel-einrichten.sh)` erzeugen (erscheint nicht auf dem
+4. **KI-Agent:** neuen Schlüssel mit `KEY=$(./agent-schluessel-einrichten.sh)` erzeugen (erscheint nicht auf dem
    Bildschirm), `systemctl --user restart home-control`, mit `echo "$KEY"` einmal in n8n eintragen (Header `X-Api-Key`).
-4. **iPhone/iPad:** https-Link in Safari öffnen → „Zum Home-Bildschirm“. Im Chrome am PC lud der https-Link
+5. **iPhone/iPad:** https-Link in Safari öffnen → „Zum Home-Bildschirm“. Im Chrome am PC lud der https-Link
    am 02.11. nicht (vermutlich „Sicheres DNS“ in Chrome, `chrome://settings/security`), lokal geht `http://127.0.0.1:5200`.
-5. **Messwerte prüfen:** Watt-Faktor (÷ 10) einmal mit eingeschalteter Last am Barlicht gegenprüfen. Barlicht
+6. **Messwerte prüfen:** Watt-Faktor (÷ 10) einmal mit eingeschalteter Last am Barlicht gegenprüfen. Barlicht
    war am 02.11. offline. Temperatursensoren sind nicht im Tuya-Projekt (klären, wo sie eingebunden sind).
-6. **Blink-Seite:** Kameraliste aus `GET /api/blink/cameras` anzeigen (Backend ist fertig, die Seite ist
-   noch ein Platzhalter). Vorher mit `tools/BlinkSpike` die echten Feldnamen prüfen.
 7. **TypedResults** statt `IResult` in allen Endpunkten (wie im Unterricht). Eigener Branch, eigener PR.
 8. **Endpunktfilter** `RejectEmptyIdFilter` für `{id:guid}`-Routen (leere GUID → 400 statt 404).
 9. **Variante B:** Betrieb auf dem OVH-Server mit Docker, Geheimnisse als Umgebungsvariablen,

@@ -15,7 +15,7 @@ public static class BlinkEndpoints
     // API-Schlüssel für Home Control, siehe docs/BLINK.md.
     //
     // Beide Endpunkte können einen echten Abruf bei Blink auslösen (höchstens alle zwei
-    // Minuten, siehe BlinkNetCameraClient.MinPollInterval), deshalb behandeln beide dieselben
+    // Minuten, siehe BlinkHttpCameraClient.MinPollInterval), deshalb behandeln beide dieselben
     // Fehler aus dem HTTP-Zugriff (nicht erreichbar, Zeitüberschreitung).
     public static void MapBlinkEndpoints(this WebApplication app)
     {
@@ -84,7 +84,7 @@ public static class BlinkEndpoints
     }
 
     // Deckt Fehler aus dem eigentlichen HTTP-Zugriff ab, die beide Endpunkte gleich behandeln:
-    // eine von Blink.NET geworfene BlinkApiException, eine unerreichbare Blink-Cloud
+    // eine BlinkApiException (Blink lehnt ab, z. B. 426), eine unerreichbare Blink-Cloud
     // (HttpRequestException) oder eine Zeitüberschreitung (TaskCanceledException, aber nicht
     // durch den Client selbst abgebrochen). Gibt false zurück, wenn ex keiner dieser Fälle ist –
     // dann läuft die Exception unbehandelt weiter (kein stiller Fehlschluck).

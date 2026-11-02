@@ -29,7 +29,8 @@ var builder = WebApplication.CreateBuilder(args);
 // HomeControl:UseUserSecrets (im Dienst als Umgebungsvariable HomeControl__UseUserSecrets=true).
 if (!builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("HomeControl:UseUserSecrets"))
 {
-    builder.Configuration.AddUserSecrets<Program>(optional: false);
+    // reloadOnChange: Neue Werte (z. B. ein Blink-Token aus tools/BlinkSpike) gelten ohne Neustart des Dienstes.
+    builder.Configuration.AddUserSecrets<Program>(optional: false, reloadOnChange: true);
     // Später hinzugefügte Quellen gewinnen. Umgebungsvariablen noch einmal anhängen, damit z. B. der
     // Connection String aus dem Dienst weiterhin vor den User Secrets gilt.
     builder.Configuration.AddEnvironmentVariables();
@@ -82,9 +83,11 @@ builder.Services.AddDataProtection()
 // aus den User Secrets, siehe BlinkCredentialStore).
 builder.Services.Configure<BlinkOptions>(builder.Configuration.GetSection(BlinkOptions.SectionName));
 builder.Services.AddScoped<BlinkCredentialStore>();
-// Singleton: Der zugrunde liegende BlinkClient (Blink.NET) hält selbst den Login-Zustand.
-// Für die Datenbank holt er sich bei Bedarf über IServiceScopeFactory einen eigenen Scope.
-builder.Services.AddSingleton<IBlinkCameraClient, BlinkNetCameraClient>();
+// Eigener schlanker Client statt Blink.NET (REVIEW.md M-5, docs/BLINK.md). Singleton: Access Token und
+// letzter Stand bleiben erhalten. Für die Datenbank holt er sich über IServiceScopeFactory einen Scope.
+// Der HttpClient kommt aus der IHttpClientFactory, ohne Standard-Header (kein alter App-Build).
+builder.Services.AddHttpClient(BlinkHttpCameraClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<IBlinkCameraClient, BlinkHttpCameraClient>();
 
 // Anmeldung mit JWT (siehe docs/AUTHENTIFIZIERUNG.md). Issuer, Audience und Laufzeiten stehen
 // in appsettings.json, der geheime Signaturschlüssel in den User Secrets (Jwt:SigningKey).

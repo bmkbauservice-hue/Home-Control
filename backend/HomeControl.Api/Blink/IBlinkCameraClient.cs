@@ -17,7 +17,7 @@ public enum BlinkConnectionState
 public record BlinkStatusResult(BlinkConnectionState State, DateTimeOffset? LastSuccessfulFetchUtc);
 
 // Eine Kamera, wie wir sie nach außen zeigen. Battery/Temperature/Online stammen aus
-// unbenannten Feldern der Blink-Antwort (siehe BlinkNetCameraClient) und sind deshalb
+// unbenannten Feldern der Blink-Antwort (siehe BlinkHttpCameraClient) und sind deshalb
 // "best effort": Sie können fehlen, bis die echten Feldnamen per Spike geprüft wurden.
 public record BlinkCameraInfo(
     string Id,
@@ -37,7 +37,7 @@ public class BlinkLoginRequiredException(string detail) : Exception(detail);
 public class BlinkApiException(string detail) : Exception(detail);
 
 // Unsere schmale Abstraktion über Blink. Nur lesend, nur das, was die Oberfläche braucht.
-// Dahinter steckt aktuell Blink.NET (BlinkNetCameraClient); eine spätere Implementierung
+// Dahinter steckt BlinkHttpCameraClient (eigener HttpClient, Homescreen v3); eine spätere Implementierung
 // gegen einen blinkpy-Sidecar müsste nur dieses Interface erfüllen.
 public interface IBlinkCameraClient
 {
