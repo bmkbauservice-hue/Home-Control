@@ -22,7 +22,7 @@ was offen ist und welche Regeln gelten.
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
 | PWA (App auf dem Home-Bildschirm) | vorbereitet | [BETRIEB.md](BETRIEB.md) |
-| Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft**: Dienst auf 127.0.0.1:5200, https://muju-ms-7c95.tail0b69aa.ts.net | [BETRIEB.md](BETRIEB.md) |
+| Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft als Production** (seit 02.11.): Dienst auf 127.0.0.1:5200, https://muju-ms-7c95.tail0b69aa.ts.net | [BETRIEB.md](BETRIEB.md) |
 
 ## 2. Prüfen, starten, betreiben
 
@@ -39,9 +39,9 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
-1. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md)): H-1 (Leseschutz) ist im Betrieb erledigt.
-   Als Nächstes M-1 (Dienst nicht im `Development`-Modus), M-2/M-3 (Rate Limiting), N-1 (Tailscale-IP aus
-   `tuya-rohwerte-anzeigen.sh` entfernen). Jeweils eigener Branch.
+1. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1 und M-1 sind
+   erledigt. Als Nächstes M-2/M-3 (Rate Limiting), N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` entfernen).
+   Jeweils eigener Branch.
 2. **KI-Agent:** neuen Schlüssel mit `KEY=$(./agent-schluessel-einrichten.sh)` erzeugen (erscheint nicht auf dem
    Bildschirm), `systemctl --user restart home-control`, mit `echo "$KEY"` einmal in n8n eintragen (Header `X-Api-Key`).
 3. **iPhone/iPad:** https-Link in Safari öffnen → „Zum Home-Bildschirm“. Im Chrome am PC lud der https-Link

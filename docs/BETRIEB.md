@@ -41,9 +41,8 @@ Starten im Repo-Hauptordner: `./app-starten.sh` → `http://localhost:5111`.
 
 - Statische Dateien stehen vor der Authentifizierung, damit die Anmeldeseite lädt. Geschützt sind die Daten unter `/api`.
 - Unbekannte Adressen unter `/api` bleiben ein echter 404; alle anderen bekommen die `index.html` (React-Router).
-- Das Refresh-Cookie ist außerhalb von Development `Secure` (gehört hinter HTTPS). Im Development nicht, deshalb läuft das Skript bewusst
-  mit Development: Nur dort werden die User Secrets (Tuya, JWT, Agent) gelesen. Für einen echten Produktivbetrieb auf dem Server
-  müssen die Geheimnisse als Umgebungsvariablen kommen (z. B. `Jwt__SigningKey`).
+- Das Refresh-Cookie ist außerhalb von Development `Secure` (gehört hinter HTTPS). `app-starten.sh` läuft als Development,
+  der Dauerdienst als Production (siehe unten).
 
 ## Dauerbetrieb einrichten (Variante A: Linux-PC + Tailscale)
 
@@ -107,9 +106,14 @@ Abschalten: `tailscale serve reset`.
 
 ## Bewusste Grenzen
 
-- Der Dienst läuft mit `ASPNETCORE_ENVIRONMENT=Development`, weil die Geheimnisse in den User Secrets
-  liegen und die nur im Development gelesen werden. Folgen: Die API-Doku (`/scalar`) ist im Tailscale-Netz
-  erreichbar, und das Refresh-Cookie ist nicht als `Secure` markiert (über HTTPS wird es trotzdem
-  verschlüsselt übertragen). Für einen echten Server (Variante B) gehören die Geheimnisse in
-  Umgebungsvariablen (`Jwt__SigningKey`, `Tuya__ClientSecret` …) und die Umgebung auf `Production`.
+- **Der Dienst läuft als `Production`** (seit 02.11.2026, REVIEW.md M-1). Folgen: Das Refresh-Cookie ist
+  `Secure`, die API-Doku (`/scalar`, `/openapi`) gibt es nur noch beim Entwickeln (`app-starten.sh`,
+  `dotnet run` → `http://localhost:5111/scalar`), und ohne `Jwt:SigningKey` startet der Dienst nicht.
+  `dienst-einrichten.sh` prüft den Schlüssel vorher und bricht mit einem Hinweis ab.
+- **Geheimnisse:** Sie bleiben in den User Secrets. ASP.NET Core liest die im Production nicht von sich
+  aus, deshalb setzt der Dienst `HomeControl__UseUserSecrets=true`, und `Program.cs` bindet sie dann
+  ausdrücklich ein. Für einen echten Server (Variante B) gehören die Geheimnisse in Umgebungsvariablen
+  (`Jwt__SigningKey`, `Tuya__ClientSecret` …) oder Docker-Secrets, der Schalter bleibt dort aus.
+- `http://127.0.0.1:5200` funktioniert trotz `Secure`-Cookie: Browser behandeln `localhost` und
+  `127.0.0.1` wie eine sichere Verbindung.
 - Der PC muss laufen. Für 24/7 ist Variante B (OVH-Server, Docker) der nächste Schritt.

@@ -17,6 +17,13 @@ Kompromittierung dieses Servers, um alle Daten zu lesen und das Tuya-Kontingent 
 kritisches Finding gibt es nicht. Die wichtigsten Maßnahmen sind der Leseschutz, ein echter
 Produktionsmodus und eine Begrenzung der Aufrufrate.
 
+## Umsetzungsstand
+
+| ID | Stand |
+|----|-------|
+| H-1 | Im Betrieb erledigt (02.11.2026): Leseschutz im Dienst an, Agenten-Schlüssel neu erzeugt. Offen: Standard auf sicher umstellen, Tailscale-ACLs. |
+| M-1 | Erledigt (02.11.2026): Dienst läuft als `Production`, User Secrets nur mit Schalter `HomeControl:UseUserSecrets`, Prüfung des JWT-Schlüssels in `dienst-einrichten.sh`, Tests in `ProductionModeTests`. |
+
 ## Findings
 
 | ID | Schweregrad | Datei:Zeile | Problem | Warum riskant | Empfehlung |
