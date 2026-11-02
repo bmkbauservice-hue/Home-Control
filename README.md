@@ -90,7 +90,7 @@ Tuya-Cloud.
 
 **Geplant:**
 
-- Weitere Gerätetypen: Temperatur, Steckdose mit Strommessung (Watt), Akku-Ladestand – dafür brauchen wir zuerst die echten Rohwerte (`./tuya-rohwerte-anzeigen.sh`)
+- Temperatur: Kein verknüpftes Gerät liefert bisher einen Wert (Watt, Volt und Akku sind fertig, siehe [docs/TUYA.md](docs/TUYA.md) „Messwerte“)
 - Tests für die Tuya-Signatur und die Endpunkte
 
 Alle Details stehen in [docs/TUYA.md](docs/TUYA.md) unter „Bekannte Grenzen“.
@@ -116,6 +116,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Prüfskript und Identity-Migration (pruefen.sh, Exit-Codes, Migrationen, „loss of data“) | [Lernunterlage-Pruefen-und-Migration.pdf](docs/Lernunterlage-Pruefen-und-Migration.pdf) |
 | Betrieb: Dienst und HTTPS (systemd, dotnet publish, Ports, tailscale serve, iPhone) | [Lernunterlage-Betrieb.pdf](docs/Lernunterlage-Betrieb.pdf) |
 | Status-LEDs (GET /api/status, Cache, Context-Provider, CSS-LEDs, Barrierefreiheit) | [Lernunterlage-Status-LEDs.pdf](docs/Lernunterlage-Status-LEDs.pdf) |
+| Tuya-Messwerte (Skalierung, Watt/Volt/Akku, Offline-Werte, reproduzierbare Tests) | [Lernunterlage-Tuya-Messwerte.pdf](docs/Lernunterlage-Tuya-Messwerte.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 

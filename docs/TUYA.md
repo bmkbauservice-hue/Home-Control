@@ -222,18 +222,37 @@ Umsetzung: `Tuya/TuyaDeviceSyncer.cs`. Pro Gerät passiert Folgendes:
   Gerät auf eine Zeitüberschreitung zu warten.
 - Ein Abgleich gleichzeitig (`SemaphoreSlim`), damit keine doppelten Ereignisse entstehen.
 
-**Temperatur, Leistung (Watt) und Akku werden noch nicht gespeichert.** Tuya liefert dort ganze
-Zahlen mit einem Skalierungsfaktor, der je Gerät verschieden sein kann (zum Beispiel
-`va_temperature = 215` für 21,5 °C, aber bei einem anderen Gerät `21`). Welcher Faktor gilt, steht
-in der Gerätebeschreibung bei Tuya. Damit nichts falsch angezeigt wird, schauen wir zuerst die
-echten Rohwerte der eigenen Geräte an:
+### Messwerte: Watt, Volt, Akku
+
+**Zum Lernen:** [Lernunterlage-Tuya-Messwerte.pdf](Lernunterlage-Tuya-Messwerte.pdf)
+
+Tuya liefert Messwerte als **ganze Zahlen mit Skalierungsfaktor**. Die Codes und Faktoren unten
+stammen aus den echten Rohwerten unserer Geräte (`./tuya-rohwerte-anzeigen.sh`, 02.11.2026):
+
+| Statuscode | Beispiel roh | Umrechnung | Gespeichert als | Geprüft |
+|---|---|---|---|---|
+| `cur_power` | `1234` | ÷ 10 → 123,4 W | `PowerWatt` | Tuya-Konvention, mit bekannter Last nachprüfen |
+| `cur_voltage` | `2271` | ÷ 10 → 227,1 V | `VoltageVolt` | ja (Netzspannung) |
+| `battery_percentage` | `83` | 83 % (0–100) | `BatteryPercent` | ja |
+
+- Messwerte erzeugen **kein Ereignis**. Sie schwanken ständig, der Verlauf bleibt für
+  Zustandswechsel (an/aus, auf/zu). Gespeichert wird nur der **letzte Stand** plus Zeitpunkt
+  (`MeasuredAtUtc`), kein Verlauf.
+- **Offline-Geräte:** Tuya liefert dann den letzten bekannten Stand. Der Abgleich holt einmal pro
+  Durchlauf den Online-Zustand (aus demselben 60-Sekunden-Cache wie die Status-LEDs) und übernimmt
+  Messwerte nur von Geräten, die nicht offline sind. Werte und Zeitpunkt bleiben sonst stehen.
+- Unplausible Werte (Akku über 100, negativ, Text statt Zahl, Kommazahl) werden ignoriert.
+- Liefert ein Gerät nur Messwerte (kein `switch_1`, kein Türkontakt), ist das Ergebnis `measured`.
+- Oberfläche: Geräte-Kachel mit „Messwerte“ und „Gemessen“, Raumkarte z. B. `ZU · Akku 83 %`.
+  Ab 20 % Akku gelb (`components/measurements.ts`).
+- **Temperatur fehlt noch:** Kein verknüpftes Gerät liefert bisher einen Temperaturwert. Erst
+  Rohwerte ansehen, dann Faktor festlegen, nichts raten.
+
+Rohwerte aller verknüpften Geräte anzeigen (Leseschutz an: Anmeldung mit dem Home-Control-Konto):
 
 ```bash
-./tuya-rohwerte-anzeigen.sh
+HC_API=http://127.0.0.1:5200 ./tuya-rohwerte-anzeigen.sh
 ```
-
-Das Skript meldet sich an, ruft `GET /api/tuya/linked-devices/status` auf und listet pro Gerät
-alle Codes mit Wert. Danach legen wir pro Code fest, wie er umgerechnet und angezeigt wird.
 
 ## Dashboard-Karte „Licht Wohnzimmer“
 
@@ -259,9 +278,9 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 - **Testgerät über die Konfiguration.** Der Abgleich des Testgeräts (`/test-device/sync`) nutzt
   `Tuya:LinkedDeviceId`. Alle anderen Geräte werden über das Feld „Tuya-Gerät“ in der Oberfläche
   verknüpft und mit `POST /api/tuya/sync` abgeglichen (siehe „Alle verknüpften Geräte“).
-- **Kein Online-Status.** Gelesen wird, was die Cloud zuletzt über das Gerät weiß. Ein
-  erfolgreicher Abruf heißt nicht, dass das Gerät gerade erreichbar ist oder dass der Wert
-  noch stimmt. Den Online-Zustand fragt das Backend nicht ab.
+- **Zustand bei Offline-Geräten.** Gelesen wird, was die Cloud zuletzt über das Gerät weiß.
+  Messwerte von Offline-Geräten übernimmt der Abgleich nicht (siehe „Messwerte“), An/Aus und
+  Tür auf/zu dagegen schon: Sie zeigen dann den letzten bekannten Zustand.
 - **Gespeichert wird nur beim Abgleich.** Nur `POST /sync` schreibt in die Datenbank, und nur
   bei einer Änderung. Zustandswechsel zwischen zwei Abrufen (z. B. kurz an und wieder aus)
   sieht das Backend nicht, es gibt kein Polling und keine Push-Nachrichten von Tuya.
