@@ -1,3 +1,4 @@
+using HomeControl.Api.Status;
 using Microsoft.Extensions.Options;
 
 namespace HomeControl.Api.Tuya;
@@ -11,6 +12,7 @@ namespace HomeControl.Api.Tuya;
 public class TuyaSyncBackgroundService(
     IServiceScopeFactory scopeFactory,
     IOptionsMonitor<TuyaOptions> options,
+    TuyaOnlineCache onlineCache,
     TimeProvider timeProvider,
     ILogger<TuyaSyncBackgroundService> logger) : BackgroundService
 {
@@ -58,6 +60,9 @@ public class TuyaSyncBackgroundService(
         using var timer = new PeriodicTimer(interval.Value, timeProvider);
         var failures = 0;
 
+        // Ab jetzt füllt dieser Dienst den Online-Speicher. GET /api/status fragt Tuya dann nicht mehr
+        // selbst, sondern liest nur noch, was der letzte Durchlauf geholt hat (spart Kontingent).
+        onlineCache.BackgroundRefreshActive = true;
         try
         {
             // Erster Durchlauf gleich beim Start: Was sich während eines Neustarts geändert hat, wird
@@ -84,6 +89,10 @@ public class TuyaSyncBackgroundService(
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // Normales Ende: Die App wird beendet. Kein Fehler.
+        }
+        finally
+        {
+            onlineCache.BackgroundRefreshActive = false;
         }
     }
 
@@ -114,7 +123,11 @@ public class TuyaSyncBackgroundService(
 
             var failed = results.Count(r => r.Error is not null);
             var changed = results.Count(r => r.SyncResult == TuyaSyncResults.Changed);
-            if (results.Count > 0 && failed == results.Count)
+            // Ohne verknüpfte Geräte zählt nur, ob die Online-Liste geladen werden konnte.
+            var nothingRead = results.Count > 0
+                ? failed == results.Count
+                : onlineCache.Latest?.LastAttemptFailed == true;
+            if (nothingRead)
             {
                 // Fehlermeldungen pro Gerät hat der Syncer schon geloggt (ohne Geheimnisse).
                 logger.LogWarning("Tuya-Hintergrund-Abgleich: Kein Gerät konnte gelesen werden ({Count} Fehler).", failed);

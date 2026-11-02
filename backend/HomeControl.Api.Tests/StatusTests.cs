@@ -73,13 +73,13 @@ public class StatusTests
     }
 
     [Fact]
-    public async Task Cache_fragt_innerhalb_von_60_Sekunden_nur_einmal_bei_Tuya()
+    public async Task Cache_fragt_innerhalb_von_5_Minuten_nur_einmal_bei_Tuya()
     {
         var time = new FakeTimeProvider();
         var cache = new TuyaOnlineCache(time);
 
         await cache.GetAsync(LoadAsync, CancellationToken.None);
-        time.Advance(TimeSpan.FromSeconds(59));
+        time.Advance(TimeSpan.FromMinutes(5) - TimeSpan.FromSeconds(1));
         var second = await cache.GetAsync(LoadAsync, CancellationToken.None);
 
         Assert.Equal(1, loadCalls);
@@ -87,13 +87,13 @@ public class StatusTests
     }
 
     [Fact]
-    public async Task Cache_fragt_nach_60_Sekunden_neu()
+    public async Task Cache_fragt_nach_5_Minuten_neu()
     {
         var time = new FakeTimeProvider();
         var cache = new TuyaOnlineCache(time);
 
         await cache.GetAsync(LoadAsync, CancellationToken.None);
-        time.Advance(TimeSpan.FromSeconds(60));
+        time.Advance(TimeSpan.FromMinutes(5));
         await cache.GetAsync(LoadAsync, CancellationToken.None);
 
         Assert.Equal(2, loadCalls);
@@ -110,6 +110,33 @@ public class StatusTests
 
         Assert.Equal(1, loadCalls);
         Assert.True(result["tuya-lampe"]);
+    }
+
+    [Fact]
+    public async Task Refresh_laedt_immer_neu_und_merkt_sich_den_Zeitpunkt()
+    {
+        var time = new FakeTimeProvider();
+        var cache = new TuyaOnlineCache(time);
+
+        await cache.RefreshAsync(LoadAsync, CancellationToken.None);
+        await cache.RefreshAsync(LoadAsync, CancellationToken.None);
+
+        Assert.Equal(2, loadCalls);
+        Assert.Equal(time.GetUtcNow(), cache.Latest!.LoadedAtUtc);
+        Assert.False(cache.Latest.LastAttemptFailed);
+    }
+
+    [Fact]
+    public async Task Fehler_beim_Refresh_behaelt_den_alten_Stand_und_merkt_sich_den_Fehler()
+    {
+        var cache = new TuyaOnlineCache(new FakeTimeProvider());
+        await cache.RefreshAsync(LoadAsync, CancellationToken.None);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            cache.RefreshAsync(_ => throw new HttpRequestException("Cloud weg"), CancellationToken.None));
+
+        Assert.True(cache.Latest!.LastAttemptFailed);
+        Assert.True(cache.Latest.Online["tuya-lampe"]);
     }
 }
 

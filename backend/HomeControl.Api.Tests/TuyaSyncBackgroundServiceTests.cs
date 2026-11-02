@@ -75,6 +75,7 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
     private TuyaSyncBackgroundService CreateService(IServiceProvider? provider = null) => new(
         (provider ?? services).GetRequiredService<IServiceScopeFactory>(),
         options,
+        services.GetRequiredService<TuyaOnlineCache>(),
         clock,
         services.GetRequiredService<ILogger<TuyaSyncBackgroundService>>());
 
@@ -113,6 +114,8 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
         Assert.True(ok);
         Assert.Equal("OFFEN", LoadDoor().LastValue);
         Assert.Equal(["door_opened"], EventActions());
+        // Die Online-Liste liegt jetzt im Speicher, aus dem /api/status liest.
+        Assert.NotNull(services.GetRequiredService<TuyaOnlineCache>().Latest);
     }
 
     [Fact]
@@ -201,10 +204,12 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
     public async Task Laeuft_im_Takt_wird_bei_Fehlern_langsamer_und_stoppt_sauber()
     {
         var service = CreateService();
+        var cache = services.GetRequiredService<TuyaOnlineCache>();
         await service.StartAsync(CancellationToken.None);
 
-        // 1. Durchlauf gleich beim Start.
+        // 1. Durchlauf gleich beim Start. Solange der Dienst läuft, liest /api/status nur den Speicher.
         await WaitUntilAsync(() => tuya.StatusAccessTokens.Count == 1);
+        Assert.True(cache.BackgroundRefreshActive);
 
         // 2. Durchlauf nach einer Minute (Test-Uhr vorstellen, nicht warten).
         clock.Advance(TimeSpan.FromSeconds(60));
@@ -225,5 +230,7 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
         await service.StopAsync(CancellationToken.None);
         Assert.True(service.ExecuteTask!.IsCompletedSuccessfully);
         Assert.Equal(4, tuya.StatusAccessTokens.Count);
+        // Nach dem Stoppen fragt /api/status wieder selbst (Rückfallebene).
+        Assert.False(cache.BackgroundRefreshActive);
     }
 }

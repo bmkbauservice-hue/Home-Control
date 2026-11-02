@@ -8,8 +8,8 @@ export type LedState = 'online' | 'offline' | 'unknown' | 'warning'
 // Zustand eines Geräts laut Tuya (entspricht OnlineStates im Backend).
 export type OnlineState = 'online' | 'offline' | 'unknown'
 
-// Ist die Tuya-Cloud erreichbar?
-export type TuyaState = 'online' | 'offline' | 'notConfigured'
+// Ist die Tuya-Cloud erreichbar? 'unknown': Der Hintergrund-Abgleich hat seit dem Start noch nicht gefragt.
+export type TuyaState = 'online' | 'offline' | 'unknown' | 'notConfigured'
 
 export type DeviceOnline = {
   id: string
@@ -25,6 +25,9 @@ export type SystemStatus = {
   devicesOffline: number
   devicesUnknown: number
   devices: DeviceOnline[]
+  // Wann die Online-Liste zuletzt erfolgreich von Tuya kam (null = noch nie). Mit Hintergrund-Abgleich
+  // fragt der Server Tuya nicht bei jedem Status, der Stand kann deshalb bis zu 15 Minuten alt sein.
+  tuyaCheckedAtUtc: string | null
 }
 
 export async function getStatus(): Promise<SystemStatus> {

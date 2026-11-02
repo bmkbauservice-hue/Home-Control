@@ -22,8 +22,8 @@ public static class TuyaEndpoints
     {
         // Jeder Endpunkt hier löst echte Aufrufe bei der Tuya-Cloud aus. Deshalb gilt für die ganze Gruppe
         // die Rate-Limit-Regel "tuya": ein gemeinsamer Zähler für alle Geräte (schützt das Tuya-Kontingent).
-        // GET /api/status braucht das nicht: Dort sorgt der TuyaOnlineCache für höchstens einen
-        // Tuya-Aufruf pro Minute, egal wie oft gefragt wird.
+        // GET /api/status braucht das nicht: Es liest nur, was der Hintergrund-Abgleich geholt hat,
+        // oder fragt ohne ihn höchstens alle 5 Minuten (TuyaOnlineCache).
         var tuya = app.MapGroup("/api/tuya").WithTags("Tuya").RequireRateLimiting(RateLimitPolicies.Tuya);
 
         tuya.MapGet("/devices", GetCloudDevices);
