@@ -23,7 +23,7 @@ was offen ist und welche Regeln gelten.
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
 | Validierung mit `AddValidation` + DataAnnotations (Anmeldung), OpenAPI-Tags | fertig, getestet (113 Tests) | [Lernunterlage-Validierung-und-Unterricht.pdf](Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Rate Limiting: Login pro Gerät, Tuya gemeinsam, 429 mit Retry-After; Fehlversuche im Log | fertig, getestet (139 Tests), Branch `fix/rate-limiting` | [RATE-LIMITING.md](RATE-LIMITING.md) |
-| Tuya-Hintergrund-Abgleich alle 15 min (Backoff bis 1 h), Status-LEDs lesen nur noch den Speicher, Seiten laden jede Minute neu | fertig, getestet (160 Tests), einmal gegen die echte Cloud geprüft; Branch `feature/tuya-hintergrund-abgleich` | [TUYA.md](TUYA.md) „Hintergrund-Abgleich“ |
+| Tuya-Hintergrund-Abgleich mit Takt pro Gerät: Standard 30 min, Tür 3 min (~20 500 Aufrufe/Monat), Backoff bis 1 h, Status-LEDs lesen nur den Speicher, Seiten laden jede Minute neu | fertig, getestet; Takt pro Gerät seit 02.11. abends (Branch `feature/tuya-takt-pro-geraet`). **Nach dem Deploy auf der Geräteseite bei der Tür „Abgleich: Alle 3 Minuten“ einstellen.** | [TUYA.md](TUYA.md) „Hintergrund-Abgleich“, „Kontingent“, „Ausblick: Push“ |
 | PWA (App auf dem Home-Bildschirm) | vorbereitet | [BETRIEB.md](BETRIEB.md) |
 | Dauerbetrieb: Dienst + HTTPS über Tailscale | **läuft als Production** (seit 02.11.): Dienst auf 127.0.0.1:5200, `https://<rechner>.<tailnet>.ts.net` | [BETRIEB.md](BETRIEB.md) |
 
@@ -51,10 +51,10 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
    `./dienst-einrichten.sh` ausführen. Als Nächstes N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` und
    Rechnername aus `tools/lernpdf/lernunterlage_betrieb.py` entfernen). Jeweils eigener Branch.
 3. **Tuya-Kontingent prüfen:** platform.tuya.com → Cloud → My Services → IoT Core: Edition, Ablaufdatum und
-   Kontingent ansehen. Der Hintergrund-Abgleich braucht bei 4 Geräten und 15 min etwa 14 400 Aufrufe/Monat
-   (Rechnung in [TUYA.md](TUYA.md) „Kontingent“). Ist mehr da, `Tuya:AutoSyncSeconds` kleiner stellen.
-   Später günstiger: Tuyas Sammel-Abruf für den Status mehrerer Geräte (1 Aufruf statt 4), vorher an den echten
-   Geräten prüfen.
+   Kontingent ansehen. Der Hintergrund-Abgleich braucht mit Tür 3 min und Rest 30 min etwa 20 500 Aufrufe/Monat
+   (Rechnung in [TUYA.md](TUYA.md) „Kontingent“). Später günstiger: Tuyas Sammel-Abruf für den Status mehrerer
+   Geräte (1 Aufruf statt 4), vorher an den echten Geräten prüfen. **Nach der Präsentation:** Push über den Tuya
+   Message Service als Spike (TUYA.md „Ausblick: Push statt Polling“, Message Service im Portal ist freigeschaltet).
 4. **KI-Agent:** neuen Schlüssel mit `KEY=$(./agent-schluessel-einrichten.sh)` erzeugen (erscheint nicht auf dem
    Bildschirm), `systemctl --user restart home-control`, mit `echo "$KEY"` einmal in n8n eintragen (Header `X-Api-Key`).
 5. **iPhone/iPad:** https-Link in Safari öffnen → „Zum Home-Bildschirm“. Im Chrome am PC lud der https-Link

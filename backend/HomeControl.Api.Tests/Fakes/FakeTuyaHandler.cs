@@ -14,6 +14,7 @@ public class FakeTuyaHandler : HttpMessageHandler
     private readonly Lock sync = new();
     private int tokenRequestCount;
     private readonly List<string?> statusAccessTokens = [];
+    private readonly List<string> statusPaths = [];
     private readonly List<string> deviceListPaths = [];
 
     // Bekommt die laufende Nummer des Token-Abrufs (ab 1) und liefert den JSON-Body.
@@ -40,6 +41,12 @@ public class FakeTuyaHandler : HttpMessageHandler
     public IReadOnlyList<string> DeviceListPaths
     {
         get { lock (sync) return deviceListPaths.ToList(); }
+    }
+
+    // Pfad jedes Statusabrufs (enthält die Tuya-Geräte-Id), in Reihenfolge
+    public IReadOnlyList<string> StatusPaths
+    {
+        get { lock (sync) return statusPaths.ToList(); }
     }
 
     // access_token-Header jedes Statusabrufs, in Reihenfolge
@@ -85,6 +92,7 @@ public class FakeTuyaHandler : HttpMessageHandler
             lock (sync)
             {
                 statusAccessTokens.Add(token);
+                statusPaths.Add(path);
                 number = statusAccessTokens.Count;
             }
 

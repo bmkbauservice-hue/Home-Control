@@ -32,12 +32,30 @@ d.table([
     ["2 min", "720", "3 600", "108 000", "4-fach zu viel"],
     ["5 min", "288", "1 440", "43 200", "zu viel"],
     ["10 min", "144", "720", "21 600", "kaum Puffer"],
-    ["15 min (gewählt)", "96", "480", "14 400", "~11 000 Puffer"],
+    ["15 min (erste Version)", "96", "480", "14 400", "~11 000 Puffer"],
 ], [0.22, 0.2, 0.18, 0.2, 0.2])
 d.code("""Rechenweg für 15 min:
   Durchläufe pro Tag = 24 h × 60 min ÷ 15 min = 96
   Aufrufe pro Tag    = 96 × (4 Geräte + 1 Liste) = 480
   Aufrufe pro Monat  = 480 × 30 = 14 400""")
+d.h2("Nachtrag 02.11. abends: Takt pro Gerät")
+d.p("Die Diagnose zeigte: Wichtig ist vor allem die <b>Tür</b>. Deshalb hat jedes Gerät jetzt einen eigenen Takt "
+    "(" + M + "Device.TuyaSyncSeconds" + E + ", auf der Geräteseite unter „Abgleich“). Die Tür wird alle "
+    "<b>3 Minuten</b> gelesen, alle anderen im Standard-Takt von <b>30 Minuten</b>. Der Dienst wacht jede Minute auf "
+    "und fragt nur die fälligen Geräte; die Online-Liste nur alle 30 Minuten.")
+d.table([
+    ["Lauf", "Läufe/Tag", "Aufrufe je Lauf", "Aufrufe/Monat"],
+    ["alle 30 min: 4 Geräte + Online-Liste", "48", "5", "7 200"],
+    ["dazwischen alle 3 min: nur Tür", "432", "1", "12 960"],
+    ["Token", "", "", "~360"],
+    ["Summe", "", "", "~20 500"],
+], [0.44, 0.16, 0.2, 0.2])
+d.code("""Rechenweg:
+  Tür-Läufe pro Tag   = 24 × 60 ÷ 3 = 480, davon 48 zusammen mit den anderen
+  nur Tür             = 480 − 48 = 432 Läufe × 1 Aufruf  = 432
+  alle 30 min         = 48 Läufe × (4 Geräte + 1 Liste)  = 240
+  pro Tag             = 672, pro Monat = 672 × 30 = 20 160 (+ ~360 Token)""")
+
 d.h2("Die versteckten Kosten: Status-LEDs")
 d.p("Die Status-LEDs fragen jede Minute " + M + "GET /api/status" + E + ", und der fragte bisher (mit 60-s-Cache) "
     "die Tuya-Geräteliste ab. Ist die App irgendwo dauerhaft offen (Tablet an der Wand), sind das "
@@ -114,8 +132,8 @@ d.p("Wirft ein BackgroundService eine Exception, beendet .NET standardmäßig di
 d.p("<b>Backoff:</b> Ist die Tuya-Cloud gestört, wäre es sinnlos und unhöflich, sie im selben Takt weiter zu "
     "fragen. Nach jedem Fehler in Folge verdoppelt sich der Abstand, höchstens bis 1 Stunde:")
 d.code("""Fehler in Folge:   0      1      2      3      4 …
-Abstand:         15 min 30 min 60 min 60 min 60 min   (Obergrenze 1 h)
-Erster Erfolg  → wieder 15 min""")
+Prüfabstand:       1 min  2 min  4 min  8 min  16 min … (Obergrenze 1 h)
+Erster Erfolg  → wieder jede Minute prüfen""")
 d.p("Das nennt man <b>exponentiellen Backoff</b> (Abstand × 2 pro Fehler). Ohne Zugangsdaten gilt das nicht als "
     "Fehler: Tuya ist dann einfach nicht eingerichtet, und es wird gar nicht gefragt.")
 
@@ -123,8 +141,8 @@ d.p("Das nennt man <b>exponentiellen Backoff</b> (Abstand × 2 pro Fehler). Ohne
 d.h1("6  Warum Polling und nicht Push?")
 d.table([
     ["", "Polling (gewählt)", "Push (Tuya Message Service)"],
-    ["Wie", "Backend fragt alle 15 min nach", "Tuya schickt jede Änderung sofort über eine dauerhafte Verbindung"],
-    ["Zeitpunkt", "bis zu 15 min zu spät", "genau"],
+    ["Wie", "Backend fragt nach (Tür alle 3, Rest alle 30 min)", "Tuya schickt jede Änderung sofort über eine dauerhafte Verbindung"],
+    ["Zeitpunkt", "bis zu 3 bzw. 30 min zu spät", "genau"],
     ["Kurze Änderungen", "Tür kurz auf und zu: nicht gesehen", "jede Änderung kommt an"],
     ["Aufwand", "ein BackgroundService, vorhandener Code", "eigene Bibliothek, dauerhafte Verbindung, "
      "Entschlüsselung, Wiederverbinden"],
@@ -145,11 +163,11 @@ document.addEventListener('visibilitychange', onVisible)   // iPhone entsperrt �
 # ------------------------------------------------------------------ 8
 d.h1("8  Grenzen")
 d.bullets([
-    "<b>Bis zu 15 Minuten Verzögerung.</b> Das Ereignis bekommt den Zeitpunkt des Abrufs, nicht den der echten "
-    "Änderung.",
+    "<b>Bis zu 3 (Tür) bzw. 30 Minuten Verzögerung.</b> Das Ereignis bekommt den Zeitpunkt des Abrufs, nicht den "
+    "der echten Änderung.",
     "<b>Kurze Änderungen gehen verloren.</b> Tür auf und nach 2 Minuten wieder zu: Beide Abrufe sehen „ZU“.",
-    "<b>Online/Offline bis zu 15 Minuten alt</b>, weil die LEDs nur noch den letzten Durchlauf lesen.",
-    "<b>Ein Takt für alle Geräte.</b> Mehr Geräte = mehr Aufrufe: jedes weitere Gerät +2 880/Monat.",
+    "<b>Online/Offline bis zu 30 Minuten alt</b>, weil die LEDs die Online-Liste des letzten 30-Minuten-Laufs lesen.",
+    "<b>Jedes Gerät kostet.</b> Ein weiteres Gerät im 30-Minuten-Takt +1 440/Monat, im 3-Minuten-Takt +14 400.",
     "<b>Takt ändern erfordert einen Neustart</b> des Dienstes.",
     "<b>Eine Backend-Instanz.</b> Bei mehreren Instanzen würde jede selbst abgleichen (doppeltes Kontingent). "
     "Deshalb ist der Hintergrund-Abgleich beim Entwickeln aus (" + M + "Tuya:AutoSyncSeconds = 0" + E +
@@ -181,7 +199,7 @@ d.table([
      "startet und stoppt."],
     ["Warum PeriodicTimer statt Task.Delay?", "Fester Takt, als await lesbar, und mit TimeProvider testbar."],
     ["Warum ein eigener Scope?", "Der Dienst ist Singleton, DbContext und Syncer sind scoped."],
-    ["Warum 15 Minuten?", "Kontingent: 14 400 von 26 000 Aufrufen/Monat, Rest bleibt für Knopf und Token."],
+    ["Warum Tür 3, Rest 30 Minuten?", "Die Tür ist am wichtigsten. Zusammen ~20 500 von 26 000 Aufrufen/Monat."],
     ["Was ist Backoff?", "Bei Fehlern seltener fragen (× 2, höchstens 1 h), damit eine gestörte Cloud nicht "
      "geflutet wird."],
     ["Warum stürzt der Dienst nie ab?", "Jeder Fehler wird gefangen und geloggt; eine Exception würde sonst die "

@@ -265,27 +265,32 @@ niemand die App offen hat.
 
 | Einstellung | Standard | Bedeutung |
 |---|---|---|
-| `Tuya:AutoSyncSeconds` | `900` (15 min), **beim Entwickeln `0`** | Abstand zwischen zwei Durchläufen. `0` = aus. Werte von 1 bis 59 werden auf 60 angehoben. |
+| `Tuya:AutoSyncSeconds` | `1800` (30 min), **beim Entwickeln `0`** | Standard-Takt für alle Geräte ohne eigenen Takt. `0` = Hintergrund-Abgleich ganz aus. Werte von 1 bis 59 werden auf 60 angehoben. |
+| Gerät → **Abgleich** (Geräteseite, `Device.TuyaSyncSeconds`) | Standard | Eigener Takt pro Gerät: 3, 5 oder 15 Minuten. Gedacht für die **Tür (3 Minuten)**, damit ein Öffnen seltener verpasst wird. Feste Auswahl, weil jeder kürzere Takt Kontingent kostet. |
 
 **Beim Entwickeln aus** (`appsettings.Development.json`): Dienst (Port 5200) und `./app-starten.sh` (Port 5111)
 benutzen dieselbe Datenbank. Liefen beide Hintergrund-Abgleiche, würde doppelt bei Tuya gefragt (doppeltes
 Kontingent) und doppelt in dieselbe Datenbank geschrieben. Gleiches Prinzip wie bei Blink („ein Prozess pro
 Datenbank“, siehe [BLINK.md](BLINK.md)). Ohne Hintergrund-Abgleich fragen die Status-LEDs beim Entwickeln Tuya
 selbst, höchstens alle 5 Minuten. Einschalten nur bei gestopptem Dienst:
-`systemctl --user stop home-control`, dann `Tuya__AutoSyncSeconds=900 ./app-starten.sh`.
+`systemctl --user stop home-control`, dann `Tuya__AutoSyncSeconds=1800 ./app-starten.sh`.
 
-- **Ablauf:** erster Durchlauf beim Start, danach im Takt (`PeriodicTimer`). Pro Durchlauf ein eigener
-  Scope, dann dieselbe Methode wie der Knopf (`TuyaDeviceSyncer.ReadAllAsync(apply: true)`). Die Sperre
-  (`SyncLock`) verhindert, dass Knopf und Hintergrund gleichzeitig laufen.
-- **Ohne Zugangsdaten** wird nichts abgefragt. Nachgetragene Zugangsdaten wirken ohne Neustart,
-  ein geänderter Takt erst nach einem Neustart.
+- **Ablauf:** Der Dienst wacht **jede Minute** auf (`PeriodicTimer`) und sucht die **fälligen** Geräte: deren
+  eigener Takt bzw. der Standard seit dem letzten erfolgreichen Lesen abgelaufen ist (10 s Spielraum). Ist
+  keins fällig, geht **keine** Anfrage an Tuya. Pro Durchlauf ein eigener Scope, dann
+  `TuyaDeviceSyncer.ReadAsync` nur für die fälligen Geräte. Die Sperre (`SyncLock`) verhindert, dass Knopf
+  und Hintergrund gleichzeitig laufen. Nach einem Neustart sind alle Geräte sofort fällig.
+- **Online-Liste nur im Standard-Takt:** Die Liste „wer ist online“ (ein Aufruf) wird nur neu geholt, wenn
+  sie älter als der Standard-Takt ist. Ein schneller Lauf nur für die Tür kostet so **genau einen** Aufruf.
+- **Ohne Zugangsdaten** wird nichts abgefragt. Nachgetragene Zugangsdaten und ein geänderter Takt pro Gerät
+  wirken ohne Neustart, ein geänderter Standard-Takt erst nach einem Neustart.
 - **Fehler** (Cloud nicht erreichbar, Ablehnung, Datenbank) landen nur im Log, ohne Geheimnisse. Der
-  Dienst stürzt nie ab. **Backoff:** Nach jedem Fehler in Folge verdoppelt sich der Abstand
-  (15 → 30 → 60 min), höchstens 1 Stunde. Nach dem ersten Erfolg gilt wieder der normale Takt.
+  Dienst stürzt nie ab. **Backoff:** Nach jedem Fehler in Folge verdoppelt sich der Prüfabstand
+  (1 → 2 → 4 … min), höchstens 1 Stunde. Nach dem ersten Erfolg gilt wieder der normale Takt.
 - **Log:** `journalctl --user -u home-control -f`. Eine Zeile gibt es nur, wenn sich etwas geändert hat
   oder ein Fehler auftrat.
 - **Status-LEDs:** Solange der Hintergrund-Abgleich läuft, fragt `GET /api/status` Tuya **nicht** selbst,
-  sondern liest die Online-Liste des letzten Durchlaufs (`TuyaOnlineCache`). Die Tuya-LED zeigt im
+  sondern liest die Online-Liste des letzten Durchlaufs (`TuyaOnlineCache`, bis zu 30 Minuten alt). Die Tuya-LED zeigt im
   Tooltip den Stand („Stand 10:15 Uhr“). Ist der Abgleich aus, fragt `/api/status` selbst, höchstens
   alle 5 Minuten.
 - **Oberfläche:** Übersicht und Geräteseite laden die Geräteliste jede Minute und beim Zurückkehren in
@@ -294,29 +299,50 @@ selbst, höchstens alle 5 Minuten. Einschalten nur bei gestopptem Dienst:
 
 ### Kontingent
 
-Jeder Durchlauf kostet **einen Status-Aufruf pro verknüpftem Gerät** plus **einen Aufruf der
-Geräteliste** (online/offline). Dazu kommt etwa alle 2 Stunden ein neues Token (`expire_time`).
-Bei 4 Geräten sind das 5 Aufrufe pro Durchlauf:
+Ein Status-Aufruf kostet **einen Aufruf pro Gerät**, die Online-Liste **einen** Aufruf. Dazu kommt etwa alle
+2 Stunden ein neues Token (`expire_time`, ~360 im Monat).
 
-| Takt | Durchläufe/Tag | Aufrufe/Tag | Aufrufe/Monat (30 Tage) |
-|---|---|---|---|
-| 1 min | 1 440 | 7 200 | 216 000 |
-| 2 min | 720 | 3 600 | 108 000 |
-| 5 min | 288 | 1 440 | 43 200 |
-| 10 min | 144 | 720 | 21 600 |
-| **15 min (Standard)** | **96** | **480** | **14 400** |
+**Aktuelle Einstellung (seit 02.11.2026): Tür alle 3 Minuten, die übrigen 3 Geräte alle 30 Minuten.**
+
+| Lauf | Läufe/Tag | Aufrufe je Lauf | Aufrufe/Tag | Aufrufe/Monat (30 Tage) |
+|---|---|---|---|---|
+| alle 30 min: 4 Geräte + Online-Liste | 48 | 5 | 240 | 7 200 |
+| dazwischen alle 3 min: nur Tür | 432 | 1 | 432 | 12 960 |
+| Token | | | ~12 | ~360 |
+| **Summe** | | | **~684** | **~20 500** |
+
+Zum Vergleich, früher und andere Varianten (4 Geräte, alle im selben Takt, je Lauf 5 Aufrufe):
+
+| alle Geräte alle | Aufrufe/Monat |
+|---|---|
+| 5 min | 43 200 |
+| 15 min (bis 02.11.) | 14 400 |
+| Tür 1 min, Rest 30 min | ~49 300 (zu viel) |
+| Tür 2 min, Rest 30 min | ~27 700 (zu viel) |
 
 Die Produktseite von Tuya IoT Core nennt für die Testversion („nur zum Testen“) **26 000 API-Aufrufe
 pro Monat**. Ob das für dein Projekt gilt, steht unter [platform.tuya.com](https://platform.tuya.com)
 → **Cloud** → **My Services** → **IoT Core** (Edition, Ablaufdatum, Verlängerung).
 
-Die **Status-LEDs** hätten ohne den Hintergrund-Abgleich bei dauerhaft offener App (z. B. Tablet an der
-Wand) bis zu 1 440 Aufrufe pro Tag gekostet, also rund 43 200 im Monat. Mit dem Hintergrund-Abgleich
-kosten sie nichts mehr. Gesamt bei 15 min: etwa **14 800 pro Monat** (Abgleich + Token), dazu
-die Klicks auf „Mit Tuya abgleichen“.
+Die **Status-LEDs** kosten nichts: Sie lesen die Online-Liste, die der Hintergrund-Abgleich holt.
 
-Mit mehr Geräten steigt der Verbrauch: Jedes weitere verknüpfte Gerät kostet bei 15 min
-2 880 Aufrufe pro Monat.
+**Grenze von Polling:** Auch alle 3 Minuten fehlt eine Tür, die nach 2 Minuten wieder zu ist, und als
+Ereigniszeit gilt der Abruf, nicht die echte Änderung.
+
+### Ausblick: Push statt Polling (Tuya Message Service)
+
+Tuya kann jede Gerätemeldung sofort schicken (**Message Service**, technisch Apache Pulsar,
+Europa `pulsar+ssl://mqe.tuyaeu.com:7285/`). Dann gäbe es keine verpassten Türöffnungen und die echte Uhrzeit.
+Geplant nach der Präsentation, zuerst als Spike (Konsolenprogramm wie `tools/BlinkSpike`):
+
+- .NET-Bibliothek: [DotPulsar](https://github.com/apache/pulsar-dotpulsar) (offizieller .NET-Client von Apache),
+  Anmeldung `auth1` mit Access ID und `md5(AccessId + md5(Secret))[8..24]`, wie im offiziellen
+  [Python-SDK](https://github.com/tuya/tuya-pulsar-sdk-python).
+- Nachrichten AES-128 verschlüsselt (Schlüssel `Secret[8..24]`, GCM oder ECB), in .NET mit `AesGcm`.
+- Hintergrunddienst mit dauerhafter Verbindung, Wiederverbinden und Bestätigen.
+- Kontingent: laut Produktseite 68 000 Nachrichten im Monat. Man bekommt **alle** Meldungen (kein Filter);
+  Steckdosen mit Strommessung könnten viele schicken, das muss der Spike messen.
+- Voraussetzung: im Tuya-Portal den Reiter **Message Service** des Cloud-Projekts einschalten.
 
 ## Dashboard-Karte „Licht Wohnzimmer“
 
@@ -346,12 +372,12 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
   Messwerte von Offline-Geräten übernimmt der Abgleich nicht (siehe „Messwerte“), An/Aus und
   Tür auf/zu dagegen schon: Sie zeigen dann den letzten bekannten Zustand.
 - **Gespeichert wird nur beim Abgleich**, also beim Knopf und beim Hintergrund-Abgleich (Standard
-  alle 15 Minuten), und nur bei einer Änderung. Das ist **Polling** (regelmäßig nachfragen): Was
+  alle 30 Minuten, Tür alle 3 Minuten), und nur bei einer Änderung. Das ist **Polling** (regelmäßig nachfragen): Was
   zwischen zwei Durchläufen passiert (z. B. Tür kurz auf und wieder zu), sieht das Backend nicht.
   Der Zeitpunkt eines Ereignisses ist der Zeitpunkt des Abrufs, nicht der echten Änderung (bis zu
-  15 Minuten später). Genaue Zeitpunkte gäbe es nur mit den Push-Nachrichten von Tuya (Message
-  Service), siehe [Lernunterlage-Hintergrund-Abgleich.pdf](Lernunterlage-Hintergrund-Abgleich.pdf).
-- **Online/Offline bis zu 15 Minuten alt.** Mit Hintergrund-Abgleich zeigen die Status-LEDs den
+  3 bzw. 30 Minuten später). Genaue Zeitpunkte gäbe es nur mit den Push-Nachrichten von Tuya (Message
+  Service), siehe „Ausblick: Push statt Polling“ oben.
+- **Online/Offline bis zu 30 Minuten alt.** Mit Hintergrund-Abgleich zeigen die Status-LEDs den
   Stand des letzten Durchlaufs.
 - **Herkunft nicht gespeichert.** Ein Ereignis aus dem Abgleich sieht im Verlauf genauso aus wie
   ein manuell erfasstes. Dafür bräuchte es ein eigenes Feld und eine Migration.

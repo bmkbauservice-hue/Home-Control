@@ -29,6 +29,11 @@ public class Device
     // Tuya nur den alten Stand, dann bleiben Werte und Zeitpunkt unverändert.
     public DateTimeOffset? MeasuredAtUtc { get; set; }
 
+    // Wie oft der Tuya-Hintergrund-Abgleich dieses Gerät abfragt, in Sekunden.
+    // null = Standard (Tuya:AutoSyncSeconds, 30 Minuten). Kürzer z. B. für die Tür (180 = 3 Minuten),
+    // damit ein Öffnen nicht verpasst wird. Jeder Abruf kostet Tuya-Kontingent (docs/TUYA.md).
+    public int? TuyaSyncSeconds { get; set; }
+
     public Guid RoomId { get; set; }
 
     public Room Room { get; set; } = null!;

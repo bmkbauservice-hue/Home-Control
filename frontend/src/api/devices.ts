@@ -19,6 +19,8 @@ export type Device = {
   batteryPercent: number | null
   // Wann die Messwerte zuletzt von einem ONLINE-Gerät kamen (ISO-Zeit, UTC)
   measuredAtUtc: string | null
+  // Eigener Abgleich-Takt in Sekunden, null = Standard
+  tuyaSyncSeconds: number | null
 }
 
 // Das schickt das Frontend beim Anlegen und Bearbeiten.
@@ -28,7 +30,18 @@ export type DeviceInput = {
   roomId: string
   // Leerer Text = keine Tuya-Verknüpfung
   tuyaDeviceId: string
+  // Eigener Abgleich-Takt in Sekunden (180, 300, 900), null = Standard (30 Minuten)
+  tuyaSyncSeconds: number | null
 }
+
+// Auswahl für den Abgleich-Takt, gleiche Werte wie AllowedTuyaSyncSeconds im Backend.
+// Jeder kürzere Takt kostet Tuya-Kontingent (Rechnung in docs/TUYA.md).
+export const tuyaSyncOptions: { seconds: number | null; label: string }[] = [
+  { seconds: null, label: 'Standard (alle 30 Minuten)' },
+  { seconds: 900, label: 'Alle 15 Minuten' },
+  { seconds: 300, label: 'Alle 5 Minuten' },
+  { seconds: 180, label: 'Alle 3 Minuten (z. B. Tür)' },
+]
 
 // Gleiche Liste wie DeviceTypes im Backend, hier mit deutscher Bezeichnung.
 export const deviceTypes = [

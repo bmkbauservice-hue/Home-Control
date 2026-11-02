@@ -57,13 +57,29 @@ public class TuyaDeviceSyncer(
     public const string ClosedText = "ZU";
 
     // Liest alle verknüpften Geräte bei Tuya. apply = false: nur ansehen, nichts speichern.
-    public async Task<List<TuyaLinkedDeviceResult>> ReadAllAsync(bool apply, CancellationToken cancellationToken)
+    // Benutzt vom Knopf "Mit Tuya abgleichen" und von GET /api/tuya/linked-devices/status.
+    public Task<List<TuyaLinkedDeviceResult>> ReadAllAsync(bool apply, CancellationToken cancellationToken) =>
+        ReadAsync(apply, onlyDeviceIds: null, refreshOnline: true, cancellationToken);
+
+    // Wie oben, aber nur für bestimmte Geräte (Hintergrund-Abgleich: nur die gerade fälligen, z. B. die Tür
+    // alle 3 Minuten). refreshOnline = false: die Online-Liste NICHT neu bei Tuya holen, sondern den letzten
+    // Stand aus dem TuyaOnlineCache nehmen. So kostet ein Lauf nur für die Tür genau einen Tuya-Aufruf.
+    public async Task<List<TuyaLinkedDeviceResult>> ReadAsync(
+        bool apply,
+        IReadOnlyCollection<Guid>? onlyDeviceIds,
+        bool refreshOnline,
+        CancellationToken cancellationToken)
     {
         await SyncLock.WaitAsync(cancellationToken);
         try
         {
-            var devices = await db.Devices
-                .Where(d => d.TuyaDeviceId != null)
+            var query = db.Devices.Where(d => d.TuyaDeviceId != null);
+            if (onlyDeviceIds is not null)
+            {
+                query = query.Where(d => onlyDeviceIds.Contains(d.Id));
+            }
+
+            var devices = await query
                 .OrderBy(d => d.Name)
                 .Take(MaxDevices)
                 .ToListAsync(cancellationToken);
@@ -73,7 +89,7 @@ public class TuyaDeviceSyncer(
 
             // Online/Offline aller Geräte aus EINER Abfrage, immer frisch. Das Ergebnis landet im selben
             // Speicher, aus dem die Status-LEDs lesen (TuyaOnlineCache). Nur beim Speichern nötig, siehe Apply.
-            var online = apply ? await LoadOnlineAsync(cancellationToken) : null;
+            var online = !apply ? null : refreshOnline ? await LoadOnlineAsync(cancellationToken) : CachedOnline();
 
             foreach (var device in devices)
             {
@@ -149,6 +165,10 @@ public class TuyaDeviceSyncer(
             return null;
         }
     }
+
+    // Letzter Stand aus dem Speicher, ohne Tuya zu fragen. null, wenn es keinen gültigen Stand gibt.
+    private IReadOnlyDictionary<string, bool?>? CachedOnline() =>
+        onlineCache.Latest is { LastAttemptFailed: false } latest ? latest.Online : null;
 
     // true/false, wenn Tuya es weiß. null = unbekannt (Liste nicht abrufbar oder Gerät nicht darin).
     private static bool? IsOnline(IReadOnlyDictionary<string, bool?>? online, string tuyaDeviceId) =>

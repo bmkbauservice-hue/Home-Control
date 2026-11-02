@@ -1,4 +1,4 @@
-import { deviceTypes, isKnownDeviceType, type Device, type DeviceInput } from '../api/devices'
+import { deviceTypes, isKnownDeviceType, tuyaSyncOptions, type Device, type DeviceInput } from '../api/devices'
 import type { Room } from '../api/rooms'
 import type { TuyaCloudDevice } from '../api/tuya'
 
@@ -116,6 +116,29 @@ export function DeviceFields({
           })}
         </select>
       </div>
+
+      {/* Takt nur zeigen, wenn ein Tuya-Gerät verknüpft ist: Ohne Verknüpfung gibt es nichts abzugleichen. */}
+      {value.tuyaDeviceId !== '' && (
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}-takt`}>
+            Abgleich
+          </label>
+          <select
+            id={`${idPrefix}-takt`}
+            className="input"
+            value={value.tuyaSyncSeconds ?? ''}
+            onChange={(event) =>
+              onChange({ ...value, tuyaSyncSeconds: event.target.value === '' ? null : Number(event.target.value) })
+            }
+          >
+            {tuyaSyncOptions.map((option) => (
+              <option key={option.label} value={option.seconds ?? ''}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </>
   )
 }
