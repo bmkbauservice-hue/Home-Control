@@ -203,13 +203,15 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
         </p>
       )}
 
-      <div className="tile">
+      {/* Schlanke Leiste: Erklärung bzw. Ergebnis links, Knopf rechts (auf dem Handy untereinander) */}
+      <div className="tile sync-bar">
+        <p className="sync-text">
+          {syncMessage ??
+            'Sofort alle verknüpften Tuya-Geräte lesen (sonst automatisch alle 15 Minuten). Es wird nichts geschaltet.'}
+        </p>
         <button type="button" className="button" onClick={handleSync} disabled={syncing}>
           {syncing ? 'Gleiche ab …' : 'Mit Tuya abgleichen'}
         </button>
-        <p className="field-note">
-          {syncMessage ?? 'Liest den aktuellen Zustand aller verknüpften Tuya-Geräte. Es wird nichts geschaltet.'}
-        </p>
       </div>
 
       {!roomsLoading && !error && rooms.length === 0 && (
@@ -229,8 +231,14 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       )}
 
       {isAdmin && rooms.length > 0 && (
-        <form className="tile create-form" onSubmit={handleCreate}>
-          <h2 className="field-label">Neues Gerät anlegen</h2>
+        // Aufklappbar (<details>): Das lange Formular verdrängt sonst auf dem Handy die Geräteliste.
+        // Eingebaute HTML-Funktion, ohne eigenes JavaScript, mit Tastatur und Screenreader bedienbar.
+        <details className="tile create-details">
+          <summary className="create-summary">
+            <PlusIcon size={20} />
+            Neues Gerät anlegen
+          </summary>
+          <form className="create-form" onSubmit={handleCreate}>
           <div className="form-grid">
             <DeviceFields
               idPrefix="new-device"
@@ -250,7 +258,8 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
             </button>
           </div>
           {tuyaError && <p className="field-note">Tuya-Geräteliste nicht verfügbar: {tuyaError}</p>}
-        </form>
+          </form>
+        </details>
       )}
 
       {rooms.length > 0 && (

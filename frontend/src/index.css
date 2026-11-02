@@ -1,45 +1,82 @@
 /* ============================================================
-   Home Control im Night-Control-Stil – Graphit/Navy mit Cyan-Akzenten
-   Alle Farben und Maße stehen als Variablen hier oben.
+   Home Control im Nachtlicht-Stil (Design-System, siehe docs/DESIGN.md)
+   Ruhiges Zuhause bei Nacht: Mitternachtsblau, Glas-Karten, Eisblau für Status,
+   warmes Bernstein für Licht und Energie.
+   Alle Farben, Abstände und Radien stehen als Variablen (Design-Tokens) hier oben.
    ============================================================ */
 
+/* Schrift lokal ausgeliefert (frontend/public/fonts, Lizenz SIL OFL): kein Aufruf bei Google, geht auch offline.
+   Eine variable Schrift: alle Stärken von 200 bis 800 in einer Datei. */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/manrope-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/manrope-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
-  --bg: #0f1420;
-  --surface: #171d2b;
-  --surface-raised: #1f2738;
-  --border: #2a3346;
-  --text: #e6edf7;
-  --text-muted: #8b97ab;
+  /* Flächen */
+  --bg: #070b14;
+  --bg-glow-1: rgba(56, 120, 255, 0.18);
+  --bg-glow-2: rgba(255, 176, 64, 0.1);
+  --surface: #111a2c; /* feste Fläche, z. B. Eingabefelder */
+  --surface-raised: #18233a;
+  --glass: rgba(22, 32, 54, 0.62); /* Glas-Karte: halbtransparent, Unschärfe dahinter */
+  --glass-strong: rgba(30, 43, 72, 0.78);
+  --glass-border: rgba(148, 178, 255, 0.16);
+  --border: rgba(148, 178, 255, 0.16);
+  --blur: 18px;
 
-  --accent: #22d3ee;
-  --accent-strong: #06b6d4;
-  --accent-soft: rgba(34, 211, 238, 0.12);
-  --on-accent: #062530;
+  /* Text */
+  --text: #eef3ff;
+  --text-muted: #9aa8c4; /* Kontrast auf Glas 6,9 : 1 */
 
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --warning: #fbbf24;
-  --warning-soft: rgba(251, 191, 36, 0.14);
-  --offline: #8b97ab;
-  --online: #34d399; /* LED grün */
+  /* Akzente */
+  --accent: #7cc4ff; /* Eisblau: Auswahl, Fokus, Links */
+  --accent-strong: #4fa9f5;
+  --accent-soft: rgba(124, 196, 255, 0.12);
+  --on-accent: #04182b;
+  --warm: #ffbe5c; /* Bernstein: Licht an, Energie */
 
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-accent: 0 10px 30px rgba(34, 211, 238, 0.1);
+  /* LED-Bedeutung, gleich wie bisher: grün online, rot offline, grau unbekannt, gelb Achtung */
+  --online: #3ddc97;
+  --danger: #ff6b6b;
+  --danger-soft: rgba(255, 107, 107, 0.12);
+  --warning: #ffcc4d;
+  --warning-soft: rgba(255, 204, 77, 0.14);
+  --offline: #7d8aa5;
 
-  /* Night-Control-Karten: dunkle Blauverläufe mit feiner Cyan-Kante */
-  --card-gradient: linear-gradient(160deg, #1a2b47 0%, #141e31 55%, #121a2a 100%);
-  --card-border: rgba(34, 211, 238, 0.14);
-  --blue-glow: rgba(59, 130, 246, 0.3);
+  /* Alte Namen, damit noch nicht umgestellte Seiten weiter funktionieren */
+  --card-gradient: var(--glass);
+  --card-border: var(--glass-border);
+  --blue-glow: rgba(124, 196, 255, 0.25);
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --shadow-accent: 0 10px 30px rgba(124, 196, 255, 0.12);
 
-  --radius: 20px;
-  --radius-small: 12px;
+  /* Formen und Maße */
+  --radius-large: 28px;
+  --radius: 22px;
+  --radius-small: 14px;
   --touch: 52px; /* Mindesthöhe für alles, was man antippt (mind. 48px) */
   --nav-size: 76px;
-  --sidebar-width: 112px;
+  --sidebar-width: 104px;
 
   color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
+  font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.45;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -54,7 +91,12 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--bg);
+  /* Zwei weiche Lichtflecken im Hintergrund: blau oben links, bernstein oben rechts */
+  background:
+    radial-gradient(1100px 600px at 10% -10%, var(--bg-glow-1), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, var(--bg-glow-2), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 h1,
@@ -77,6 +119,52 @@ select {
   outline-offset: 2px;
 }
 
+/* Glas-Karte: gemeinsamer Stil für alle Karten im Nachtlicht-Stil */
+.glass,
+.status-bar,
+.room-card,
+.energy-card,
+.camera-card,
+.camera-message,
+.empty-state {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+}
+
+/* Karten steigen beim Laden leicht auf. Bei "Bewegung reduzieren" ist alles aus (siehe unten). */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .status-bar,
+  .room-card,
+  .energy-card,
+  .camera-card {
+    animation: rise 0.5s ease both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ---------- Grundlayout ---------- */
 
 .main {
@@ -91,13 +179,22 @@ select {
 }
 
 .page-header h1 {
-  font-size: 1.9rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .page-subtitle {
   color: var(--text-muted);
+}
+
+/* Erklärender Hinweis unter dem Inhalt einer Seite */
+.page-note {
+  max-width: 70ch;
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 /* ---------- Navigation: Handy = unten ---------- */
@@ -112,8 +209,10 @@ select {
   justify-content: space-around;
   gap: 4px;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  background: rgba(10, 15, 28, 0.82);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  border-top: 1px solid var(--glass-border);
 }
 
 .nav-brand {
@@ -130,17 +229,26 @@ select {
   min-height: var(--touch);
   padding: 6px 4px;
   border: none;
-  border-radius: var(--radius-small);
+  border-radius: 16px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
+.nav-item:hover {
+  color: var(--text);
+}
+
 .nav-item.active {
+  color: var(--text);
+  background: var(--glass-strong);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.nav-item.active svg {
   color: var(--accent);
-  background: var(--accent-soft);
 }
 
 /* ---------- Navigation: Tablet = Seitenleiste ---------- */
@@ -152,29 +260,41 @@ select {
     width: var(--sidebar-width);
     flex-direction: column;
     justify-content: flex-start;
-    gap: 8px;
-    padding: 24px 12px;
+    gap: 6px;
+    padding: 20px 12px;
     border-top: none;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--glass-border);
+    background: rgba(10, 15, 28, 0.6);
   }
 
+  /* Logo: warmes Licht in einem abgerundeten Quadrat */
   .nav-brand {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 8px 0 24px;
-    color: var(--accent);
-    font-size: 0.75rem;
+    gap: 8px;
+    padding: 4px 0 18px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
     font-weight: 700;
     text-align: center;
     line-height: 1.2;
   }
 
+  .nav-brand svg {
+    width: 48px;
+    height: 48px;
+    padding: 11px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #ffcf7a, #ff9f43);
+    color: #2a1800;
+    box-shadow: 0 0 30px rgba(255, 176, 64, 0.35);
+  }
+
   .nav-item {
     flex: none;
-    min-height: 88px;
-    font-size: 0.85rem;
+    min-height: 72px;
+    font-size: 0.75rem;
   }
 
   /* Platz für die Seitenleiste; .main zentriert sich in der restlichen Breite. */
@@ -183,7 +303,7 @@ select {
   }
 
   .main {
-    padding: 40px 32px;
+    padding: 36px 36px 48px;
   }
 }
 
@@ -195,15 +315,17 @@ select {
   gap: 16px;
 }
 
+/* Kachel = Glas-Karte wie auf der Übersicht */
 .tile {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 150px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-large);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
   box-shadow: var(--shadow);
   text-align: left;
 }
@@ -216,8 +338,7 @@ select {
 
 .tile-link:hover {
   border-color: var(--accent);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow), var(--shadow-accent);
+  background: var(--glass-strong);
 }
 
 .tile-link:active {
@@ -236,10 +357,25 @@ select {
   color: var(--accent);
 }
 
+/* Kopf einer Kachel: Symbol links, Titel und Untertitel rechts daneben */
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tile-head-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .tile-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+  font-size: 1.15rem;
+  font-weight: 800;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .tile-text {
@@ -258,20 +394,114 @@ select {
   flex: 1;
 }
 
+/* Aktionen nebeneinander und etwas kleiner (z. B. Bearbeiten · Löschen) */
+.tile-actions-row .button {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+}
+
 .tile-danger {
   border-color: var(--danger);
   background: var(--danger-soft);
 }
 
+/* Zustand eines Geräts groß, Messwerte klein darunter (Geräteseite) */
+.device-state {
+  margin-top: 4px;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.device-state.is-on {
+  color: var(--warm);
+}
+
+.device-state.no-data {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.device-state small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Knopf nur mit Symbol (z. B. Löschen in einer Gerätekachel): quadratisch, wächst nicht mit */
+.tile-actions-row .button-icon {
+  flex: 0 0 44px;
+  padding: 0;
+}
+
+/* "Neues Gerät anlegen" zum Aufklappen */
+.create-details {
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.create-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 0 18px;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.create-summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-details[open] .create-summary {
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.create-details .create-form {
+  margin: 0;
+  padding: 16px 18px 18px;
+}
+
+/* Abgleichen-Leiste: Text links, Knopf rechts */
+.sync-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.sync-text {
+  flex: 1 1 320px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 /* Kleine Zeile mit Messwerten unten in einer Kachel (Räume, Geräte) */
 .tile-values {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
   margin: auto 0 0;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* Ohne Einträge (kein Messwert, keine Tuya-Verknüpfung) keine leere Linie zeigen */
+.tile-values:empty {
+  display: none;
 }
 
 .tile-values dt {
@@ -280,8 +510,9 @@ select {
 
 .tile-values dd {
   margin: 0;
-  color: var(--offline);
-  font-style: italic;
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 /* Kachel mit Aktionen: Messwerte nicht ganz nach unten schieben */
@@ -337,15 +568,17 @@ select {
   width: 100%;
   min-height: var(--touch);
   padding: 0 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-small);
-  background: var(--bg);
-  font-size: 1.05rem;
+  background: rgba(7, 11, 20, 0.55);
+  font-size: 1rem;
 }
 
+/* Fokus deutlich sichtbar: Rahmen in Akzentfarbe plus weicher Ring */
 .input:focus {
   border-color: var(--accent);
   outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------- Buttons ---------- */
@@ -357,10 +590,10 @@ select {
   gap: 8px;
   min-height: var(--touch);
   padding: 0 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-small);
-  background: var(--surface-raised);
-  font-weight: 600;
+  background: var(--glass-strong);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -472,7 +705,7 @@ select {
   gap: 12px;
 }
 
-/* ---------- Dashboard ---------- */
+/* ---------- Übersicht ---------- */
 
 .dashboard {
   display: flex;
@@ -480,145 +713,34 @@ select {
   gap: 24px;
 }
 
-/* Kopfbereich mit dezentem blauem Hintergrundlicht (nur Verlauf, keine Animation) */
+/* Begrüßung mit Aussage: Datum klein darüber, zweite Zeile in Bernstein */
 .dashboard-hero {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 24px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background:
-    radial-gradient(ellipse 55% 140% at 8% 0%, var(--blue-glow), transparent 70%),
-    var(--card-gradient);
-  box-shadow: var(--shadow);
+  gap: 6px;
 }
 
-.hero-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.hero-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  box-shadow: 0 0 28px var(--blue-glow);
+.hero-date {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .hero-title {
-  font-size: clamp(2rem, 6vw, 3rem);
+  font-size: clamp(1.7rem, 4.5vw, 3.2rem);
   font-weight: 800;
-  line-height: 1.1;
   letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 
-.hero-greeting {
-  font-size: 1.4rem;
-  font-weight: 700;
+.hero-line {
+  display: block;
+  color: var(--warm);
 }
 
-/* Kompakte Statistik-Karten: Symbol, Text, Pfeil in einer Zeile */
-/* Handy: untereinander. Tablet: zwei Spalten, die Kamerakarte bekommt eine eigene Zeile,
-   damit der Verbindungsstatus nicht umbricht. Ab 1000 px: drei nebeneinander. */
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-@media (min-width: 600px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-card:last-child {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (min-width: 1000px) {
-  .stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .stat-card:last-child {
-    grid-column: auto;
-  }
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 72px;
-  padding: 12px 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-small);
-  background: var(--card-gradient);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.stat-card:hover {
-  border-color: var(--accent);
-}
-
-.stat-card > svg {
-  margin-left: auto;
-  flex: none;
-  color: var(--text-muted);
-}
-
-.stat-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.stat-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-}
-
-.stat-label {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.stat-text .status {
-  padding: 2px 10px;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-/* Reports nutzen weiterhin die größeren Übersichtskarten */
+/* Zusammenfassung oben auf der Reports-Seite */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
@@ -638,9 +760,11 @@ select {
 }
 
 .summary-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-card .status {
@@ -653,9 +777,10 @@ select {
   gap: 24px;
 }
 
-@media (min-width: 1200px) {
+/* Breiter Bildschirm: Räume links, Energie und Kameras rechts */
+@media (min-width: 1100px) {
   .dashboard-columns {
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
     align-items: start;
   }
 }
@@ -663,81 +788,93 @@ select {
 .dashboard-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dashboard-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
 .section-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  min-height: var(--touch);
-}
-
-.section-header .status {
-  align-self: center;
+  padding: 0 4px;
 }
 
 .section-header h2 {
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.3rem;
+  font-weight: 800;
 }
 
-/* ---- Raumkarten ---- */
+/* Textknopf in Akzentfarbe, z. B. "Alle" oder "Verwalten" */
+.link-button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+/* ---- Raumkarten: Kopf mit Symbol, darunter je Gerät eine Zeile ---- */
 
 .room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  /* Jede Karte so hoch wie ihr Inhalt, keine leeren Flächen */
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
 }
 
 .room-card {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--card-gradient);
-  /* feine Cyan-Kante oben */
-  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
 }
 
-/* Der Kopf ist der Link zur Geräteseite mit Raumfilter */
 .room-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 72px;
-  padding: 14px 16px;
+  min-height: var(--touch);
+  padding: 4px;
   border: none;
-  background: transparent;
-  color: var(--text);
+  border-radius: var(--radius-small);
+  background: none;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .room-card-header:hover {
-  background: rgba(34, 211, 238, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .room-card-header > svg {
-  margin-left: auto;
   flex: none;
+  margin-left: auto;
   color: var(--text-muted);
 }
 
 .room-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -749,49 +886,39 @@ select {
 }
 
 .room-name {
-  font-size: 1.15rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+  font-size: 1.1rem;
+  font-weight: 800;
 }
 
 .room-count {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .room-empty {
-  margin: 0 16px 16px;
-  padding: 12px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-small);
+  padding: 0 4px 4px;
   color: var(--text-muted);
   font-size: 0.9rem;
 }
 
-/* Geräte als kleine Kacheln, zwei nebeneinander wenn Platz ist */
 .room-devices {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   margin: 0;
-  padding: 0 16px 16px;
+  padding: 0;
   list-style: none;
 }
 
+/* Eine Zeile: LED · Name und Typ · Wert rechts. Die Mitte darf schrumpfen, der Wert nicht. */
 .room-device {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
+  align-items: center;
   padding: 10px 12px;
-  border: 1px solid var(--card-border);
   border-radius: var(--radius-small);
-  background: rgba(15, 20, 32, 0.55);
-}
-
-.room-device-icon {
-  flex: none;
-  margin-top: 2px;
-  color: var(--accent);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .room-device-text {
@@ -800,236 +927,251 @@ select {
   min-width: 0;
 }
 
-/* Lange Namen einzeilig mit "…" kürzen statt mitten im Wort umzubrechen.
-   Der volle Name steht im Tooltip (title). */
-.room-device-name,
-.room-device-type {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* Lange Namen werden getrennt statt abgeschnitten ("Heiz-decke"), dafür lang="de" in index.html */
 .room-device-name {
-  font-weight: 600;
   font-size: 0.95rem;
+  font-weight: 700;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .room-device-type {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
+/* Messwerte: feste Ziffernbreite, damit Zahlen untereinander nicht springen (keine Monospace-Schrift) */
 .room-device-value {
-  margin-top: 2px;
-  color: var(--accent);
-  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.room-device-value.no-data {
-  color: var(--offline);
-  font-style: italic;
-}
-
-/* Messwert mit Hinweis, z. B. fast leerer Akku */
-.value-warning,
-.room-device-value.value-warning {
-  color: var(--warning);
+.room-device-value small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
+.room-device-value.is-on {
+  color: var(--warm);
+}
+
+.room-device-value.no-data {
+  color: var(--text-muted);
+}
+
+.value-warning,
+.room-device-value.value-warning small {
+  color: var(--warning);
+}
+
 .room-device-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-small);
+  padding: 2px 12px;
   color: var(--text-muted);
   font-size: 0.85rem;
 }
 
+/* Leerzustand (auch auf der Geräteseite) */
 .empty-state {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 40px 20px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  text-align: center;
+  padding: 24px;
 }
 
 .empty-state .tile-text {
-  max-width: 420px;
+  max-width: 46ch;
 }
 
 .empty-form {
   width: 100%;
-  max-width: 520px;
-  justify-content: center;
 }
 
 .empty-state .alert {
-  margin: 0;
+  width: 100%;
 }
 
-/* Rechte Spalte (ab 1200 px) bzw. Bereich unter den Räumen: Licht und Kameras untereinander */
-.dashboard-side {
+/* ---- Energie jetzt und Batterien ---- */
+
+.energy-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.energy-block-battery {
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.energy-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.energy-value {
+  margin-top: 2px;
+  color: var(--warm);
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.energy-value-empty {
+  color: var(--text-muted);
+}
+
+.energy-empty-reason {
+  font-weight: 700;
+}
+
+.energy-unit {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.energy-meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.battery-line {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-}
-
-/* ---- Licht (Tuya): zuletzt gemeldeter Zustand des Testgeräts ---- */
-
-.light-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--card-gradient);
-  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
-}
-
-@media (max-width: 1199px) {
-  .light-card {
-    max-width: 440px;
-  }
-}
-
-.light-header {
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
   gap: 12px;
-}
-
-.light-heading {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.light-name {
-  font-size: 1.05rem;
+  margin-top: 6px;
   font-weight: 700;
 }
 
-.light-source {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+.battery-percent {
+  font-variant-numeric: tabular-nums;
 }
 
-.light-header .status {
-  align-self: center;
-  margin-left: auto;
-  flex: none;
+.battery-low .battery-percent {
+  color: var(--warning);
 }
 
-.light-state {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Akkubalken: grün, ab 20 % gelb (low="21" im HTML). Die Zahl steht zusätzlich als Text daneben. */
+.battery-meter {
+  width: 100%;
+  height: 8px;
+  margin: 8px 0 6px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.light-label {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 600;
+.battery-meter::-webkit-meter-bar {
+  height: 8px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.light-value {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1.15;
+.battery-meter::-webkit-meter-optimum-value {
+  border-radius: 999px;
+  background: var(--online);
 }
 
-.light-value-on {
-  color: var(--accent);
+.battery-meter::-webkit-meter-suboptimum-value,
+.battery-meter::-webkit-meter-even-less-good-value {
+  border-radius: 999px;
+  background: var(--warning);
 }
 
-.light-value-unknown {
-  color: var(--offline);
-  font-style: italic;
+.battery-meter::-moz-meter-bar {
+  border-radius: 999px;
+  background: var(--online);
 }
 
-/* Veralteter Stand: abgeschwächt, damit er nicht als aktuell gelesen wird */
-.light-value-stale {
-  opacity: 0.5;
+.battery-meter:-moz-meter-sub-optimum::-moz-meter-bar {
+  background: var(--warning);
 }
 
-.light-time {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.light-alert {
-  margin: 0;
-}
-
-.light-hint {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-/* ---- Kameras (Blink): eine Karte mit zwei kompakten Platzhaltern ---- */
+/* ---- Kameras (Blink): Bild mit Etikett, darunter Name und Aufnahmezeit ---- */
 
 .camera-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--card-gradient);
-  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.18), var(--shadow);
+  gap: 16px;
 }
 
-/* Unterhalb von 1200 px steht der Bereich unter den Räumen: Breite begrenzen,
-   damit die Platzhalter klein bleiben */
-@media (max-width: 1199px) {
-  .camera-panel {
-    max-width: 440px;
-  }
-}
-
-/* Auch auf dem Handy zwei Kameras nebeneinander – die Platzhalter sind klein genug */
 .camera-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .camera-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  overflow: hidden;
   min-width: 0;
 }
 
-/* Platzhalter statt Kamerabild, im Seitenverhältnis 16:9 */
+.camera-figure {
+  position: relative;
+  margin: 0;
+}
+
+.camera-image,
+.camera-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
 .camera-preview {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  aspect-ratio: 16 / 9;
-  margin-bottom: 6px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-small);
-  background: var(--bg);
-  color: var(--offline);
-  font-size: 0.8rem;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-size: 0.85rem;
   text-align: center;
 }
 
-.camera-name {
-  font-size: 0.95rem;
+/* Etikett oben links im Bild: dunkles Glas, damit es auf hellen Bildern lesbar bleibt */
+.camera-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(7, 11, 20, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-size: 0.75rem;
+}
+
+.camera-tag .led-label {
+  gap: 6px;
   font-weight: 700;
+}
+
+.camera-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 12px 16px 14px;
+}
+
+.camera-name {
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .camera-state {
@@ -1037,30 +1179,48 @@ select {
   font-size: 0.8rem;
 }
 
-/* Echtes Vorschaubild: gleiches 16:9-Format wie der Platzhalter, damit nichts springt */
-.camera-image {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  margin-bottom: 6px;
-  border-radius: var(--radius-small);
-  object-fit: cover;
-  background: var(--bg);
-}
-
+/* Aufnahmezeit groß und gut lesbar: Ein Vorschaubild ist kein Livebild. */
 .camera-taken {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Älter als ein Tag: gelb */
+.camera-taken-old {
+  color: var(--warning);
+}
+
+/* Knopf "Neues Bild" (nur Admin) mit Hinweis auf den Akku */
+.camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 16px 16px;
+}
+
+.camera-hint,
+.camera-snapshot-message {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
-/* Blink-Seite: Karten größer, auf dem Handy untereinander */
-.camera-panel-wide {
-  max-width: none;
+.camera-snapshot-message {
+  flex-basis: 100%;
+  margin: 0;
 }
 
-@media (max-width: 599px) {
+.camera-message {
+  padding: 16px 18px;
+  color: var(--text-muted);
+}
+
+/* Blink-Seite: zwei Kameras nebeneinander, auf dem Handy untereinander */
+@media (min-width: 700px) {
   .camera-panel-wide .camera-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1206,8 +1366,8 @@ select.input {
   flex-direction: column;
   gap: 4px;
   padding: 14px 16px;
-  border: 1px solid var(--accent);
-  border-left-width: 6px;
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--accent);
   border-radius: var(--radius-small);
   background: var(--accent-soft);
   font-size: 0.9rem;
@@ -1295,6 +1455,23 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   margin-bottom: 16px;
 }
 
+/* Handy: Suche über die ganze Breite, Auswahlfelder nebeneinander, so bleibt die Liste sichtbar */
+@media (max-width: 600px) {
+  .filter-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .filter-bar > :first-child,
+  .filter-bar > .button {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar > .button {
+    min-height: 44px;
+  }
+}
+
 /* ---------- Anmeldung ---------- */
 
 .login {
@@ -1309,19 +1486,31 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   width: 100%;
   max-width: 420px;
   gap: 16px;
+  padding: 28px;
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--accent);
+  gap: 14px;
+  color: var(--text);
+}
+
+/* Gleiches Logo wie in der Navigation: warmes Licht im abgerundeten Quadrat */
+.login-brand svg {
+  width: 52px;
+  height: 52px;
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffcf7a, #ff9f43);
+  color: #2a1800;
+  box-shadow: 0 0 30px rgba(255, 176, 64, 0.35);
 }
 
 .login-brand h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* Textknopf ohne Rahmen, z. B. "Erstes Konto anlegen" */
@@ -1442,30 +1631,27 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   font-weight: 600;
 }
 
-/* ---- Status-Leiste oben auf der Übersicht ---- */
+/* ---- Status-Leiste oben auf der Übersicht: ruhiger Satz mit farbiger Kante ---- */
 
 .status-bar {
+  --state: var(--offline);
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 16px 20px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--card-gradient);
-  box-shadow: var(--shadow);
+  border-left: 4px solid var(--state);
 }
 
-/* Der Rand nimmt die Farbe des Gesamtzustands leicht an */
 .status-bar-online {
-  border-color: color-mix(in srgb, var(--online) 35%, transparent);
+  --state: var(--online);
 }
 
 .status-bar-warning {
-  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+  --state: var(--warning);
 }
 
 .status-bar-offline {
-  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  --state: var(--danger);
 }
 
 .status-bar-head {
@@ -1476,14 +1662,15 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 
 .status-bar-heading {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
 .status-bar-title {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 800;
 }
 
 .status-bar-time {
@@ -1492,52 +1679,83 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 }
 
 .status-bar-refresh {
-  margin-left: auto;
+  flex: none;
   padding: 0 14px;
 }
 
-/* Auf schmalen Handys nur das Symbol, der Text steckt im aria-label */
-@media (max-width: 420px) {
-  .status-bar-refresh-text {
-    display: none;
-  }
-}
-
-.status-bar-services,
-.status-bar-counts {
+/* Chips: Server, Tuya, Blink und die Geräte-Zahlen in einer Reihe */
+.status-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 22px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.status-bar-counts {
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.status-count {
+.status-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-muted);
+  padding: 6px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.status-count strong {
-  color: var(--text);
-  font-size: 1.15rem;
+.status-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Handy: eine Zeile mit LED und Satz, Symbol-Knopf; die Chips in EINER Reihe zum Wischen */
+@media (max-width: 600px) {
+  .status-bar {
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .status-bar-title {
+    font-size: 1.05rem;
+  }
+
+  .status-bar-time {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .status-bar-refresh {
+    width: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .status-bar-refresh-text {
+    display: none;
+  }
+
+  .status-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -14px;
+    padding: 0 14px 2px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .status-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .status-chip {
+    scroll-snap-align: start;
+  }
 }
 
 /* ---- LED an Raumkarten und Geräte-Kacheln ---- */
-
-.room-device-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
 
 .tile-led {
   position: absolute;

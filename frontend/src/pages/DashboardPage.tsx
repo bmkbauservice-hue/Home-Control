@@ -3,15 +3,14 @@ import { getDevices, getDeviceTypeLabel, type Device } from '../api/devices'
 import { createRoom, getRooms, type Room } from '../api/rooms'
 import { useAuth } from '../auth/authContext'
 import { BlinkCameras } from '../components/BlinkCameras'
-import { BlinkStatus } from '../components/BlinkStatus'
-import { DeviceTypeIcon } from '../components/DeviceTypeIcon'
-import { CameraIcon, ChevronRightIcon, DeviceIcon, HomeIcon, PlusIcon, RoomsIcon } from '../components/Icons'
-import { measurementsOf } from '../components/measurements'
+import { EnergyCard } from '../components/EnergyCard'
+import { ChevronRightIcon, PlusIcon, RoomsIcon } from '../components/Icons'
+import { measurementsOf, stateLabel } from '../components/measurements'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
 import { StatusBar } from '../components/StatusBar'
+import { heroLine, overallOf } from '../components/statusText'
 import { StatusLed } from '../components/StatusLed'
-import { TuyaLightCard } from '../components/TuyaLightCard'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import { useStatus } from '../status/statusContext'
 
@@ -58,28 +57,18 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
     loadData()
   }
 
-  // Was in den Übersichtskarten steht, solange noch nichts geladen ist.
-  let roomValue = String(rooms.length)
-  let deviceValue = String(devices.length)
-  if (loading) {
-    roomValue = '…'
-    deviceValue = '…'
-  } else if (error) {
-    roomValue = '–'
-    deviceValue = '–'
-  }
+  const { status, blink, serverUnreachable, statusError } = useStatus()
+  const overall = overallOf(status, blink, serverUnreachable, statusError)
 
   return (
     <section className="dashboard">
+      {/* Begrüßung mit Aussage statt Logo: Tageszeit, Name und in einem Satz, wie es zu Hause aussieht. */}
       <header className="dashboard-hero">
-        <div className="hero-brand">
-          <span className="hero-logo">
-            <HomeIcon size={34} />
-          </span>
-          <h1 className="hero-title">Home Control</h1>
-        </div>
-        <p className="hero-greeting">{greeting()}, Muju</p>
-        <p className="page-subtitle">Dein Zuhause auf einen Blick</p>
+        <p className="hero-date">{todayText()}</p>
+        <h1 className="hero-title">
+          {greeting()}, Muju.
+          <span className="hero-line">{heroLine(status, overall.state)}</span>
+        </h1>
       </header>
 
       <StatusBar />
@@ -93,48 +82,13 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
         </div>
       )}
 
-      <div className="stat-grid">
-        <button type="button" className="stat-card stat-link" onClick={() => onNavigate('rooms')}>
-          <span className="stat-icon">
-            <RoomsIcon size={22} />
-          </span>
-          <span className="stat-text">
-            <span className="stat-label">Räume</span>
-            <span className="stat-value">{roomValue}</span>
-          </span>
-          <ChevronRightIcon size={20} />
-        </button>
-
-        <button type="button" className="stat-card stat-link" onClick={() => onNavigate('devices')}>
-          <span className="stat-icon">
-            <DeviceIcon size={22} />
-          </span>
-          <span className="stat-text">
-            <span className="stat-label">Geräte</span>
-            <span className="stat-value">{deviceValue}</span>
-          </span>
-          <ChevronRightIcon size={20} />
-        </button>
-
-        <button type="button" className="stat-card stat-link" onClick={() => onNavigate('blink')}>
-          <span className="stat-icon">
-            <CameraIcon size={22} />
-          </span>
-          <span className="stat-text">
-            <span className="stat-label">Kameraverbindung</span>
-            <BlinkStatus />
-          </span>
-          <ChevronRightIcon size={20} />
-        </button>
-      </div>
-
       <div className="dashboard-columns">
         <section className="dashboard-section" aria-labelledby="rooms-heading">
           <div className="section-header">
             <h2 id="rooms-heading">Räume</h2>
-            {rooms.length > 0 && isAdmin && (
-              <button type="button" className="button" onClick={() => onNavigate('rooms')}>
-                Verwalten
+            {rooms.length > 0 && (
+              <button type="button" className="link-button" onClick={() => onNavigate('rooms')}>
+                {isAdmin ? 'Verwalten' : 'Alle Räume'}
               </button>
             )}
           </div>
@@ -162,23 +116,22 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
         </section>
 
         <div className="dashboard-side">
-          <section className="dashboard-section" aria-labelledby="light-heading">
+          <section className="dashboard-section" aria-labelledby="energy-heading">
             <div className="section-header">
-              <h2 id="light-heading">Licht (Tuya)</h2>
+              <h2 id="energy-heading">Auf einen Blick</h2>
             </div>
-
-            <TuyaLightCard />
+            <EnergyCard devices={devices} />
           </section>
 
           <section className="dashboard-section" aria-labelledby="blink-heading">
             <div className="section-header">
-              <h2 id="blink-heading">Kameras (Blink)</h2>
+              <h2 id="blink-heading">Kameras</h2>
+              <button type="button" className="link-button" onClick={() => onNavigate('blink')}>
+                Alle
+              </button>
             </div>
-
-            <div className="camera-panel">
-              {/* Echte Kameras aus /api/blink/cameras mit letztem Vorschaubild (oder warum es keine gibt). */}
-              <BlinkCameras />
-            </div>
+            {/* Echte Kameras aus /api/blink/cameras mit letztem Vorschaubild (oder warum es keine gibt). */}
+            <BlinkCameras />
           </section>
         </div>
       </div>
@@ -192,12 +145,14 @@ type RoomCardProps = {
   onOpen: () => void
 }
 
-// Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter.
-// Darunter stehen die Geräte mit Typ und ehrlich gekennzeichnetem (fehlendem) Messwert.
+// Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter. Darunter je Gerät eine Zeile:
+// LED · Name und Typ · Zustand rechts (groß) mit Messwerten darunter (klein).
 function RoomCard({ room, devices, onOpen }: RoomCardProps) {
   const { stateOf } = useStatus()
   const shown = devices.slice(0, devicesPerCard)
   const hidden = devices.length - shown.length
+  const switchedOn = devices.filter((d) => d.lastValue === 'EIN').length
+  const summary = `${devices.length === 1 ? '1 Gerät' : `${devices.length} Geräte`}${switchedOn > 0 ? ` · ${switchedOn} an` : ''}`
 
   return (
     <article className="room-card">
@@ -208,7 +163,7 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
         <span className="room-heading">
           <span className="visually-hidden">Geräte anzeigen: </span>
           <span className="room-name">{room.name}</span>
-          <span className="room-count">{devices.length === 1 ? '1 Gerät' : `${devices.length} Geräte`}</span>
+          <span className="room-count">{summary}</span>
         </span>
         <ChevronRightIcon size={20} />
       </button>
@@ -218,27 +173,28 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
       ) : (
         <ul className="room-devices">
           {shown.map((device) => {
-            // Zustand und Messwerte in einer Zeile, z. B. "AUS · 0,0 W · 227 V" oder "ZU · Akku 83 %".
             const measurements = measurementsOf(device)
-            const parts = [...(device.lastValue ? [device.lastValue] : []), ...measurements.map((m) => m.text)]
             const warning = measurements.some((m) => m.warning)
-            const valueClass =
-              parts.length === 0 ? 'room-device-value no-data' : warning ? 'room-device-value value-warning' : 'room-device-value'
+            const main = stateLabel(device.lastValue)
+            const sub = measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
+            const valueClass = [
+              'room-device-value',
+              device.lastValue === 'EIN' ? 'is-on' : '',
+              warning ? 'value-warning' : '',
+              !device.lastValue && measurements.length === 0 ? 'no-data' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
             return (
               <li key={device.id} className="room-device">
-                <span className="room-device-icon">
-                  <DeviceTypeIcon type={device.type} />
-                </span>
+                <StatusLed state={stateOf(device.id)} />
                 <span className="room-device-text">
-                  <span className="room-device-name-row">
-                    <StatusLed state={stateOf(device.id)} />
-                    <span className="room-device-name" title={device.name}>
-                      {device.name}
-                    </span>
-                  </span>
+                  <span className="room-device-name">{device.name}</span>
                   <span className="room-device-type">{getDeviceTypeLabel(device.type)}</span>
-                  {/* Ehrlich: Ohne Geräteanbindung gibt es noch keine Messwerte. */}
-                  <span className={valueClass}>{parts.length > 0 ? parts.join(' · ') : 'Noch keine Daten'}</span>
+                </span>
+                <span className={valueClass}>
+                  {main}
+                  {sub && <small>{sub}</small>}
                 </span>
               </li>
             )
@@ -322,6 +278,14 @@ function EmptyRooms({ canCreate, onCreated }: EmptyRoomsProps) {
       )}
     </div>
   )
+}
+
+// Datum und Uhrzeit für die Zeile über der Begrüßung, z. B. "Montag, 9. November · 18:42".
+function todayText(): string {
+  const now = new Date()
+  const date = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+  const time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  return `${date} · ${time}`
 }
 
 // Begrüßung passend zur Tageszeit.

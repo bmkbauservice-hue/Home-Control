@@ -14,6 +14,8 @@ public class FakeBlinkHandler : HttpMessageHandler
     private readonly List<string> tokenRequestBodies = [];
     private readonly List<HttpRequestMessage> homescreenRequests = [];
     private readonly List<HttpRequestMessage> imageRequests = [];
+    private readonly List<HttpRequestMessage> snapshotRequests = [];
+    private int commandCount;
     private int tierInfoCount;
 
     // Bekommt die laufende Nummer des Token-Abrufs (ab 1). Standard: gültiges Token, neues Refresh-Token.
@@ -36,6 +38,18 @@ public class FakeBlinkHandler : HttpMessageHandler
         _ => (HttpStatusCode.OK, BlinkJson.FakeJpeg, "image/jpeg");
 
     public IReadOnlyList<HttpRequestMessage> ImageRequests { get { lock (sync) return imageRequests.ToList(); } }
+
+    // "Neues Bild" (POST …/thumbnail): Standard ist ein Befehl mit Id 555 im Netzwerk 1.
+    public Func<(HttpStatusCode Status, string Body)> SnapshotResponse { get; set; } =
+        () => (HttpStatusCode.OK, """{ "id": 555, "network_id": 1 }""");
+
+    // Befehlsstatus (GET /network/{n}/command/{id}), bekommt die laufende Nummer. Standard: sofort erledigt.
+    public Func<int, (HttpStatusCode Status, string Body)> CommandResponse { get; set; } =
+        _ => (HttpStatusCode.OK, """{ "complete": true, "status_code": 908 }""");
+
+    public IReadOnlyList<HttpRequestMessage> SnapshotRequests { get { lock (sync) return snapshotRequests.ToList(); } }
+
+    public int CommandCount { get { lock (sync) return commandCount; } }
 
     public int TierInfoCount { get { lock (sync) return tierInfoCount; } }
 
@@ -87,6 +101,19 @@ public class FakeBlinkHandler : HttpMessageHandler
             var content = new ByteArrayContent(body);
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
             return new HttpResponseMessage(status) { Content = content };
+        }
+
+        if (request.Method == HttpMethod.Post && url.EndsWith("/thumbnail", StringComparison.Ordinal))
+        {
+            lock (sync) snapshotRequests.Add(request);
+            return Respond(SnapshotResponse());
+        }
+
+        if (url.Contains("/command/", StringComparison.Ordinal))
+        {
+            int number;
+            lock (sync) number = ++commandCount;
+            return Respond(CommandResponse(number));
         }
 
         return new HttpResponseMessage(HttpStatusCode.NotFound);

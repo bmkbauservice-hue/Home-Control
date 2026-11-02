@@ -55,7 +55,11 @@ public class BlinkHttpCameraClientTests : IDisposable
             services.GetRequiredService<IServiceScopeFactory>(),
             options,
             clock,
-            services.GetRequiredService<ILogger<BlinkHttpCameraClient>>());
+            services.GetRequiredService<ILogger<BlinkHttpCameraClient>>())
+        {
+            // Im Test nicht wirklich eine Sekunde zwischen den Befehlsabfragen warten.
+            CommandPollInterval = TimeSpan.Zero,
+        };
     }
 
     public void Dispose()
@@ -209,6 +213,57 @@ public class BlinkHttpCameraClientTests : IDisposable
 
         Assert.Equal(3, cameras.Count);
         Assert.Contains("refresh_token=rt-neu-aus-spike", blink.TokenRequestBodies[1]);
+    }
+
+    // ---------- "Neues Bild" (bewusste Ausnahme von nur lesen) ----------
+
+    [Fact]
+    public async Task Neues_Bild_loest_POST_aus_wartet_auf_den_Befehl_und_holt_das_neue_Bild()
+    {
+        const long newTs = 1793700000;
+        blink.HomescreenResponse = n => n == 1
+            ? (HttpStatusCode.OK, BlinkJson.Homescreen())
+            : (HttpStatusCode.OK, BlinkJson.Homescreen().Replace(
+                "\"thumbnail\": \"/media/e006/account/4711/network/1/camera/101/clip_abc\"", $"\"thumbnail\": \"{newTs}\""));
+
+        var result = await client.RequestNewThumbnailAsync("101", CancellationToken.None);
+
+        var request = Assert.Single(blink.SnapshotRequests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal("https://rest-e006.immedia-semi.com/network/1/camera/101/thumbnail", request.RequestUri!.ToString());
+        Assert.Equal("access-1", request.Headers.Authorization?.Parameter);
+        Assert.Equal(1, blink.CommandCount);
+        // Danach wurde der Homescreen neu geholt und die neue Aufnahmezeit übernommen.
+        Assert.Equal(2, blink.HomescreenRequests.Count);
+        Assert.True(result!.Completed);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(newTs), result.ThumbnailTakenAtUtc);
+    }
+
+    [Fact]
+    public async Task Neues_Bild_fuer_eine_Mini_nimmt_die_owls_Adresse()
+    {
+        await client.RequestNewThumbnailAsync("201", CancellationToken.None);
+
+        Assert.Equal("https://rest-e006.immedia-semi.com/api/v1/accounts/4711/networks/1/owls/201/thumbnail",
+            Assert.Single(blink.SnapshotRequests).RequestUri!.ToString());
+    }
+
+    [Fact]
+    public async Task Neues_Bild_gibt_nach_40_Abfragen_auf()
+    {
+        blink.CommandResponse = _ => (HttpStatusCode.OK, """{ "complete": false, "status_code": 908 }""");
+
+        var result = await client.RequestNewThumbnailAsync("101", CancellationToken.None);
+
+        Assert.False(result!.Completed);
+        Assert.Equal(40, blink.CommandCount);
+    }
+
+    [Fact]
+    public async Task Neues_Bild_fuer_unbekannte_Kamera_loest_nichts_aus()
+    {
+        Assert.Null(await client.RequestNewThumbnailAsync("999", CancellationToken.None));
+        Assert.Empty(blink.SnapshotRequests);
     }
 
     // ---------- Ein Prozess pro Datenbank ----------

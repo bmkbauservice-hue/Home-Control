@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Room } from '../api/rooms'
 import { EditIcon, TrashIcon } from './Icons'
+import { RoomIcon } from './RoomIcon'
 
 type RoomTileProps = {
   room: Room
@@ -89,12 +90,18 @@ export function RoomTile({ room, canEdit, onRename, onDelete }: RoomTileProps) {
 
   return (
     <div className="tile room-tile">
-      <h3 className="tile-title">{room.name}</h3>
-      <p className="tile-text">
-        {room.deviceCount === 1 ? '1 Gerät' : `${room.deviceCount} Geräte`}
-      </p>
+      {/* Gleicher Kopf wie die Raumkarten der Übersicht: Symbol, Name, Anzahl der Geräte */}
+      <div className="tile-head">
+        <span className="room-icon">
+          <RoomIcon name={room.name} />
+        </span>
+        <div className="tile-head-text">
+          <h3 className="tile-title">{room.name}</h3>
+          <p className="tile-text">{room.deviceCount === 1 ? '1 Gerät' : `${room.deviceCount} Geräte`}</p>
+        </div>
+      </div>
       {canEdit && (
-        <div className="tile-actions">
+        <div className="tile-actions tile-actions-row">
           <button type="button" className="button" onClick={() => setMode('edit')}>
             <EditIcon size={20} />
             Bearbeiten

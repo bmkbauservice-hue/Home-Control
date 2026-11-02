@@ -46,7 +46,8 @@ d.bullets([
     "<b>Nur Menschen:</b> Die Policy " + M + "SignedInUser" + E + " akzeptiert nur das JWT aus dem Login. Der "
     "API-Schlüssel des KI-Agenten bekommt 401, auch wenn Lesen sonst ohne Anmeldung erlaubt ist.",
     "<b>no-store:</b> Das Bild landet nicht im Browser-Cache und nicht in einem Proxy dazwischen.",
-    "<b>Kein neues Foto:</b> Nur GET auf das vorhandene Bild. Ein neues Foto würde die Akku-Kamera wecken.",
+    "<b>Kein neues Foto:</b> Nur GET auf das vorhandene Bild. Ein neues Foto würde die Akku-Kamera wecken; "
+    "das gibt es nur als bewusste Ausnahme über den Knopf „Neues Bild“ (eigene Lernunterlage).",
     "<b>Schutz für Blink:</b> Bilder 60 Sekunden im Server-Cache, dazu ein eigenes Rate Limit.",
     "<b>Aufnahmezeit:</b> im Header " + M + "X-Thumbnail-Taken-At" + E + ", aus dem Zeitstempel im Bildpfad.",
 ])

@@ -39,6 +39,10 @@ public record BlinkCameraInfo(
 // Das letzte vorhandene Vorschaubild einer Kamera.
 public record BlinkThumbnail(byte[] Content, string ContentType, DateTimeOffset? TakenAtUtc);
 
+// Ergebnis von "Neues Bild": Completed = Blink hat den Befehl als erledigt gemeldet (sonst nach 40 s aufgegeben).
+// ThumbnailTakenAtUtc = Aufnahmezeit des Vorschaubilds danach (null, wenn Blink sie nicht nennt).
+public record BlinkSnapshotResult(bool Completed, DateTimeOffset? ThumbnailTakenAtUtc);
+
 // Blink ist nicht eingerichtet: weder Datenbank noch Bootstrap-Wert haben ein Token.
 public class BlinkNotConfiguredException(string detail) : Exception(detail);
 
@@ -60,4 +64,9 @@ public interface IBlinkCameraClient
 
     // Letztes VORHANDENES Vorschaubild (löst nie ein neues Foto aus). null: Kamera unbekannt oder kein Bild.
     Task<BlinkThumbnail?> GetThumbnailAsync(string cameraId, CancellationToken cancellationToken);
+
+    // BEWUSSTE AUSNAHME von "nur lesen" (docs/BLINK.md): lässt die Kamera ein neues Vorschaubild aufnehmen.
+    // Weckt Akku-Kameras auf und kostet Batterie, schaltet aber nichts (nicht scharf/unscharf, keine Aufnahme).
+    // Nur für Admins, höchstens 1× pro Minute und Kamera (Endpunkt). null: Kamera unbekannt.
+    Task<BlinkSnapshotResult?> RequestNewThumbnailAsync(string cameraId, CancellationToken cancellationToken);
 }
