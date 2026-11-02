@@ -63,7 +63,8 @@ builder.Services.AddScoped<TuyaDeviceSyncer>();
 // Gleicht im Hintergrund regelmäßig ab (Tuya:AutoSyncSeconds, Standard 15 Minuten, 0 = aus).
 // AddHostedService: startet mit der App und wird beim Beenden sauber gestoppt.
 builder.Services.AddHostedService<TuyaSyncBackgroundService>();
-// Merkt sich 60 Sekunden lang, welche Tuya-Geräte online sind (Status-LEDs, GET /api/status).
+// Merkt sich, welche Tuya-Geräte online sind (Status-LEDs, GET /api/status). Gefüllt vom Abgleich,
+// ohne Hintergrund-Abgleich höchstens alle 5 Minuten neu geladen (siehe Status/TuyaOnlineCache.cs).
 builder.Services.AddSingleton<TuyaOnlineCache>();
 
 // Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).

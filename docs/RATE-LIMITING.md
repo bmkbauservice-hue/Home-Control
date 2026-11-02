@@ -14,7 +14,8 @@ Rate Limiter von ASP.NET Core (`AddRateLimiter`, `UseRateLimiter`, `RequireRateL
 | `login` | `POST /api/auth/login`, `/register`, `/refresh` (ein gemeinsamer Zähler) | pro Gerät (Client-IP) | 10 pro 60 s | Passwort-Raten, Massen-Registrierung |
 | `tuya` | alle Endpunkte unter `/api/tuya` | **ein** Zähler für alle | 20 pro 60 s | Aufbrauchen des Tuya-Kontingents |
 
-- `GET /api/status` hat **kein** Rate Limit: Der `TuyaOnlineCache` fragt Tuya höchstens einmal pro Minute,
+- `GET /api/status` hat **kein** Rate Limit: Er liest die Online-Liste aus dem `TuyaOnlineCache`, den der
+  Tuya-Hintergrund-Abgleich füllt. Ohne Hintergrund-Abgleich fragt er Tuya höchstens alle 5 Minuten,
   egal wie oft die Status-LEDs abgefragt werden.
 - `POST /api/auth/logout` hat kein Rate Limit: Abmelden soll nie scheitern.
 - Verfahren: **Fixed Window** ohne Warteschlange (überzählige Anfragen bekommen sofort 429).

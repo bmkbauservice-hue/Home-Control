@@ -254,6 +254,63 @@ Rohwerte aller verknüpften Geräte anzeigen (Leseschutz an: Anmeldung mit dem H
 HC_API=http://127.0.0.1:5200 ./tuya-rohwerte-anzeigen.sh
 ```
 
+## Hintergrund-Abgleich
+
+**Zum Lernen:** [Lernunterlage-Hintergrund-Abgleich.pdf](Lernunterlage-Hintergrund-Abgleich.pdf)
+
+Vorher wurde nur abgeglichen, wenn jemand auf „Mit Tuya abgleichen“ klickte. Am 02.11. meldete Tuya
+`doorcontact_state = true`, die App zeigte aber weiter „ZU“, und `door_opened` fehlte im Verlauf.
+Jetzt gleicht `Tuya/TuyaSyncBackgroundService.cs` alle verknüpften Geräte regelmäßig ab, auch wenn
+niemand die App offen hat.
+
+| Einstellung | Standard | Bedeutung |
+|---|---|---|
+| `Tuya:AutoSyncSeconds` | `900` (15 min) | Abstand zwischen zwei Durchläufen. `0` = aus. Werte von 1 bis 59 werden auf 60 angehoben. |
+
+- **Ablauf:** erster Durchlauf beim Start, danach im Takt (`PeriodicTimer`). Pro Durchlauf ein eigener
+  Scope, dann dieselbe Methode wie der Knopf (`TuyaDeviceSyncer.ReadAllAsync(apply: true)`). Die Sperre
+  (`SyncLock`) verhindert, dass Knopf und Hintergrund gleichzeitig laufen.
+- **Ohne Zugangsdaten** wird nichts abgefragt. Nachgetragene Zugangsdaten wirken ohne Neustart,
+  ein geänderter Takt erst nach einem Neustart.
+- **Fehler** (Cloud nicht erreichbar, Ablehnung, Datenbank) landen nur im Log, ohne Geheimnisse. Der
+  Dienst stürzt nie ab. **Backoff:** Nach jedem Fehler in Folge verdoppelt sich der Abstand
+  (15 → 30 → 60 min), höchstens 1 Stunde. Nach dem ersten Erfolg gilt wieder der normale Takt.
+- **Log:** `journalctl --user -u home-control -f`. Eine Zeile gibt es nur, wenn sich etwas geändert hat
+  oder ein Fehler auftrat.
+- **Status-LEDs:** Solange der Hintergrund-Abgleich läuft, fragt `GET /api/status` Tuya **nicht** selbst,
+  sondern liest die Online-Liste des letzten Durchlaufs (`TuyaOnlineCache`). Die Tuya-LED zeigt im
+  Tooltip den Stand („Stand 10:15 Uhr“). Ist der Abgleich aus, fragt `/api/status` selbst, höchstens
+  alle 5 Minuten.
+- **Oberfläche:** Übersicht und Geräteseite laden die Geräteliste jede Minute und beim Zurückkehren in
+  die App neu (`hooks/useAutoRefresh.ts`). Das kostet kein Tuya-Kontingent, gelesen wird nur die eigene
+  Datenbank.
+
+### Kontingent
+
+Jeder Durchlauf kostet **einen Status-Aufruf pro verknüpftem Gerät** plus **einen Aufruf der
+Geräteliste** (online/offline). Dazu kommt etwa alle 2 Stunden ein neues Token (`expire_time`).
+Bei 4 Geräten sind das 5 Aufrufe pro Durchlauf:
+
+| Takt | Durchläufe/Tag | Aufrufe/Tag | Aufrufe/Monat (30 Tage) |
+|---|---|---|---|
+| 1 min | 1 440 | 7 200 | 216 000 |
+| 2 min | 720 | 3 600 | 108 000 |
+| 5 min | 288 | 1 440 | 43 200 |
+| 10 min | 144 | 720 | 21 600 |
+| **15 min (Standard)** | **96** | **480** | **14 400** |
+
+Die Produktseite von Tuya IoT Core nennt für die Testversion („nur zum Testen“) **26 000 API-Aufrufe
+pro Monat**. Ob das für dein Projekt gilt, steht unter [platform.tuya.com](https://platform.tuya.com)
+→ **Cloud** → **My Services** → **IoT Core** (Edition, Ablaufdatum, Verlängerung).
+
+Die **Status-LEDs** hätten ohne den Hintergrund-Abgleich bei dauerhaft offener App (z. B. Tablet an der
+Wand) bis zu 1 440 Aufrufe pro Tag gekostet, also rund 43 200 im Monat. Mit dem Hintergrund-Abgleich
+kosten sie nichts mehr. Gesamt bei 15 min: etwa **14 800 pro Monat** (Abgleich + Token), dazu
+die Klicks auf „Mit Tuya abgleichen“.
+
+Mit mehr Geräten steigt der Verbrauch: Jedes weitere verknüpfte Gerät kostet bei 15 min
+2 880 Aufrufe pro Monat.
+
 ## Dashboard-Karte „Licht Wohnzimmer“
 
 Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testgerät
@@ -265,7 +322,7 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 - Darunter steht der Abrufzeitpunkt (`retrievedAtUtc`) in deutscher Ortszeit
   (Zeitzone Europe/Berlin, unabhängig von der Zeitzone des Browsers).
 - Abgerufen wird einmal beim Öffnen der Übersicht und danach nur über **Aktualisieren**.
-  Es gibt kein automatisches Polling. Die Karte nutzt dafür den Abgleich
+  Die Karte selbst fragt nicht regelmäßig (das macht der Hintergrund-Abgleich). Sie nutzt den Abgleich
   (`POST /api/tuya/test-device/sync`) und zeigt in einer Zeile, ob etwas gespeichert wurde.
 - Während des Abrufs ist der Button gesperrt („Wird aktualisiert …“).
 - Schlägt eine Aktualisierung fehl, bleibt der alte Zustand stehen, wird abgeschwächt
@@ -281,9 +338,14 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 - **Zustand bei Offline-Geräten.** Gelesen wird, was die Cloud zuletzt über das Gerät weiß.
   Messwerte von Offline-Geräten übernimmt der Abgleich nicht (siehe „Messwerte“), An/Aus und
   Tür auf/zu dagegen schon: Sie zeigen dann den letzten bekannten Zustand.
-- **Gespeichert wird nur beim Abgleich.** Nur `POST /sync` schreibt in die Datenbank, und nur
-  bei einer Änderung. Zustandswechsel zwischen zwei Abrufen (z. B. kurz an und wieder aus)
-  sieht das Backend nicht, es gibt kein Polling und keine Push-Nachrichten von Tuya.
+- **Gespeichert wird nur beim Abgleich**, also beim Knopf und beim Hintergrund-Abgleich (Standard
+  alle 15 Minuten), und nur bei einer Änderung. Das ist **Polling** (regelmäßig nachfragen): Was
+  zwischen zwei Durchläufen passiert (z. B. Tür kurz auf und wieder zu), sieht das Backend nicht.
+  Der Zeitpunkt eines Ereignisses ist der Zeitpunkt des Abrufs, nicht der echten Änderung (bis zu
+  15 Minuten später). Genaue Zeitpunkte gäbe es nur mit den Push-Nachrichten von Tuya (Message
+  Service), siehe [Lernunterlage-Hintergrund-Abgleich.pdf](Lernunterlage-Hintergrund-Abgleich.pdf).
+- **Online/Offline bis zu 15 Minuten alt.** Mit Hintergrund-Abgleich zeigen die Status-LEDs den
+  Stand des letzten Durchlaufs.
 - **Herkunft nicht gespeichert.** Ein Ereignis aus dem Abgleich sieht im Verlauf genauso aus wie
   ein manuell erfasstes. Dafür bräuchte es ein eigenes Feld und eine Migration.
 - **Andere Kacheln aktualisieren sich nicht mit.** Nach „Aktualisieren“ zeigt die Gerätekachel
@@ -320,6 +382,12 @@ Die Übersicht zeigt im Abschnitt „Licht (Tuya)“ eine Karte für das Testger
 ```bash
 dotnet test   # im Projektordner, führt HomeControl.Api.Tests aus
 ```
+
+`TuyaSyncBackgroundServiceTests` prüft den Hintergrund-Abgleich mit Microsofts `FakeTimeProvider`
+(Zeit vorstellen statt warten): Durchlauf speichert `door_opened`, ohne Zugangsdaten kein Aufruf,
+Fehler werden geloggt statt geworfen, Backoff bis 1 Stunde, `0` = aus, Takt und sauberes Stoppen.
+`StatusCacheModeTests` zählt die Tuya-Aufrufe von `GET /api/status`: mit Hintergrund-Abgleich keiner,
+ohne höchstens einer in 5 Minuten.
 
 `TuyaTokenCacheTests` prüft unter anderem: Wiederverwendung des Tokens, Erneuern ab 60 Sekunden
 vor Ablauf, nur ein Token-Abruf bei fünf parallelen Abrufen, eine Wiederholung bei Token-Fehler
