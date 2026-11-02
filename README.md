@@ -29,6 +29,9 @@ Tuya-Cloud.
 
 - 🔌 **Echte Geräteanbindung:** Ein Tuya-Gerät wird live aus der Cloud gelesen. Ändert sich
   sein Zustand, landet er automatisch im Geräteverlauf. Geschaltet wird bewusst nichts.
+- ⏱️ **Hintergrund-Abgleich:** Ein `BackgroundService` gleicht alle verknüpften Geräte alle 15 Minuten
+  ab, mit Backoff bei Störungen. Takt aus einer Kontingent-Rechnung, die Status-LEDs kosten dabei
+  keine Tuya-Aufrufe mehr ([TUYA.md](docs/TUYA.md), „Hintergrund-Abgleich“).
 - 🔐 **Sicherer Umgang mit Zugangsdaten:** Secrets nur in den .NET User Secrets, nie im Code
   oder im Repository. Das Zugriffstoken wird im Arbeitsspeicher wiederverwendet und
   rechtzeitig vor Ablauf erneuert, auch bei parallelen Anfragen nur einmal.
@@ -121,6 +124,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Tuya-Messwerte (Skalierung, Watt/Volt/Akku, Offline-Werte, reproduzierbare Tests) | [Lernunterlage-Tuya-Messwerte.pdf](docs/Lernunterlage-Tuya-Messwerte.pdf) |
 | Production-Modus (Umgebungen, User Secrets im Dienst, Secure-Cookie, Reihenfolge der Konfiguration) | [Lernunterlage-Production-Modus.pdf](docs/Lernunterlage-Production-Modus.pdf) |
 | Rate Limiting (Fixed Window, Sliding, Token Bucket, 429, Retry-After, Proxy-Problem, Middleware-Reihenfolge) | [Lernunterlage-Rate-Limiting.pdf](docs/Lernunterlage-Rate-Limiting.pdf) |
+| Hintergrund-Abgleich (BackgroundService, PeriodicTimer, Scopes im Singleton, Kontingent-Rechnung, Backoff, Polling vs. Push) | [Lernunterlage-Hintergrund-Abgleich.pdf](docs/Lernunterlage-Hintergrund-Abgleich.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 

@@ -114,12 +114,21 @@ function tuyaLed(status: SystemStatus | null, serverUnreachable: boolean) {
   }
   switch (status.tuya) {
     case 'online':
-      return { state: 'online' as const, label, title: 'Tuya-Cloud erreichbar' }
+      return { state: 'online' as const, label, title: `Tuya-Cloud erreichbar${tuyaAge(status.tuyaCheckedAtUtc)}` }
     case 'offline':
       return { state: 'offline' as const, label, title: 'Tuya-Cloud nicht erreichbar' }
+    case 'unknown':
+      return { state: 'unknown' as const, label, title: 'Tuya: noch nicht abgefragt (Hintergrund-Abgleich startet)' }
     default:
       return { state: 'unknown' as const, label, title: 'Tuya ist nicht eingerichtet' }
   }
+}
+
+// " (Stand 10:15 Uhr)": Online/Offline kommt aus dem letzten Abgleich, nicht aus diesem Moment.
+function tuyaAge(checkedAtUtc: string | null): string {
+  if (checkedAtUtc === null) return ''
+  const time = new Date(checkedAtUtc).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+  return ` (Stand ${time} Uhr)`
 }
 
 function blinkLed(blink: BlinkStatusInfo | null) {

@@ -71,8 +71,8 @@ public class TuyaDeviceSyncer(
             var results = new List<TuyaLinkedDeviceResult>();
             var cloudUnreachable = false;
 
-            // Online/Offline aller Geräte aus EINER Abfrage (60 Sekunden zwischengespeichert, derselbe
-            // Speicher wie für die Status-LEDs). Nur beim Speichern nötig, siehe Apply.
+            // Online/Offline aller Geräte aus EINER Abfrage, immer frisch. Das Ergebnis landet im selben
+            // Speicher, aus dem die Status-LEDs lesen (TuyaOnlineCache). Nur beim Speichern nötig, siehe Apply.
             var online = apply ? await LoadOnlineAsync(cancellationToken) : null;
 
             foreach (var device in devices)
@@ -140,7 +140,7 @@ public class TuyaDeviceSyncer(
     {
         try
         {
-            return await onlineCache.GetAsync(client.GetLinkedAppDevicesAsync, cancellationToken);
+            return await onlineCache.RefreshAsync(client.GetLinkedAppDevicesAsync, cancellationToken);
         }
         catch (Exception ex) when (ex is TuyaApiException or HttpRequestException or JsonException
                                        || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))

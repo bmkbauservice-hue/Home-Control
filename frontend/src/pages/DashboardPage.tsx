@@ -11,6 +11,7 @@ import { RoomIcon } from '../components/RoomIcon'
 import { StatusBar } from '../components/StatusBar'
 import { StatusLed } from '../components/StatusLed'
 import { TuyaLightCard } from '../components/TuyaLightCard'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import { useStatus } from '../status/statusContext'
 
 // Zwei Plätze für die Blink-Kameras. Echte Namen und Bilder kommen erst mit der Blink-Anbindung.
@@ -38,6 +39,8 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
       .then(([loadedRooms, loadedDevices]) => {
         setRooms(loadedRooms)
         setDevices(loadedDevices)
+        // Ein früherer Fehler (z. B. kurz kein Netz) ist erledigt, sobald es wieder klappt.
+        setError(null)
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false))
@@ -46,6 +49,10 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Jede Minute und beim Zurückkehren in die App neu laden: Der Tuya-Hintergrund-Abgleich im Backend
+  // speichert neue Zustände (z. B. Tür OFFEN) auch, wenn niemand klickt.
+  useAutoRefresh(loadData)
 
   function retry() {
     setLoading(true)

@@ -17,6 +17,7 @@ import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
 import { PlusIcon } from '../components/Icons'
 import type { Page } from '../components/Navigation'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 type DevicesPageProps = {
   onNavigate: (page: Page) => void
@@ -40,8 +41,13 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   // Abgleich mit Tuya: läuft gerade? Ergebnis als kurzer Text.
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
-  // Wird hochgezählt, um die Geräteliste nach dem Abgleich neu zu laden.
+  // Wird hochgezählt, um die Geräteliste neu zu laden (nach dem Abgleich und regelmäßig, siehe unten).
   const [reloadKey, setReloadKey] = useState(0)
+
+  // Jede Minute und beim Zurückkehren in die App die Geräteliste neu laden (mit dem aktuellen Filter):
+  // Der Tuya-Hintergrund-Abgleich speichert neue Werte auch ohne Klick. Ein offenes Bearbeiten-Formular
+  // bleibt dabei erhalten, sein Inhalt steht im State der DeviceTile.
+  useAutoRefresh(() => setReloadKey((key) => key + 1))
 
   // Räume einmal laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
   useEffect(() => {

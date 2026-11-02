@@ -33,7 +33,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
 | POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
 | GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
-| GET | `/api/status` | Status-LEDs: Tuya-Cloud erreichbar?, jedes Gerät online/offline/unbekannt (Tuya-Antwort 60 s zwischengespeichert) | 200 | – |
+| GET | `/api/status` | Status-LEDs: Tuya-Cloud erreichbar?, jedes Gerät online/offline/unbekannt (aus dem Hintergrund-Abgleich, ohne ihn höchstens alle 5 min neu) | 200 | – |
 
 **Wer darf was:** Alle `GET`-Endpunkte sind standardmäßig ohne Anmeldung erreichbar (Frontend und
 n8n-Agent lesen weiter wie bisher). Ist `Auth:RequireLoginForReading` an, verlangen sie ein Access
@@ -174,11 +174,14 @@ gespeichert. Fehlerantworten sind dieselben wie beim GET.
 
 | Feld | Werte |
 |---|---|
-| `tuya` | `online` (Cloud erreichbar), `offline` (nicht erreichbar), `notConfigured` (Zugangsdaten fehlen) |
+| `tuya` | `online` (Cloud erreichbar), `offline` (nicht erreichbar), `unknown` (Hintergrund-Abgleich hat seit dem Start noch nicht gefragt), `notConfigured` (Zugangsdaten fehlen) |
+| `tuyaCheckedAtUtc` | wann die Online-Liste zuletzt erfolgreich von Tuya kam, `null` = noch nie |
 | `devices[].state` | `online`/`offline` laut Tuya, `unknown` = nicht verknüpft, Tuya meldet nichts oder ist nicht erreichbar |
 
-Die Tuya-Antwort merkt sich der Server 60 Sekunden (`TuyaOnlineCache`). So entsteht höchstens
-ein Aufruf pro Minute bei der Tuya-Cloud, egal wie viele Geräte die App offen haben. Auch für den
+Läuft der Tuya-Hintergrund-Abgleich (Standard), fragt dieser Endpunkt Tuya **nie** selbst, sondern
+liest die Online-Liste des letzten Durchlaufs (`TuyaOnlineCache`, bis zu 15 Minuten alt). Ist der
+Abgleich aus, fragt er selbst, höchstens alle 5 Minuten. So kosten die Status-LEDs kaum Kontingent,
+egal wie viele Geräte die App offen haben (siehe [TUYA.md](TUYA.md), „Kontingent“). Auch für den
 KI-Agenten geeignet: „Welche Geräte sind offline?“
 
 ## Validierung

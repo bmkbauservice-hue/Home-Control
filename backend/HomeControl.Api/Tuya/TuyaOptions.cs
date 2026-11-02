@@ -24,6 +24,24 @@ public class TuyaOptions
     // Bewusst ein Text: Ein Tippfehler soll nicht die ganze Tuya-Konfiguration unlesbar machen.
     public string LinkedDeviceId { get; set; } = string.Empty;
 
+    // Hintergrund-Abgleich (TuyaSyncBackgroundService): alle wie viele Sekunden alle verknüpften Geräte
+    // gelesen und gespeichert werden. 0 = aus. Standard 900 = 15 Minuten, damit das Tuya-Kontingent
+    // reicht (Rechnung in docs/TUYA.md, Abschnitt "Hintergrund-Abgleich").
+    public int AutoSyncSeconds { get; set; } = 900;
+
+    // Untergrenze: Öfter als einmal pro Minute bringt nichts (die Online-Liste ist ohnehin 60 s alt)
+    // und kostet nur Kontingent.
+    public const int MinAutoSyncSeconds = 60;
+
+    // Abstand zwischen zwei Durchläufen, oder null, wenn der Hintergrund-Abgleich aus ist.
+    // Zu kleine Werte (1 bis 59) werden auf die Untergrenze angehoben.
+    public TimeSpan? GetAutoSyncInterval() => AutoSyncSeconds switch
+    {
+        <= 0 => null,
+        < MinAutoSyncSeconds => TimeSpan.FromSeconds(MinAutoSyncSeconds),
+        _ => TimeSpan.FromSeconds(AutoSyncSeconds),
+    };
+
     // Namen der Einstellungen, die noch fehlen. Die Werte selbst werden nie ausgegeben.
     public List<string> GetMissingSettings()
     {

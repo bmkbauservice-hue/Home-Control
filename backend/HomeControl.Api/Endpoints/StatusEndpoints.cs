@@ -37,17 +37,41 @@ public static class StatusEndpoints
 
         string tuya;
         IReadOnlyDictionary<string, bool?>? cloudOnline = null;
+        DateTimeOffset? tuyaCheckedAtUtc = null;
 
         if (options.CurrentValue.GetMissingCredentials().Count > 0)
         {
             tuya = OnlineStates.NotConfigured;
         }
+        else if (cache.BackgroundRefreshActive)
+        {
+            // Der Hintergrund-Abgleich hält den Speicher aktuell: nur lesen, Tuya NICHT selbst fragen.
+            // So kosten die LEDs kein Kontingent, auch wenn ein Tablet die App den ganzen Tag offen hat.
+            // Dafür ist der Stand so alt wie der letzte Durchlauf (höchstens Tuya:AutoSyncSeconds).
+            var latest = cache.Latest;
+            if (latest is null)
+            {
+                tuya = OnlineStates.Unknown;   // Der erste Durchlauf läuft noch.
+            }
+            else if (latest.LastAttemptFailed)
+            {
+                tuya = OnlineStates.Offline;
+            }
+            else
+            {
+                tuya = OnlineStates.Online;
+                cloudOnline = latest.Online;
+                tuyaCheckedAtUtc = latest.LoadedAtUtc;
+            }
+        }
         else
         {
+            // Rückfallebene ohne Hintergrund-Abgleich: selbst fragen, höchstens alle 5 Minuten (TuyaOnlineCache.MaxAge).
             try
             {
                 cloudOnline = await cache.GetAsync(client.GetLinkedAppDevicesAsync, cancellationToken);
                 tuya = OnlineStates.Online;
+                tuyaCheckedAtUtc = cache.Latest?.LoadedAtUtc;
             }
             catch (Exception ex) when (ex is TuyaApiException or HttpRequestException or JsonException
                 || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
@@ -67,6 +91,7 @@ public static class StatusEndpoints
             states.Count(s => s.State == OnlineStates.Online),
             states.Count(s => s.State == OnlineStates.Offline),
             states.Count(s => s.State == OnlineStates.Unknown),
-            states));
+            states,
+            tuyaCheckedAtUtc));
     }
 }
