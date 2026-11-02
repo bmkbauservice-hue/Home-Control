@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
+using HomeControl.Api.Status;
 using Microsoft.EntityFrameworkCore;
 
 namespace HomeControl.Api.Tuya;
@@ -19,13 +20,19 @@ public record TuyaLinkedDeviceResult(
 // Liest den Zustand ALLER Geräte, die mit einem Tuya-Gerät verknüpft sind (Device.TuyaDeviceId),
 // und überträgt ihn auf unsere Geräte. Nur lesend bei Tuya, es wird nie geschaltet.
 //
-// Bekannte Statuscodes (Stand jetzt, weitere kommen, sobald wir die echten Werte der Geräte kennen):
-// - switch_1 (Boolean): Steckdose/Licht, true = EIN
-// - doorcontact_state (Boolean): Türkontakt, true = OFFEN
-// Temperatur, Leistung (Watt) und Akku werden noch NICHT gespeichert: Tuya liefert dort ganze
-// Zahlen mit einem Skalierungsfaktor, der je Gerät anders sein kann (z. B. 215 = 21,5 °C).
-// Erst die echten Rohwerte ansehen (GET /api/tuya/linked-devices/status), dann abbilden. Nichts raten.
-public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogger<TuyaDeviceSyncer> logger)
+// Bekannte Statuscodes (aus den echten Rohwerten unserer Geräte, tuya-rohwerte-anzeigen.sh):
+// - switch_1 (Boolean): Steckdose/Licht, true = EIN                         → Ereignis
+// - doorcontact_state (Boolean): Türkontakt, true = OFFEN                   → Ereignis
+// - cur_power (Zahl): Leistung in Zehntel Watt, 1234 = 123,4 W              → nur letzter Wert
+// - cur_voltage (Zahl): Spannung in Zehntel Volt, 2271 = 227,1 V            → nur letzter Wert
+// - battery_percentage (Zahl): Akku in Prozent, 83 = 83 %                    → nur letzter Wert
+// Tuya liefert Messwerte als ganze Zahlen mit Skalierungsfaktor. Den Faktor nicht raten, sondern an
+// echten Rohwerten prüfen. Temperatur fehlt noch: Kein verknüpftes Gerät liefert bisher einen Wert.
+public class TuyaDeviceSyncer(
+    ApplicationDbContext db,
+    TuyaClient client,
+    TuyaOnlineCache onlineCache,
+    ILogger<TuyaDeviceSyncer> logger)
 {
     // Ein Abgleich gleichzeitig, sonst könnten zwei fast gleichzeitige Aufrufe (z. B. StrictMode)
     // beide eine Änderung sehen und dasselbe Ereignis doppelt speichern.
@@ -35,6 +42,16 @@ public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogge
     public const int MaxDevices = 50;
 
     public const string DoorCode = "doorcontact_state";
+
+    public const string PowerCode = "cur_power";
+    public const string VoltageCode = "cur_voltage";
+    public const string BatteryCode = "battery_percentage";
+
+    // Skalierung: Rohwert / Faktor = echter Wert.
+    // Spannung geprüft am Barlicht (2271 → 227,1 V passt zum Stromnetz). Leistung nach der
+    // Tuya-Konvention für Steckdosen mit Strommesser; einmal mit bekannter Last nachprüfen.
+    public const double PowerScale = 10;
+    public const double VoltageScale = 10;
 
     public const string OpenText = "OFFEN";
     public const string ClosedText = "ZU";
@@ -54,6 +71,10 @@ public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogge
             var results = new List<TuyaLinkedDeviceResult>();
             var cloudUnreachable = false;
 
+            // Online/Offline aller Geräte aus EINER Abfrage (60 Sekunden zwischengespeichert, derselbe
+            // Speicher wie für die Status-LEDs). Nur beim Speichern nötig, siehe Apply.
+            var online = apply ? await LoadOnlineAsync(cancellationToken) : null;
+
             foreach (var device in devices)
             {
                 if (cloudUnreachable)
@@ -67,7 +88,9 @@ public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogge
                 try
                 {
                     var status = await client.GetDeviceStatusAsync(device.TuyaDeviceId!, cancellationToken);
-                    var syncResult = apply ? Apply(db, device, status, DateTimeOffset.UtcNow) : null;
+                    var syncResult = apply
+                        ? Apply(db, device, status, DateTimeOffset.UtcNow, IsOnline(online, device.TuyaDeviceId!))
+                        : null;
                     results.Add(new TuyaLinkedDeviceResult(device.Id, device.Name, device.Type, status, syncResult, null));
                 }
                 catch (TuyaApiException ex)
@@ -111,17 +134,44 @@ public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogge
         }
     }
 
+    // Online-Zustand je Tuya-Id. null, wenn die Liste gerade nicht abrufbar ist: Dann wird so
+    // gespeichert wie bisher (siehe Apply), der Abgleich scheitert nicht daran.
+    private async Task<IReadOnlyDictionary<string, bool?>?> LoadOnlineAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await onlineCache.GetAsync(client.GetLinkedAppDevicesAsync, cancellationToken);
+        }
+        catch (Exception ex) when (ex is TuyaApiException or HttpRequestException or JsonException
+                                       || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogWarning("Online-Zustand von Tuya nicht abrufbar: {Message}", ex.Message);
+            return null;
+        }
+    }
+
+    // true/false, wenn Tuya es weiß. null = unbekannt (Liste nicht abrufbar oder Gerät nicht darin).
+    private static bool? IsOnline(IReadOnlyDictionary<string, bool?>? online, string tuyaDeviceId) =>
+        online is not null && online.TryGetValue(tuyaDeviceId, out var value) ? value : null;
+
     // Überträgt einen Status auf das Gerät. Ändert das Gerät und legt ein Ereignis an, speichert
     // aber NICHT (der Aufrufer ruft SaveChanges). Gibt ein Ergebnis aus TuyaSyncResults zurück:
-    // Changed, Unchanged oder UnknownValue (kein bekannter Code oder kein echter Boolean).
+    // Changed, Unchanged, Measured (nur Messwerte) oder UnknownValue (kein bekannter Code).
+    //
+    // online = false: Tuya liefert für Offline-Geräte den LETZTEN bekannten Stand. Die Messwerte
+    // werden dann nicht übernommen, sonst sähe ein alter Wert wie ein neuer aus.
     public static string Apply(
         ApplicationDbContext db,
         Device device,
         List<TuyaStatusItem> status,
-        DateTimeOffset retrievedAtUtc)
+        DateTimeOffset retrievedAtUtc,
+        bool? online = null)
     {
         // Zeitpunkt des Abrufs, gekürzt auf Millisekunden wie bei allen Ereignissen.
         var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(retrievedAtUtc.ToUnixTimeMilliseconds());
+
+        // Messwerte zuerst und unabhängig vom Schalter: Eine Steckdose mit Strommesser hat beides.
+        var measured = online != false && ApplyMeasurements(device, status, timestamp);
 
         if (GetBoolean(status, TuyaSwitchRecorder.SwitchCode) is { } isOn)
         {
@@ -161,7 +211,53 @@ public class TuyaDeviceSyncer(ApplicationDbContext db, TuyaClient client, ILogge
             return TuyaSyncResults.Changed;
         }
 
-        return TuyaSyncResults.UnknownValue;
+        return measured ? TuyaSyncResults.Measured : TuyaSyncResults.UnknownValue;
+    }
+
+    // Überträgt Leistung, Spannung und Akku, soweit vorhanden und plausibel. Bewusst KEIN Ereignis:
+    // Die Leistung schwankt ständig, der Verlauf wäre sonst voller Einträge ohne Aussage.
+    // Gibt true zurück, wenn mindestens ein Messwert übernommen wurde.
+    public static bool ApplyMeasurements(Device device, List<TuyaStatusItem> status, DateTimeOffset timestamp)
+    {
+        var found = false;
+
+        if (GetNumber(status, PowerCode) is { } power && power >= 0)
+        {
+            device.PowerWatt = power / PowerScale;
+            found = true;
+        }
+
+        if (GetNumber(status, VoltageCode) is { } voltage && voltage >= 0)
+        {
+            device.VoltageVolt = voltage / VoltageScale;
+            found = true;
+        }
+
+        if (GetNumber(status, BatteryCode) is { } battery && battery is >= 0 and <= 100)
+        {
+            device.BatteryPercent = (int)battery;
+            found = true;
+        }
+
+        if (found)
+        {
+            device.MeasuredAtUtc = timestamp;
+        }
+
+        return found;
+    }
+
+    // Ganze Zahl nur bei einer echten JSON-Zahl ohne Nachkommastellen. Text ("83"), Boolean oder
+    // Kommazahl ergeben null: nichts geraten.
+    public static long? GetNumber(List<TuyaStatusItem> status, string code)
+    {
+        var item = status.FirstOrDefault(s => s.Code == code);
+        if (item is null || item.Value.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        return item.Value.TryGetInt64(out var number) ? number : null;
     }
 
     // true/false nur bei einem echten Boolean. Fehlt der Code oder ist der Wert etwas anderes
