@@ -186,7 +186,13 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
 }
 
 function toInput(device: Device): DeviceInput {
-  return { name: device.name, type: device.type, roomId: device.roomId, tuyaDeviceId: device.tuyaDeviceId ?? '' }
+  return {
+    name: device.name,
+    type: device.type,
+    roomId: device.roomId,
+    tuyaDeviceId: device.tuyaDeviceId ?? '',
+    tuyaSyncSeconds: device.tuyaSyncSeconds,
+  }
 }
 
 // Name des verknüpften Tuya-Geräts. Ohne Tuya-Liste steht nur "verknüpft" da (die Id selbst nicht).

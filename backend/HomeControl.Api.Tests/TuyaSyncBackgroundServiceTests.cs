@@ -156,6 +156,44 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
         Assert.Contains(logs.Entries, e => e.Level == LogLevel.Error && e.Message.Contains("InvalidOperationException"));
     }
 
+    // ---------- Eigener Takt pro Gerät ----------
+
+    [Fact]
+    public async Task Tuer_alle_3_Minuten_Rest_alle_30_Minuten()
+    {
+        // Standard 30 Minuten, die Tür bekommt 3 Minuten. Dazu eine Steckdose mit Standard-Takt.
+        options.CurrentValue.AutoSyncSeconds = 1800;
+        using (var scope = services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var door = db.Devices.Single(d => d.Id == doorId);
+            door.TuyaSyncSeconds = 180;
+            db.Devices.Add(new Device { Name = "Heizdecke", Type = "Socket", RoomId = door.RoomId, TuyaDeviceId = "tuya-steckdose" });
+            db.SaveChanges();
+        }
+        var service = CreateService();
+        int Reads(string tuyaId) => tuya.StatusPaths.Count(p => p.Contains(tuyaId));
+
+        // Start: beide fällig, Online-Liste wird geholt.
+        await service.RunOnceAsync(CancellationToken.None);
+        Assert.Equal((1, 1, 1), (Reads(DoorTuyaId), Reads("tuya-steckdose"), tuya.DeviceListPaths.Count));
+
+        // Nach 1 Minute: nichts fällig, keine einzige Anfrage an Tuya.
+        clock.Advance(TimeSpan.FromMinutes(1));
+        await service.RunOnceAsync(CancellationToken.None);
+        Assert.Equal((1, 1, 1), (Reads(DoorTuyaId), Reads("tuya-steckdose"), tuya.DeviceListPaths.Count));
+
+        // Nach 3 Minuten: nur die Tür, Online-Liste NICHT neu (1 Aufruf statt 2).
+        clock.Advance(TimeSpan.FromMinutes(2));
+        await service.RunOnceAsync(CancellationToken.None);
+        Assert.Equal((2, 1, 1), (Reads(DoorTuyaId), Reads("tuya-steckdose"), tuya.DeviceListPaths.Count));
+
+        // Nach 30 Minuten: beide, und die Online-Liste wird wieder geholt.
+        clock.Advance(TimeSpan.FromMinutes(27));
+        await service.RunOnceAsync(CancellationToken.None);
+        Assert.Equal((3, 2, 2), (Reads(DoorTuyaId), Reads("tuya-steckdose"), tuya.DeviceListPaths.Count));
+    }
+
     // ---------- Takt, Backoff, aus ----------
 
     [Theory]

@@ -1,4 +1,6 @@
+using HomeControl.Api.Data;
 using HomeControl.Api.Status;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace HomeControl.Api.Tuya;
@@ -18,6 +20,18 @@ public class TuyaSyncBackgroundService(
 {
     // Höchstens so lange wird nach Fehlern gewartet (Backoff), dann wieder regelmäßig versucht.
     public static readonly TimeSpan MaxBackoff = TimeSpan.FromHours(1);
+
+    // Der Dienst wacht jede Minute auf und schaut, welche Geräte fällig sind (eigener Takt pro Gerät,
+    // Device.TuyaSyncSeconds, sonst Tuya:AutoSyncSeconds). Ist keins fällig, wird Tuya NICHT gefragt.
+    public static readonly TimeSpan Tick = TimeSpan.FromSeconds(TuyaOptions.MinAutoSyncSeconds);
+
+    // Spielraum beim Vergleich: Der Tick kommt nie auf die Millisekunde genau. Ohne Spielraum würde aus
+    // "alle 3 Minuten" manchmal "alle 4 Minuten".
+    private static readonly TimeSpan DueTolerance = TimeSpan.FromSeconds(10);
+
+    // Wann jedes Gerät zuletzt erfolgreich gelesen wurde (nur im Arbeitsspeicher; nach einem Neustart sind
+    // alle Geräte sofort fällig). Nur der eine Hintergrund-Lauf schreibt hier, deshalb ohne Sperre.
+    private readonly Dictionary<Guid, DateTimeOffset> lastSyncedAt = [];
 
     // Aktueller Abstand bis zum nächsten Durchlauf (für Log und Tests). null = Abgleich aus.
     public TimeSpan? CurrentPeriod { get; private set; }
@@ -52,12 +66,13 @@ public class TuyaSyncBackgroundService(
                 settings.AutoSyncSeconds, TuyaOptions.MinAutoSyncSeconds);
         }
 
-        logger.LogInformation("Tuya-Hintergrund-Abgleich alle {Seconds} Sekunden.", interval.Value.TotalSeconds);
-        CurrentPeriod = interval;
+        logger.LogInformation("Tuya-Hintergrund-Abgleich: Standard alle {Seconds} Sekunden, eigene Takte pro Gerät, Prüfung jede Minute.",
+            interval.Value.TotalSeconds);
+        CurrentPeriod = Tick;
 
-        // PeriodicTimer: "tickt" in festen Abständen. Mit TimeProvider, damit Tests die Zeit vorstellen
-        // können, statt wirklich 15 Minuten zu warten.
-        using var timer = new PeriodicTimer(interval.Value, timeProvider);
+        // PeriodicTimer: "tickt" in festen Abständen (hier jede Minute). Mit TimeProvider, damit Tests die
+        // Zeit vorstellen können, statt wirklich zu warten.
+        using var timer = new PeriodicTimer(Tick, timeProvider);
         var failures = 0;
 
         // Ab jetzt füllt dieser Dienst den Online-Speicher. GET /api/status fragt Tuya dann nicht mehr
@@ -72,7 +87,7 @@ public class TuyaSyncBackgroundService(
                 failures = await RunOnceAsync(stoppingToken) ? 0 : failures + 1;
 
                 // Backoff: Nach Fehlern länger warten, damit wir eine gestörte Tuya-Cloud nicht fluten.
-                var next = GetDelay(interval.Value, failures);
+                var next = GetDelay(Tick, failures);
                 if (next != timer.Period)
                 {
                     timer.Period = next;
@@ -96,6 +111,10 @@ public class TuyaSyncBackgroundService(
         }
     }
 
+    // Takt eines Geräts: eigener Wert (mindestens 60 s) oder der Standard.
+    private static TimeSpan IntervalOf(int? seconds, TimeSpan defaultInterval) =>
+        seconds is { } s ? TimeSpan.FromSeconds(Math.Max(s, TuyaOptions.MinAutoSyncSeconds)) : defaultInterval;
+
     // Ein Durchlauf. Gibt true zurück, wenn er geklappt hat (für den Backoff). Wirft nie eine
     // Exception, außer beim Beenden der App: Ein BackgroundService, der abstürzt, würde in .NET
     // sonst die ganze App beenden.
@@ -116,10 +135,37 @@ public class TuyaSyncBackgroundService(
             // DbContext wieder freigegeben, es bleibt nichts vom letzten Durchlauf hängen.
             using var scope = scopeFactory.CreateScope();
             var syncer = scope.ServiceProvider.GetRequiredService<TuyaDeviceSyncer>();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Dieselbe Methode wie der Knopf. Ihre Sperre (SyncLock) verhindert, dass beide gleichzeitig
+            // Welche verknüpften Geräte sind fällig? Eigener Takt (z. B. Tür 180 s) oder der Standard.
+            var defaultInterval = options.CurrentValue.GetAutoSyncInterval() ?? Tick;
+            var now = timeProvider.GetUtcNow();
+            var linked = await db.Devices
+                .Where(d => d.TuyaDeviceId != null)
+                .Select(d => new { d.Id, d.TuyaSyncSeconds })
+                .ToListAsync(cancellationToken);
+            var due = linked
+                .Where(d => !lastSyncedAt.TryGetValue(d.Id, out var last)
+                            || now - last >= IntervalOf(d.TuyaSyncSeconds, defaultInterval) - DueTolerance)
+                .Select(d => d.Id)
+                .ToList();
+            if (linked.Count > 0 && due.Count == 0)
+            {
+                return true;   // Nichts fällig: keine Anfrage an Tuya.
+            }
+
+            // Online-Liste nur neu holen, wenn der letzte Stand älter als der Standard-Takt ist. Ein schneller
+            // Lauf nur für die Tür kostet so genau einen Aufruf (Rechnung in docs/TUYA.md).
+            var latest = onlineCache.Latest;
+            var refreshOnline = latest is null || latest.LastAttemptFailed || now - latest.LoadedAtUtc >= defaultInterval - DueTolerance;
+
+            // Dieselbe Logik wie der Knopf. Ihre Sperre (SyncLock) verhindert, dass beide gleichzeitig
             // laufen und ein Ereignis doppelt speichern.
-            var results = await syncer.ReadAllAsync(apply: true, cancellationToken);
+            var results = await syncer.ReadAsync(apply: true, due, refreshOnline, cancellationToken);
+            foreach (var result in results.Where(r => r.Error is null))
+            {
+                lastSyncedAt[result.DeviceId] = now;
+            }
 
             var failed = results.Count(r => r.Error is not null);
             var changed = results.Count(r => r.SyncResult == TuyaSyncResults.Changed);
@@ -134,7 +180,7 @@ public class TuyaSyncBackgroundService(
                 return false;
             }
 
-            // Nur ins normale Log, wenn etwas passiert ist. Sonst stünde alle 15 Minuten eine Zeile ohne Aussage im Journal.
+            // Nur ins normale Log, wenn etwas passiert ist. Sonst stünde alle paar Minuten eine Zeile ohne Aussage im Journal.
             logger.Log(changed > 0 || failed > 0 ? LogLevel.Information : LogLevel.Debug,
                 "Tuya-Hintergrund-Abgleich: {Count} Geräte gelesen, {Changed} geändert, {Failed} Fehler.",
                 results.Count, changed, failed);

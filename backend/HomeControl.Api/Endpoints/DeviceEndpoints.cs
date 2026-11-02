@@ -82,7 +82,7 @@ public static class DeviceEndpoints
             .ThenBy(d => d.Name)
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
-                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc))
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -109,7 +109,8 @@ public static class DeviceEndpoints
             Name = request.Name.Trim(),
             Type = request.Type,
             RoomId = request.RoomId,
-            TuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId)
+            TuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId),
+            TuyaSyncSeconds = NormalizeTuyaSyncSeconds(request)
         };
 
         db.Devices.Add(device);
@@ -151,6 +152,7 @@ public static class DeviceEndpoints
         device.Type = request.Type;
         device.RoomId = request.RoomId;
         device.TuyaDeviceId = tuyaDeviceId;
+        device.TuyaSyncSeconds = NormalizeTuyaSyncSeconds(request);
         await db.SaveChangesAsync();
 
         return Results.Ok(await FindDevice(id, db));
@@ -188,12 +190,20 @@ public static class DeviceEndpoints
             .Where(d => d.Id == id)
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
-                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc))
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds))
             .FirstOrDefaultAsync();
     }
 
     // Gleiche Grenze wie im ApplicationDbContext (TuyaDeviceId: HasMaxLength(64)).
     private const int MaxTuyaDeviceIdLength = 64;
+
+    // Erlaubte eigene Abgleich-Takte (Sekunden): 3, 5 oder 15 Minuten. null = Standard (30 Minuten).
+    // Bewusst eine feste Auswahl statt jeder Zahl: Jeder Takt kostet Tuya-Kontingent (Rechnung in docs/TUYA.md).
+    internal static readonly int[] AllowedTuyaSyncSeconds = [180, 300, 900];
+
+    // Ohne Tuya-Verknüpfung gibt es nichts abzugleichen: dann immer null.
+    internal static int? NormalizeTuyaSyncSeconds(DeviceRequest request) =>
+        NormalizeTuyaDeviceId(request.TuyaDeviceId) is null ? null : request.TuyaSyncSeconds;
 
     // Leer oder nur Leerzeichen heißt: keine Tuya-Verknüpfung.
     internal static string? NormalizeTuyaDeviceId(string? tuyaDeviceId)
@@ -248,6 +258,11 @@ public static class DeviceEndpoints
                     errors["tuyaDeviceId"] = [$"Dieses Tuya-Gerät ist schon mit „{linkedName}“ verknüpft."];
                 }
             }
+        }
+
+        if (request.TuyaSyncSeconds is { } seconds && !AllowedTuyaSyncSeconds.Contains(seconds))
+        {
+            errors["tuyaSyncSeconds"] = ["Bitte einen Abgleich-Takt aus der Liste wählen (3, 5 oder 15 Minuten oder Standard)."];
         }
 
         return errors;

@@ -30,7 +30,13 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   const [devices, setDevices] = useState<Device[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [filter, setFilter] = useState<DeviceFilter>({ ...emptyDeviceFilter, roomId: initialRoomId })
-  const [newDevice, setNewDevice] = useState<DeviceInput>({ name: '', type: 'Light', roomId: '', tuyaDeviceId: '' })
+  const [newDevice, setNewDevice] = useState<DeviceInput>({
+    name: '',
+    type: 'Light',
+    roomId: '',
+    tuyaDeviceId: '',
+    tuyaSyncSeconds: null,
+  })
   // Geräte aus der Tuya-Cloud für die Auswahl. null = (noch) nicht verfügbar.
   const [tuyaDevices, setTuyaDevices] = useState<TuyaCloudDevice[] | null>(null)
   const [tuyaError, setTuyaError] = useState<string | null>(null)
@@ -143,7 +149,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       setDevices((current) => sortByName([...current, device]))
       // Typ und Raum bleiben stehen, so lassen sich mehrere Geräte schnell nacheinander anlegen.
       // Die Tuya-Verknüpfung wird geleert, denn jedes Tuya-Gerät gehört nur zu einem Gerät.
-      setNewDevice((current) => ({ ...current, name: '', tuyaDeviceId: '' }))
+      setNewDevice((current) => ({ ...current, name: '', tuyaDeviceId: '', tuyaSyncSeconds: null }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
