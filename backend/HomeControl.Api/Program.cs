@@ -19,6 +19,19 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Dauerbetrieb auf diesem Rechner (dienst-einrichten.sh): Der Dienst läuft als "Production", damit
+// die sicheren Einstellungen greifen (Secure-Cookie, keine API-Doku, kein Ersatz-JWT-Schlüssel).
+// Die Geheimnisse bleiben trotzdem an EINER Stelle, in den User Secrets. ASP.NET Core liest sie von
+// sich aus nur im Development, deshalb hier ausdrücklich, aber nur mit dem Schalter
+// HomeControl:UseUserSecrets (im Dienst als Umgebungsvariable HomeControl__UseUserSecrets=true).
+if (!builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("HomeControl:UseUserSecrets"))
+{
+    builder.Configuration.AddUserSecrets<Program>(optional: false);
+    // Später hinzugefügte Quellen gewinnen. Umgebungsvariablen noch einmal anhängen, damit z. B. der
+    // Connection String aus dem Dienst weiterhin vor den User Secrets gilt.
+    builder.Configuration.AddEnvironmentVariables();
+}
+
 // Datenbank: EF Core mit SQLite. Der Connection String steht in appsettings.json.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

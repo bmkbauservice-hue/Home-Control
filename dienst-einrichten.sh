@@ -21,6 +21,18 @@ DB="$REPO/backend/HomeControl.Api/homecontrol.db"
 # Voller Pfad zu dotnet: Ein Dienst kennt den PATH aus dem Terminal nicht.
 DOTNET="$(readlink -f "$(command -v dotnet)")"
 
+echo "==> Geheimnisse prüfen"
+# Der Dienst läuft als Production (siehe unten). Dort startet die App ohne JWT-Schlüssel absichtlich
+# nicht. Lieber hier mit einer klaren Meldung abbrechen, bevor der laufende Dienst angehalten wird.
+# Die Liste landet nur in einer Variable, die Werte erscheinen nicht auf dem Bildschirm.
+SECRETS="$(dotnet user-secrets list --project backend/HomeControl.Api 2>/dev/null || true)"
+if ! grep -q '^Jwt:SigningKey = ' <<<"$SECRETS"; then
+    echo "Fehler: In den User Secrets fehlt Jwt:SigningKey." >&2
+    echo "Bitte zuerst ./jwt-schluessel-einrichten.sh ausführen, dann dieses Skript erneut." >&2
+    exit 1
+fi
+unset SECRETS
+
 echo "==> Frontend bauen"
 (cd frontend && npm ci --no-audit --no-fund && npm run build)
 
@@ -48,9 +60,11 @@ After=network-online.target
 WorkingDirectory=$APP_DIR
 ExecStart=$DOTNET $APP_DIR/HomeControl.Api.dll
 Environment=DOTNET_ROOT=$(dirname "$DOTNET")
-# Development, weil die Geheimnisse (JWT, Tuya, Blink, Agent) in den User Secrets liegen.
-# Die werden nur im Development gelesen. Erreichbar ist der Dienst trotzdem nur lokal und über Tailscale.
-Environment=ASPNETCORE_ENVIRONMENT=Development
+# Production: Refresh-Cookie mit "Secure", keine API-Doku (/scalar), Start nur mit echtem JWT-Schlüssel.
+Environment=ASPNETCORE_ENVIRONMENT=Production
+# Die Geheimnisse (JWT, Tuya, Blink, Agent) bleiben in den User Secrets. Im Production liest die App
+# sie nur mit diesem Schalter (siehe Program.cs).
+Environment=HomeControl__UseUserSecrets=true
 # Nur auf 127.0.0.1: Von außen kommt man ausschließlich über "tailscale serve" (HTTPS) heran.
 Environment=ASPNETCORE_URLS=http://127.0.0.1:$PORT
 Environment="ConnectionStrings__DefaultConnection=Data Source=$DB"
@@ -77,7 +91,8 @@ fi
 
 echo "==> Kurz warten und prüfen"
 for _ in $(seq 1 20); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:$PORT/"; then
+    # -s ohne -S: Fehlversuche während des Starts nicht anzeigen, nur das Ergebnis zählt.
+    if curl -fs -o /dev/null "http://127.0.0.1:$PORT/"; then
         echo "Fertig: Home Control läuft auf http://127.0.0.1:$PORT"
         echo "Status: systemctl --user status home-control    Log: journalctl --user -u home-control -f"
         exit 0
