@@ -4,6 +4,7 @@ using HomeControl.Api.Contracts;
 using HomeControl.Api.Models;
 using HomeControl.Api.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace HomeControl.Api.Endpoints;
 
@@ -21,7 +22,7 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth").WithTags("Anmeldung");
 
-        // Diese vier sind immer offen (auch mit "Auth:RequireLoginForReading"): Wer sich erst
+        // Diese fünf sind immer offen (auch mit "Auth:RequireLoginForReading"): Wer sich erst
         // anmelden will, hat noch kein Token. register prüft die Rolle selbst, refresh und logout
         // arbeiten mit dem Refresh-Cookie.
         // register, login und refresh teilen sich die Rate-Limit-Regel "login" (pro Gerät, siehe
@@ -33,6 +34,9 @@ public static class AuthEndpoints
         auth.MapPost("/refresh", Refresh).AllowAnonymous().RequireRateLimiting(RateLimitPolicies.Login)
             .WithSummary("Neues Access Token mit dem Refresh-Cookie (Rotation)");
         auth.MapPost("/logout", Logout).AllowAnonymous().WithSummary("Abmelden: Refresh-Token widerrufen, Cookie löschen");
+        // Auch ohne Anmeldung: Verrät nur, ob es schon einen Benutzer gibt, sonst nichts.
+        auth.MapGet("/setup", GetSetup).AllowAnonymous()
+            .WithSummary("Gibt es schon einen Benutzer? (Anmeldeseite: \"Erstes Konto anlegen\" nur, solange nicht)");
         // Nur mit gültigem Access Token (Authorization: Bearer ...), sonst 401.
         auth.MapGet("/profile", GetProfile).RequireAuthorization().WithSummary("Eigenes Profil (Access Token nötig)");
         // Nur Menschen mit JWT (nicht der Agenten-Schlüssel). Rate Limit wie beim Login: Mit einem gestohlenen
@@ -40,6 +44,13 @@ public static class AuthEndpoints
         auth.MapPost("/password", ChangePassword).RequireAuthorization(AuthPolicies.SignedInUser)
             .RequireRateLimiting(RateLimitPolicies.Login)
             .WithSummary("Eigenes Passwort ändern; andere Sitzungen werden beendet");
+    }
+
+    // GET /api/auth/setup – braucht es noch das erste Konto?
+    private static async Task<SetupResponse> GetSetup(UserManager<User> userManager, CancellationToken cancellationToken)
+    {
+        var hasUsers = await userManager.Users.AnyAsync(cancellationToken);
+        return new SetupResponse(NeedsFirstAccount: !hasUsers);
     }
 
     // POST /api/auth/password – eigenes Passwort ändern. Wer, steht im Token, nie im Body.
