@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DemoBanner } from './components/DemoBanner'
 import { Navigation, type Page } from './components/Navigation'
 import { BlinkPage } from './pages/BlinkPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -49,6 +50,7 @@ function AppShell() {
       <div className="app">
         <Navigation currentPage={page} onNavigate={navigate} />
         <main className="main">
+          <DemoBanner />
           {page === 'dashboard' && <DashboardPage onNavigate={navigate} onOpenRoom={openDevicesInRoom} />}
           {page === 'rooms' && <RoomsPage />}
           {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}

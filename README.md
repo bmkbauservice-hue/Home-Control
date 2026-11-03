@@ -134,8 +134,25 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
+| Demo-Modus (Fakes vs. echte Clients, Dependency Injection je nach Einstellung, keine echten Daten auf dem Beamer) | [Lernunterlage-Demo-Modus.pdf](docs/Lernunterlage-Demo-Modus.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
+
+## Demo
+
+Für Präsentationen gibt es eine zweite Instanz mit einem **erfundenen Beispielhaus**: 5 Räume, 12 Geräte,
+Ereignisse der letzten 7 Tage, schwankende Watt, eine Tür, die ab und zu aufgeht, ein Gerät offline, ein Akku
+bei 15 % und zwei Demo-Kameras mit selbst gezeichneten Bildern („Neues Bild“ geht auch). Es gibt **keine
+Aufrufe an Tuya oder Blink** und keine echten Daten. Oben steht das Banner „Demo-Modus – Beispieldaten“.
+
+```bash
+./demo-starten.sh
+```
+
+Dann `http://localhost:5300` öffnen und mit `demo@example.de` anmelden. Das Passwort zeigt das Skript beim
+Start an. Die Demo läuft neben dem Dienst, mit eigener Datenbank, eigenem Port und ohne User Secrets. Im
+Dienst (Production) kann sie nicht versehentlich an sein, die App startet dann gar nicht. Details:
+[docs/DEMO.md](docs/DEMO.md).
 
 ## Lokal starten
 
@@ -245,8 +262,9 @@ dotnet ef database update --project backend/HomeControl.Api
 Bisher gibt es drei Migrationen: `InitialCreate`, `TuyaGeraeteIdErgaenzt`
 (Tuya-Verknüpfung am Gerät) und `BlinkAnmeldedatenErgaenzt` (Tabelle `BlinkCredentials`).
 
-### Demo-Daten (Seeding)
+### Kleine Demo-Daten (Seeding)
 
+Für eine vollständige Vorführung gibt es den [Demo-Modus](#demo). Daneben gibt es noch das ältere, kleine Seeding:
 Das Seeding ist **standardmäßig ausgeschaltet** (`"SeedDemoData": false` in `appsettings.json`).
 Es läuft nur, wenn alle drei Bedingungen erfüllt sind:
 

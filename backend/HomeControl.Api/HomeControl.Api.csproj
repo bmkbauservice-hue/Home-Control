@@ -20,4 +20,10 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.18.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Demo-Kamerabilder (selbst gezeichnet, tools/demo-bilder) in die DLL einbetten. Fester Name, damit
+         DemoBlinkCameraClient sie unter "demo-bilder/<Datei>" findet. -->
+    <EmbeddedResource Include="Demo/Bilder/*.jpg" LogicalName="demo-bilder/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

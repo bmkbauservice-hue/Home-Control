@@ -1,4 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { getDemoInfo } from '../api/demo'
+import { DemoBanner } from '../components/DemoBanner'
 import { HomeIcon } from '../components/Icons'
 import { useAuth } from '../auth/authContext'
 
@@ -11,6 +13,17 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Im Demo-Modus das Demo-Konto vorausfüllen (nur die E-Mail; das Passwort steht im Terminal).
+  useEffect(() => {
+    let ignore = false
+    getDemoInfo().then((info) => {
+      if (!ignore && info.demoEmail !== null) setEmail((current) => current || (info.demoEmail ?? ''))
+    })
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -28,6 +41,7 @@ export function LoginPage() {
   return (
     <main className="login">
       <form className="tile login-card" onSubmit={handleSubmit}>
+        <DemoBanner />
         <div className="login-brand">
           <HomeIcon size={36} />
           <h1>Home Control</h1>
