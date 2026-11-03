@@ -243,6 +243,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Einstellungen (Benutzerverwaltung, letzter Admin, Passwort ändern, Sitzungen beenden ohne Reuse Detection, 409 Conflict) | [Lernunterlage-Einstellungen.pdf](docs/Lernunterlage-Einstellungen.pdf) |
 | Docker (Image vs. Container, Layer, Volumes, Multi-Stage, warum nicht root, Secrets nicht ins Image) | [Lernunterlage-Docker.pdf](docs/Lernunterlage-Docker.pdf) |
 | Feinschliff (öffentliches Repo aufräumen, einheitliche Zustände, Setup-Endpunkt, portable Skripte, README als Produktseite) | [Lernunterlage-Feinschliff.pdf](docs/Lernunterlage-Feinschliff.pdf) |
+| Präsentation (Spickzettel: Ablauf, Demo-Drehbuch, Architektur, Begriffe, 30 Rückfragen) | [Lernunterlage-Praesentation.pdf](docs/Lernunterlage-Praesentation.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 
