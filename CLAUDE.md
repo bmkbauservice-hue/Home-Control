@@ -44,6 +44,7 @@ Sicherheitsthemen: `REVIEW.md` (Abschnitt „Umsetzungsstand“).
 ./app-starten.sh                 # Entwicklung: http://localhost:5111 (Development, /scalar an)
 ./dienst-einrichten.sh           # Dauerdienst auf 127.0.0.1:5200 (Production) aktualisieren
 ./demo-starten.sh                # Demo-Modus: Beispielhaus auf http://localhost:5300, keine echten Daten
+docker compose --profile demo up # Demo im Container (docs/DOCKER.md); Betrieb: .env + docker compose up -d
 HC_API=http://127.0.0.1:5200 ./tuya-rohwerte-anzeigen.sh   # echte Tuya-Codes ansehen
 ```
 
