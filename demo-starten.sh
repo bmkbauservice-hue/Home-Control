@@ -38,7 +38,8 @@ export ASPNETCORE_URLS="http://localhost:$PORT"
 export ConnectionStrings__DefaultConnection="Data Source=$DB"
 export HomeControl__DemoPassword="$DEMO_PASSWORT"
 # Wegwerf-Schlüssel für die Anmelde-Tokens, bei jedem Start neu. Nicht der echte Schlüssel aus den User Secrets.
-Jwt__SigningKey="$(head -c 48 /dev/urandom | base64 -w0)"
+# "tr -d" statt "base64 -w0": -w0 gibt es nur bei GNU (Linux), so läuft es auch auf macOS.
+Jwt__SigningKey="$(head -c 48 /dev/urandom | base64 | tr -d '\n')"
 export Jwt__SigningKey
 
 echo
