@@ -34,6 +34,17 @@ export type DeviceInput = {
   tuyaSyncSeconds: number | null
 }
 
+// Ein vorhandenes Gerät als Eingabe für updateDevice (z. B. um nur den Abgleich-Takt zu ändern).
+export function deviceToInput(device: Device): DeviceInput {
+  return {
+    name: device.name,
+    type: device.type,
+    roomId: device.roomId,
+    tuyaDeviceId: device.tuyaDeviceId ?? '',
+    tuyaSyncSeconds: device.tuyaSyncSeconds,
+  }
+}
+
 // Auswahl für den Abgleich-Takt, gleiche Werte wie AllowedTuyaSyncSeconds im Backend.
 // Jeder kürzere Takt kostet Tuya-Kontingent (Rechnung in docs/TUYA.md).
 export const tuyaSyncOptions: { seconds: number | null; label: string }[] = [

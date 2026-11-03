@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { RoomsPage } from './pages/RoomsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { LoginPage } from './pages/LoginPage'
 import { useAuth } from './auth/authContext'
 import { StatusProvider } from './status/StatusProvider'
@@ -26,6 +27,7 @@ export default function App() {
 
 // Die eigentliche App für angemeldete Benutzer.
 function AppShell() {
+  const { isAdmin } = useAuth()
   // Welche Seite gerade angezeigt wird. Ein Router ist für fünf Seiten noch nicht nötig.
   const [page, setPage] = useState<Page>('dashboard')
   // Raum, mit dem die Geräteseite gefiltert starten soll ('' = alle Räume).
@@ -56,6 +58,7 @@ function AppShell() {
           {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}
           {page === 'reports' && <ReportsPage />}
           {page === 'blink' && <BlinkPage />}
+          {page === 'settings' && isAdmin && <SettingsPage />}
         </main>
       </div>
     </StatusProvider>
