@@ -27,3 +27,6 @@ pruefen.log
 
 # Python-Zwischendateien (Lern-PDF-Skripte)
 __pycache__/
+
+# Geheimnisse für Docker Compose (Vorlage: .env.example)
+.env
