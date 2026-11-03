@@ -1,6 +1,6 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 02.11.2026, 15 Uhr.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 03.11.2026, abends.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
@@ -23,6 +23,7 @@ was offen ist und welche Regeln gelten.
 | Demo-Modus: zweite Instanz mit Beispielhaus (5 Räume, 12 Geräte, 7 Tage Verlauf), Fake-Tuya und Fake-Blink, Banner, Port 5300; startet nicht, wenn DemoMode im Dienst an wäre | fertig, getestet; Branch `feature/demo-modus` | [DEMO.md](DEMO.md) |
 | Einstellungsseite (nur Admin): Benutzer anlegen, Rolle ändern, löschen (nie sich selbst, nie den letzten Admin), eigenes Passwort ändern, Verbindungen Tuya/Blink mit Erklärung, Abgleich-Takt als Tabelle, Info (Version, Commit, Umgebung, Datenbankgröße) | fertig, getestet; Branch `feature/einstellungen` | [EINSTELLUNGEN.md](EINSTELLUNGEN.md) |
 | Docker: mehrstufiges Image (Node → SDK → aspnet), nicht als root, Healthcheck `/healthz`, Compose mit Volumes für Datenbank und Schlüssel, Geheimnisse über `.env`, Demo per Profil | fertig, getestet (Image gebaut, Demo und Betrieb gestartet, Daten überleben neuen Container, Sicherung geprüft); Branch `feature/docker` | [DOCKER.md](DOCKER.md) |
+| Feinschliff: REVIEW N-1 (Rechnername und IP aus Repo und Lern-PDF), einheitliche Lade-/Fehlerzustände mit „Erneut versuchen“, Gerätekacheln ohne Überlappung, „Erstes Konto anlegen“ nur ohne Benutzer (`GET /api/auth/setup`), README als Produktseite mit Demo-Screenshots, Skripte laufen auch auf macOS | fertig, getestet (238 Tests), im Demo auf Desktop und 390 px durchgeklickt; Branch `fix/feinschliff` | [README](../README.md), [Lernunterlage-Feinschliff.pdf](Lernunterlage-Feinschliff.pdf) |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Design „Nachtlicht“: alle Seiten (Übersicht, Räume, Geräte, Reports, Blink, Anmeldung), Design-Tokens, Schrift lokal, „Energie jetzt“ und Batterien statt Karte „Licht (Tuya)“ | fertig, Screenshots Desktop und 390 px; Branch `design/nachtlicht` | [DESIGN.md](DESIGN.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
@@ -47,22 +48,25 @@ docker compose --profile demo up # dasselbe im Container (docs/DOCKER.md)
 Entwickeln wie bisher: Backend `dotnet run` im Ordner `backend/HomeControl.Api` (Port 5111),
 Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 
+**Auf dem MacBook** (zweiter Clone, ohne User Secrets, ohne Dienst, ohne Tuya/Blink): `./pruefen.sh` und
+`./demo-starten.sh` laufen unverändert. Für die Lern-PDFs `reportlab` in einer venv und die Schrift DejaVu
+(`brew install --cask font-dejavu`). Alles, was man sehen muss, im Demo-Modus ansehen.
+
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
 1. **Präsentation am Montag 09.11.** Design „Nachtlicht“, Blink-Knopf „Neues Bild“ (einmal live ausprobieren) und
-   Demo-Modus, Einstellungsseite und Docker sind fertig. Plan bis Donnerstag: Feinschliff (u. a. REVIEW N-1,
-   README als Produktseite), Präsentationsmaterial; jeweils eigener Branch. Danach, wenn Zeit bleibt: Clips vom USB-Stick
+   Demo-Modus, Einstellungsseite, Docker und Feinschliff sind fertig. **Achtung:** Einstellungen und Docker (PR #33,
+   #34) waren in Feature-Branches gemergt statt in `main`; PR #35 holt sie nach und muss **vor** `fix/feinschliff`
+   gemergt werden. Als Nächstes Präsentationsmaterial (`docs/praesentation`). Danach, wenn Zeit bleibt: Clips vom USB-Stick
    (`feature/blink-lokale-clips`, Recherche liegt vor). Barlicht-Steckdose bis Montag einstecken, sonst bleibt
    „Energie jetzt“ leer (zeigt dann ehrlich „Kein Gerät mit Strommessung online“).
    - Offen: Backend-Teil des alten Tuya-Testgeräts (`/api/tuya/test-device/*`, `TuyaSwitchRecorder`,
      `Tuya:TestDeviceId`/`LinkedDeviceId`) wird im Frontend nicht mehr benutzt. Erst entfernen, wenn klar ist, dass
      der n8n-Agent ihn nicht abfragt; die Konstanten aus `TuyaSwitchRecorder` braucht `TuyaDeviceSyncer`.
-   - Offen: Die Anmeldeseite zeigt „Noch kein Konto? Erstes Konto anlegen“ immer, auch wenn es schon Konten gibt
-     (das Backend lehnt dann ab). Nur anzeigen, solange es keinen Benutzer gibt (passt zu REVIEW.md N-4).
 2. **Security-Review abarbeiten** ([REVIEW.md](../REVIEW.md), Abschnitt „Umsetzungsstand“): H-1, M-1 bis M-5 sind
-   erledigt. Nach dem Merge von `feature/tuya-hintergrund-abgleich` und `fix/blink-einrichtung` einmal
-   `./dienst-einrichten.sh` ausführen. Als Nächstes N-1 (Tailscale-IP aus `tuya-rohwerte-anzeigen.sh` und
-   Rechnername aus `tools/lernpdf/lernunterlage_betrieb.py` entfernen). Jeweils eigener Branch.
+   erledigt, N-1 auch (Historie bewusst nicht umgeschrieben). Nach dem Merge der offenen PRs einmal
+   `./dienst-einrichten.sh` ausführen. Als Nächstes N-4 (erster Admin nur lokal), N-3 (Sicherheitsheader), N-8 (CI).
+   Jeweils eigener Branch.
 3. **Tuya-Kontingent prüfen:** platform.tuya.com → Cloud → My Services → IoT Core: Edition, Ablaufdatum und
    Kontingent ansehen. Der Hintergrund-Abgleich braucht mit Tür 3 min und Rest 30 min etwa 20 500 Aufrufe/Monat
    (Rechnung in [TUYA.md](TUYA.md) „Kontingent“). Später günstiger: Tuyas Sammel-Abruf für den Status mehrerer
