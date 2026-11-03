@@ -24,6 +24,7 @@ was offen ist und welche Regeln gelten.
 | Einstellungsseite (nur Admin): Benutzer anlegen, Rolle ändern, löschen (nie sich selbst, nie den letzten Admin), eigenes Passwort ändern, Verbindungen Tuya/Blink mit Erklärung, Abgleich-Takt als Tabelle, Info (Version, Commit, Umgebung, Datenbankgröße) | fertig, getestet; Branch `feature/einstellungen` | [EINSTELLUNGEN.md](EINSTELLUNGEN.md) |
 | Docker: mehrstufiges Image (Node → SDK → aspnet), nicht als root, Healthcheck `/healthz`, Compose mit Volumes für Datenbank und Schlüssel, Geheimnisse über `.env`, Demo per Profil | fertig, getestet (Image gebaut, Demo und Betrieb gestartet, Daten überleben neuen Container, Sicherung geprüft); Branch `feature/docker` | [DOCKER.md](DOCKER.md) |
 | Feinschliff: REVIEW N-1 (Rechnername und IP aus Repo und Lern-PDF), einheitliche Lade-/Fehlerzustände mit „Erneut versuchen“, Gerätekacheln ohne Überlappung, „Erstes Konto anlegen“ nur ohne Benutzer (`GET /api/auth/setup`), README als Produktseite mit Demo-Screenshots, Skripte laufen auch auf macOS | fertig, getestet (238 Tests), im Demo auf Desktop und 390 px durchgeklickt; Branch `fix/feinschliff` | [README](../README.md), [Lernunterlage-Feinschliff.pdf](Lernunterlage-Feinschliff.pdf) |
+| Präsentationsmaterial: 15-Minuten-Ablauf, Demo-Drehbuch (im Demo durchgespielt), Architekturbild (Mermaid), Fachbegriffe, 30 Rückfragen, „Was ich gelernt habe“, Ausblick; Spickzettel als PDF (4 Seiten) | fertig; Branch `docs/praesentation` | [PRAESENTATION.md](PRAESENTATION.md), [Lernunterlage-Praesentation.pdf](Lernunterlage-Praesentation.pdf) |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Design „Nachtlicht“: alle Seiten (Übersicht, Räume, Geräte, Reports, Blink, Anmeldung), Design-Tokens, Schrift lokal, „Energie jetzt“ und Batterien statt Karte „Licht (Tuya)“ | fertig, Screenshots Desktop und 390 px; Branch `design/nachtlicht` | [DESIGN.md](DESIGN.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
@@ -57,7 +58,8 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 1. **Präsentation am Montag 09.11.** Design „Nachtlicht“, Blink-Knopf „Neues Bild“ (einmal live ausprobieren) und
    Demo-Modus, Einstellungsseite, Docker und Feinschliff sind fertig. **Achtung:** Einstellungen und Docker (PR #33,
    #34) waren in Feature-Branches gemergt statt in `main`; PR #35 holt sie nach und muss **vor** `fix/feinschliff`
-   gemergt werden. Als Nächstes Präsentationsmaterial (`docs/praesentation`). Danach, wenn Zeit bleibt: Clips vom USB-Stick
+   gemergt werden. Präsentationsmaterial ist fertig (`docs/praesentation`, PR nach `fix/feinschliff` mergen).
+   Vor Montag: Drehbuch aus [PRAESENTATION.md](PRAESENTATION.md) einmal laut mit Stoppuhr durchspielen. Danach, wenn Zeit bleibt: Clips vom USB-Stick
    (`feature/blink-lokale-clips`, Recherche liegt vor). Barlicht-Steckdose bis Montag einstecken, sonst bleibt
    „Energie jetzt“ leer (zeigt dann ehrlich „Kein Gerät mit Strommessung online“).
    - Offen: Backend-Teil des alten Tuya-Testgeräts (`/api/tuya/test-device/*`, `TuyaSwitchRecorder`,
