@@ -4,7 +4,9 @@
 #
 # - Meldet sich mit deinem Home-Control-Konto an (E-Mail und Passwort werden abgefragt, das
 #   Passwort bleibt unsichtbar und steht nie in der Prozessliste) und danach wieder ab.
-# - Das Backend muss laufen. Andere Adresse: HC_API=http://100.109.90.93:5111 ./tuya-rohwerte-anzeigen.sh
+# - Das Backend muss laufen. Andere Adresse: HC_API=http://127.0.0.1:5200 ./tuya-rohwerte-anzeigen.sh (Dienst)
+#   Von einem anderen Rechner nur über HTTPS: HC_API=https://<rechner>.<tailnet>.ts.net ./tuya-rohwerte-anzeigen.sh
+#   (über http:// gingen Passwort und Token unverschlüsselt durchs Netz).
 # - Jeder Aufruf kostet pro Gerät einen Aufruf im Tuya-Kontingent: nicht in einer Schleife starten.
 set -euo pipefail
 
@@ -26,7 +28,9 @@ TOKEN="$(printf '%s' "$LOGIN_BODY" \
     | python3 -c 'import json, sys; print(json.load(sys.stdin)["accessToken"])')" \
     || { echo "Anmeldung fehlgeschlagen. Läuft das Backend, stimmen E-Mail und Passwort?" >&2; exit 1; }
 
-curl -sS -H "Authorization: Bearer $TOKEN" "$API/api/tuya/linked-devices/status" \
+# Header per stdin ("-H @-"), damit das Token nicht in der Prozessliste steht.
+printf 'Authorization: Bearer %s\n' "$TOKEN" \
+    | curl -sS -H @- "$API/api/tuya/linked-devices/status" \
     | python3 -c '
 import json, sys
 data = json.load(sys.stdin)

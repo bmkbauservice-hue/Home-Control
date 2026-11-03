@@ -75,7 +75,7 @@ d.p("Tailscale verbindet deine Geräte zu einem privaten Netz (VPN). <font name=
     "ist ein kleiner <b>Reverse Proxy</b>: Er nimmt HTTPS-Anfragen an deinem Tailscale-Namen an und reicht sie "
     "an den Dienst auf 127.0.0.1:5200 weiter.")
 d.code("""iPhone (Safari)  ──HTTPS──▶  tailscale serve  ──HTTP──▶  Home Control (127.0.0.1:5200)
-                 https://muju-ms-7c95.<tailnet>.ts.net         nur auf diesem Rechner erreichbar""")
+                 https://<rechner>.<tailnet>.ts.net            nur auf diesem Rechner erreichbar""")
 d.bullets([
     "<b>Echtes Zertifikat:</b> Tailscale holt es selbst (Let's Encrypt) für den .ts.net-Namen. Safari zeigt "
     "keine Warnung.",
