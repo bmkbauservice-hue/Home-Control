@@ -10,6 +10,7 @@ import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
 import { StatusBar } from '../components/StatusBar'
 import { heroLine, overallOf } from '../components/statusText'
+import { useDemoMode } from '../hooks/useDemoMode'
 import { StatusLed } from '../components/StatusLed'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import { useStatus } from '../status/statusContext'
@@ -59,6 +60,8 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
 
   const { status, blink, serverUnreachable, statusError } = useStatus()
   const overall = overallOf(status, blink, serverUnreachable, statusError)
+  // Im Demo-Modus ohne echten Namen: Auf dem Beamer soll nichts Persönliches stehen.
+  const demoMode = useDemoMode()
 
   return (
     <section className="dashboard">
@@ -66,7 +69,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
       <header className="dashboard-hero">
         <p className="hero-date">{todayText()}</p>
         <h1 className="hero-title">
-          {greeting()}, Muju.
+          {greeting()}{demoMode ? '.' : ', Muju.'}
           <span className="hero-line">{heroLine(status, overall.state)}</span>
         </h1>
       </header>

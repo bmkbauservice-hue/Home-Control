@@ -197,6 +197,36 @@ select {
   font-size: 0.85rem;
 }
 
+/* Demo-Modus: bleibt beim Scrollen oben stehen, warm wie "Licht an", damit es auf dem Beamer auffällt */
+.demo-banner {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 20px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 190, 92, 0.55);
+  border-radius: var(--radius-small);
+  background: rgba(60, 38, 8, 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--warm);
+  font-size: 0.9rem;
+}
+
+.demo-banner span {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.login-card .demo-banner {
+  position: static;
+  margin-bottom: 0;
+}
+
 /* ---------- Navigation: Handy = unten ---------- */
 
 .nav {
