@@ -136,6 +136,7 @@ Grenzen und Kurzantworten für Rückfragen. Die Zeichnungen liegen in [docs/imag
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Demo-Modus (Fakes vs. echte Clients, Dependency Injection je nach Einstellung, keine echten Daten auf dem Beamer) | [Lernunterlage-Demo-Modus.pdf](docs/Lernunterlage-Demo-Modus.pdf) |
 | Einstellungen (Benutzerverwaltung, letzter Admin, Passwort ändern, Sitzungen beenden ohne Reuse Detection, 409 Conflict) | [Lernunterlage-Einstellungen.pdf](docs/Lernunterlage-Einstellungen.pdf) |
+| Docker (Image vs. Container, Layer, Volumes, Multi-Stage, warum nicht root, Secrets nicht ins Image) | [Lernunterlage-Docker.pdf](docs/Lernunterlage-Docker.pdf) |
 | Validierung und Unterricht (AddValidation, DataAnnotations, GetUserId, OpenAPI, Vergleich) | [Lernunterlage-Validierung-und-Unterricht.pdf](docs/Lernunterlage-Validierung-und-Unterricht.pdf) |
 | Übergabe und Arbeitsweise (Stand, offene Punkte, Git-Ablauf, mit KI weiterarbeiten) | [Lernunterlage-Uebergabe.pdf](docs/Lernunterlage-Uebergabe.pdf) |
 
@@ -154,6 +155,19 @@ Dann `http://localhost:5300` öffnen und mit `demo@example.de` anmelden. Das Pas
 Start an. Die Demo läuft neben dem Dienst, mit eigener Datenbank, eigenem Port und ohne User Secrets. Im
 Dienst (Production) kann sie nicht versehentlich an sein, die App startet dann gar nicht. Details:
 [docs/DEMO.md](docs/DEMO.md).
+
+## Docker
+
+Home Control gibt es auch als Container (mehrstufiges Image, läuft nicht als root, Healthcheck, Volumes für
+Datenbank und Schlüssel). Der Dienst auf dem PC bleibt davon unberührt.
+
+```bash
+docker compose --profile demo up      # Demo, ohne .env und ohne Geheimnisse: http://localhost:5300
+cp .env.example .env                  # Betrieb: Werte eintragen (mindestens Jwt__SigningKey)
+docker compose up -d                  # Betrieb: http://localhost:5400
+```
+
+Details: [docs/DOCKER.md](docs/DOCKER.md).
 
 ## Lokal starten
 

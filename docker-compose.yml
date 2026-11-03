@@ -1,0 +1,55 @@
+# Home Control mit Docker Compose. Erklärung: docs/DOCKER.md
+#
+#   Betrieb:  cp .env.example .env   (Werte eintragen)   dann   docker compose up -d
+#   Demo:     docker compose --profile demo up            (braucht keine .env, keine Geheimnisse)
+#
+# Der Dienst auf dem PC (dienst-einrichten.sh, Port 5200) bleibt davon unberührt.
+
+# Fester Projektname: Container und Volumes heißen "homecontrol-…", egal in welchem Ordner das Repo liegt.
+name: homecontrol
+
+services:
+  # Der echte Betrieb. Profil "betrieb": startet mit "docker compose up", wenn in .env COMPOSE_PROFILES=betrieb steht.
+  homecontrol:
+    profiles: [betrieb]
+    build:
+      context: .
+      args:
+        # Für die Info auf der Einstellungsseite. Ohne Angabe bleibt der Commit leer.
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    image: homecontrol:latest
+    restart: unless-stopped
+    # Geheimnisse (JWT-Schlüssel, Tuya, Blink, Agent) nur zur Laufzeit aus .env, nie im Image.
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      # Nur auf diesem Rechner erreichbar. Von außen (Handy) über HTTPS, z. B. tailscale serve.
+      - "127.0.0.1:${HC_PORT:-5400}:8080"
+    volumes:
+      # Volumes überleben neue Container (Update = neues Image, Daten bleiben).
+      - homecontrol-daten:/data
+      - homecontrol-schluessel:/keys
+
+  # Demo-Modus mit Beispielhaus, Fake-Tuya und Fake-Blink (docs/DEMO.md). Keine .env, keine echten Daten.
+  demo:
+    profiles: [demo]
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    image: homecontrol:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Demo
+      ConnectionStrings__DefaultConnection: "Data Source=/data/homecontrol-demo.db"
+      HomeControl__DemoPassword: ${DEMO_PASSWORT:-Demo-Haus-2026}
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-5300}:8080"
+    # tmpfs: Datenbank und Schlüssel nur im Arbeitsspeicher. Jeder Start beginnt frisch mit dem Beispielhaus.
+    tmpfs:
+      - /data:uid=1654,gid=1654
+      - /keys:uid=1654,gid=1654
+
+volumes:
+  homecontrol-daten:
+  homecontrol-schluessel:
