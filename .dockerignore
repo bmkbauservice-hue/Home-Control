@@ -1,0 +1,27 @@
+# Was Docker beim Bauen NICHT zu sehen bekommt (kleiner Build-Kontext, keine Geheimnisse, keine echten Daten).
+
+# Geheimnisse und echte Daten
+.env
+*.db
+*.db-shm
+*.db-wal
+*.bak
+**/secrets.json
+
+# Build-Ausgaben und Pakete: werden im Container frisch erzeugt
+**/bin/
+**/obj/
+**/node_modules/
+frontend/dist/
+
+# Für das Image unnötig
+.git/
+.claude/
+.vs/
+.idea/
+docs/
+design/
+tools/
+pruefen.log
+**/__pycache__/
+backend/HomeControl.Api.Tests/

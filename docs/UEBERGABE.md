@@ -21,6 +21,8 @@ was offen ist und welche Regeln gelten.
 | Blink-Vorschaubilder: Proxy-Endpunkt (nur JWT, no-store, 60 s Cache, Rate Limit), Kamerakarten in Übersicht und Blink-Seite; beim Entwickeln Blink aus (ein Prozess pro Datenbank) | getestet (189 Tests), am 02.11. live gegen das echte Konto geprüft (Bilder von Wohnzimmer und Flur sichtbar); Branch `feature/blink-bilder` | [BLINK.md](BLINK.md) „Vorschaubilder“ |
 | Blink „Neues Bild“: bewusste Ausnahme von „nur lesend“ (nur Admin, 1× pro Minute und Kamera, kostet Akku), Aufnahmezeit groß und gelb ab 1 Tag | getestet, live noch nicht ausgelöst; Branch `feature/blink-neues-bild` | [BLINK.md](BLINK.md) „Neues Bild“ |
 | Demo-Modus: zweite Instanz mit Beispielhaus (5 Räume, 12 Geräte, 7 Tage Verlauf), Fake-Tuya und Fake-Blink, Banner, Port 5300; startet nicht, wenn DemoMode im Dienst an wäre | fertig, getestet; Branch `feature/demo-modus` | [DEMO.md](DEMO.md) |
+| Einstellungsseite (nur Admin): Benutzer anlegen, Rolle ändern, löschen (nie sich selbst, nie den letzten Admin), eigenes Passwort ändern, Verbindungen Tuya/Blink mit Erklärung, Abgleich-Takt als Tabelle, Info (Version, Commit, Umgebung, Datenbankgröße) | fertig, getestet; Branch `feature/einstellungen` | [EINSTELLUNGEN.md](EINSTELLUNGEN.md) |
+| Docker: mehrstufiges Image (Node → SDK → aspnet), nicht als root, Healthcheck `/healthz`, Compose mit Volumes für Datenbank und Schlüssel, Geheimnisse über `.env`, Demo per Profil | fertig, getestet (Image gebaut, Demo und Betrieb gestartet, Daten überleben neuen Container, Sicherung geprüft); Branch `feature/docker` | [DOCKER.md](DOCKER.md) |
 | Frontend: Login, Admin-Buttons, Token-Refresh | fertig | [AUTHENTIFIZIERUNG.md](AUTHENTIFIZIERUNG.md) |
 | Design „Nachtlicht“: alle Seiten (Übersicht, Räume, Geräte, Reports, Blink, Anmeldung), Design-Tokens, Schrift lokal, „Energie jetzt“ und Batterien statt Karte „Licht (Tuya)“ | fertig, Screenshots Desktop und 390 px; Branch `design/nachtlicht` | [DESIGN.md](DESIGN.md) |
 | Status-LEDs: Gesamtzustand, Server, Tuya, Blink, Geräte online/offline | fertig, getestet (PR #16–#18) | [API.md](API.md) (`/api/status`) |
@@ -38,6 +40,7 @@ cd ~/Schreibtisch/Umschulung/Home-Control
 ./app-starten.sh                 # alles unter http://localhost:5111 (Entwicklung)
 ./dienst-einrichten.sh           # Dauerbetrieb als Dienst auf 127.0.0.1:5200 (erneut = Update)
 ./demo-starten.sh                # Demo-Modus für die Präsentation: http://localhost:5300 (Beispieldaten)
+docker compose --profile demo up # dasselbe im Container (docs/DOCKER.md)
 ./tailscale-https-einrichten.sh  # https://<rechner>.<tailnet>.ts.net für iPhone, iPad, Agent
 ```
 
@@ -47,7 +50,7 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173).
 ## 3. Offene Punkte (Reihenfolge = Empfehlung)
 
 1. **Präsentation am Montag 09.11.** Design „Nachtlicht“, Blink-Knopf „Neues Bild“ (einmal live ausprobieren) und
-   Demo-Modus sind fertig. Plan bis Donnerstag: Einstellungsseite, Docker, Feinschliff (u. a. REVIEW N-1,
+   Demo-Modus, Einstellungsseite und Docker sind fertig. Plan bis Donnerstag: Feinschliff (u. a. REVIEW N-1,
    README als Produktseite), Präsentationsmaterial; jeweils eigener Branch. Danach, wenn Zeit bleibt: Clips vom USB-Stick
    (`feature/blink-lokale-clips`, Recherche liegt vor). Barlicht-Steckdose bis Montag einstecken, sonst bleibt
    „Energie jetzt“ leer (zeigt dann ehrlich „Kein Gerät mit Strommessung online“).

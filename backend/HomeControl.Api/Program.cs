@@ -21,6 +21,12 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
+// Docker-Gesundheitsprüfung (HEALTHCHECK im Dockerfile): nur die laufende App abfragen, nichts starten.
+if (args.Contains(HealthProbe.Argument))
+{
+    Environment.Exit(await HealthProbe.RunAsync());
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Demo-Modus (./demo-starten.sh, docs/DEMO.md): Beispieldaten, Fake-Tuya und Fake-Blink, eigene Datenbank.
@@ -77,7 +83,9 @@ builder.Services.AddSingleton<TuyaOnlineCache>();
 // Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).
 // SetApplicationName hält den Schlüssel unabhängig vom Pfad des Checkouts gleich – sonst
 // wäre z. B. in einem Git-Worktree das gespeicherte Blink-Refresh-Token nicht entschlüsselbar.
-var dataProtectionKeyPath = Path.Combine(
+// HomeControl:DataProtectionKeysPath: anderer Ordner, z. B. ein Docker-Volume (/keys), damit die Schlüssel einen
+// neuen Container überleben. Sonst wäre das Blink-Token nach jedem Update nicht mehr entschlüsselbar.
+var dataProtectionKeyPath = builder.Configuration["HomeControl:DataProtectionKeysPath"] ?? Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
     "HomeControl", demoMode ? "dataprotection-keys-demo" : "dataprotection-keys");
 builder.Services.AddDataProtection()
@@ -103,7 +111,9 @@ var usesTemporaryJwtKey = false;
 if (jwtOptions.SigningKey.Length < JwtOptions.MinimumSigningKeyLength)
 {
     // Außerhalb von Development: lieber gar nicht starten als mit einem unsicheren Schlüssel.
-    if (!builder.Environment.IsDevelopment())
+    // Ausnahme Demo-Modus: Dort gibt es nichts Echtes zu schützen, ein Wegwerf-Schlüssel pro Start reicht
+    // (so startet die Demo auch im Container ohne .env).
+    if (!builder.Environment.IsDevelopment() && !demoMode)
     {
         throw new InvalidOperationException(
             $"Jwt:SigningKey fehlt oder ist kürzer als {JwtOptions.MinimumSigningKeyLength} Zeichen.");
@@ -121,6 +131,8 @@ if (jwtOptions.SigningKey.Length < JwtOptions.MinimumSigningKeyLength)
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<AuthService>();
+// Benutzer verwalten und eigenes Passwort ändern (Einstellungsseite).
+builder.Services.AddScoped<UserAdminService>();
 // ASP.NET Core Identity: Benutzer, Passwort-Hashing (PBKDF2 mit Salt), Rollen, Sperre nach Fehlversuchen.
 // Details und Regeln in Auth/IdentityRegistration.cs, Erklärung in docs/IDENTITY.md.
 builder.Services.AddHomeControlIdentity();
@@ -156,6 +168,9 @@ builder.Services.AddOptions<AuthorizationOptions>().Configure<IConfiguration>((o
         options.FallbackPolicy = AuthPolicies.CreateReadingPolicy();
     }
 });
+
+// Gesundheitsprüfung für Docker: GET /healthz (App läuft, Datenbank erreichbar), siehe Status/Health.cs.
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("datenbank");
 
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
@@ -287,6 +302,10 @@ app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
 app.MapDemoEndpoints();
+app.MapUserEndpoints();
+app.MapSystemEndpoints();
+// Ohne Anmeldung: Docker fragt hier, ob der Container gesund ist. Die Antwort verrät nur "Healthy" oder "Unhealthy".
+app.MapHealthChecks("/healthz").AllowAnonymous();
 
 if (frontendFiles is not null)
 {

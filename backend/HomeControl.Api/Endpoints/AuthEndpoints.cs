@@ -35,6 +35,37 @@ public static class AuthEndpoints
         auth.MapPost("/logout", Logout).AllowAnonymous().WithSummary("Abmelden: Refresh-Token widerrufen, Cookie löschen");
         // Nur mit gültigem Access Token (Authorization: Bearer ...), sonst 401.
         auth.MapGet("/profile", GetProfile).RequireAuthorization().WithSummary("Eigenes Profil (Access Token nötig)");
+        // Nur Menschen mit JWT (nicht der Agenten-Schlüssel). Rate Limit wie beim Login: Mit einem gestohlenen
+        // Access Token soll niemand das alte Passwort beliebig oft durchprobieren können.
+        auth.MapPost("/password", ChangePassword).RequireAuthorization(AuthPolicies.SignedInUser)
+            .RequireRateLimiting(RateLimitPolicies.Login)
+            .WithSummary("Eigenes Passwort ändern; andere Sitzungen werden beendet");
+    }
+
+    // POST /api/auth/password – eigenes Passwort ändern. Wer, steht im Token, nie im Body.
+    private static async Task<IResult> ChangePassword(
+        ChangePasswordRequest request,
+        ClaimsPrincipal caller,
+        HttpContext http,
+        UserAdminService service,
+        CancellationToken cancellationToken)
+    {
+        var result = await service.ChangePasswordAsync(caller.GetUserId()!.Value, request.CurrentPassword,
+            request.NewPassword, http.Request.Cookies[RefreshCookieName], cancellationToken);
+
+        return result.Status switch
+        {
+            PasswordChangeStatus.Done => Results.NoContent(),
+            PasswordChangeStatus.WrongPassword => Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["currentPassword"] = ["Das bisherige Passwort stimmt nicht."],
+            }),
+            PasswordChangeStatus.Invalid => Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["newPassword"] = result.Errors.Select(e => e.Description).ToArray(),
+            }),
+            _ => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Diesen Benutzer gibt es nicht mehr."),
+        };
     }
 
     // POST /api/auth/register – Benutzer anlegen (erster Benutzer: jeder, danach nur Admin)

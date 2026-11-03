@@ -33,6 +33,12 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
 | POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
 | GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
+| POST | `/api/auth/password` | Eigenes Passwort ändern, andere Sitzungen enden (nur JWT, Rate Limit `login`) | 204 | 400, 401, 429 |
+| GET | `/api/users` | Alle Benutzer mit Rolle (**Admin**) | 200 | 401, 403 |
+| PUT | `/api/users/{id}/role` | Rolle ändern (**Admin**, nicht sich selbst, nie den letzten Admin) | 204 | 400, 401, 403, 404, 409 |
+| DELETE | `/api/users/{id}` | Benutzer löschen (**Admin**, nicht sich selbst, nie den letzten Admin) | 204 | 401, 403, 404, 409 |
+| GET | `/api/system/info` | Version, Commit, Umgebung, Datenbankgröße, Bestand (**Admin**) | 200 | 401, 403 |
+| GET | `/api/demo` | Läuft der Demo-Modus? (ohne Anmeldung, für das Banner) | 200 | – |
 | GET | `/api/status` | Status-LEDs: Tuya-Cloud erreichbar?, jedes Gerät online/offline/unbekannt (aus dem Hintergrund-Abgleich, ohne ihn höchstens alle 5 min neu) | 200 | – |
 
 **Wer darf was:** Alle `GET`-Endpunkte sind standardmäßig ohne Anmeldung erreichbar (Frontend und
