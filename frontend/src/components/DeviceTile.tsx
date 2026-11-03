@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { getDeviceTypeLabel, type Device, type DeviceInput } from '../api/devices'
+import { deviceToInput, getDeviceTypeLabel, type Device, type DeviceInput } from '../api/devices'
 import type { Room } from '../api/rooms'
 import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
@@ -28,7 +28,7 @@ type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
 export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSave, onDelete }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
-  const [input, setInput] = useState<DeviceInput>(toInput(device))
+  const [input, setInput] = useState<DeviceInput>(deviceToInput(device))
   const [busy, setBusy] = useState(false)
   const { stateOf } = useStatus()
   const onlineState = stateOf(device.id)
@@ -55,7 +55,7 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
   }
 
   function cancelEdit() {
-    setInput(toInput(device))
+    setInput(deviceToInput(device))
     setMode('view')
   }
 
@@ -203,16 +203,6 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
       </div>
     </div>
   )
-}
-
-function toInput(device: Device): DeviceInput {
-  return {
-    name: device.name,
-    type: device.type,
-    roomId: device.roomId,
-    tuyaDeviceId: device.tuyaDeviceId ?? '',
-    tuyaSyncSeconds: device.tuyaSyncSeconds,
-  }
 }
 
 // Name des verknüpften Tuya-Geräts. Ohne Tuya-Liste steht nur "verknüpft" da (die Id selbst nicht).

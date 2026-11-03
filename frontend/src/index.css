@@ -1254,6 +1254,207 @@ select {
   }
 }
 
+/* ---------- Einstellungen ---------- */
+
+.settings-grid {
+  display: grid;
+  gap: 16px;
+}
+
+/* Ab Tablet zwei Spalten; Benutzer und Abgleich (Tabellen) nehmen die ganze Breite */
+@media (min-width: 1000px) {
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .settings-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.settings-card {
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.settings-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-subtitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.settings-muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Erfolgsmeldung: ruhig in Eisblau, Fehler bleiben rot (.alert) */
+.settings-notice {
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.settings-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.settings-badge-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+/* Tabellen dürfen auf dem Handy waagerecht wischen statt die Seite zu verbreitern */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-table th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.settings-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(148, 178, 255, 0.08);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.input-compact {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-form-row {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (min-width: 700px) {
+  .settings-form-row {
+    grid-template-columns: 2fr 2fr 1fr auto;
+  }
+}
+
+.settings-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-facts dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.settings-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.connection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(148, 178, 255, 0.08);
+}
+
+.connection .led-label {
+  font-weight: 700;
+}
+
+.connection-help {
+  max-width: 65ch;
+  font-size: 0.9rem;
+}
+
+.connection-steps {
+  margin: 4px 0 0;
+  padding: 12px 12px 12px 32px;
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-small);
+  background: var(--warning-soft);
+  font-size: 0.9rem;
+}
+
+.connection-steps code {
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+/* Nebenspalten (Angelegt, Raum) auf dem Handy ausblenden, damit Rolle und Takt Platz haben */
+@media (max-width: 600px) {
+  .hide-small {
+    display: none;
+  }
+}
+
+/* Navigation: lange Beschriftung ab Tablet, kurze in der Leiste auf dem Handy */
+.nav-label-long {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-label-long {
+    display: inline;
+  }
+
+  .nav-label-short {
+    display: none;
+  }
+}
+
 /* ---------- Geräte ---------- */
 
 select.input {

@@ -121,6 +121,8 @@ if (jwtOptions.SigningKey.Length < JwtOptions.MinimumSigningKeyLength)
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<AuthService>();
+// Benutzer verwalten und eigenes Passwort ändern (Einstellungsseite).
+builder.Services.AddScoped<UserAdminService>();
 // ASP.NET Core Identity: Benutzer, Passwort-Hashing (PBKDF2 mit Salt), Rollen, Sperre nach Fehlversuchen.
 // Details und Regeln in Auth/IdentityRegistration.cs, Erklärung in docs/IDENTITY.md.
 builder.Services.AddHomeControlIdentity();
@@ -287,6 +289,8 @@ app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
 app.MapDemoEndpoints();
+app.MapUserEndpoints();
+app.MapSystemEndpoints();
 
 if (frontendFiles is not null)
 {
