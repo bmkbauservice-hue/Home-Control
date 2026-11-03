@@ -1,4 +1,5 @@
 import type { SystemInfo } from '../../api/system'
+import { LoadingMessage } from '../StateMessages'
 
 type SystemInfoCardProps = {
   info: SystemInfo | null
@@ -27,7 +28,7 @@ export function SystemInfoCard({ info, error }: SystemInfoCardProps) {
         </p>
       )}
       {info === null ? (
-        error === null && <p className="tile-text">Wird geladen …</p>
+        error === null && <LoadingMessage text="Info wird geladen …" />
       ) : (
         <dl className="settings-facts">
           <dt>Version</dt>

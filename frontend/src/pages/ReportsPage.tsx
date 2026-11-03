@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { getEventActionLabel } from '../api/deviceEvents'
 import { formatIsoDate, getDailyReport, getTodayUtc, type DailyReport } from '../api/reports'
 import { DeviceIcon, HistoryIcon } from '../components/Icons'
+import { ErrorMessage, LoadingMessage } from '../components/StateMessages'
 
 export function ReportsPage() {
   const [date, setDate] = useState(getTodayUtc())
   const [report, setReport] = useState<DailyReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Wird hochgezählt, um den Bericht noch einmal zu laden ("Erneut versuchen").
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Neues Datum gewählt: Ladeanzeige an, alte Fehlermeldung weg. Laden übernimmt der Effect unten.
   function changeDate(value: string) {
@@ -44,7 +47,13 @@ export function ReportsPage() {
     return () => {
       ignore = true
     }
-  }, [date])
+  }, [date, reloadKey])
+
+  function retry() {
+    setLoading(true)
+    setError(null)
+    setReloadKey((key) => key + 1)
+  }
 
   return (
     <section className="reports">
@@ -78,13 +87,9 @@ export function ReportsPage() {
 
       {date === '' && <p className="empty">Bitte einen Tag auswählen.</p>}
 
-      {date !== '' && loading && <p className="empty">Bericht wird geladen …</p>}
+      {date !== '' && loading && <LoadingMessage text="Bericht wird geladen …" />}
 
-      {date !== '' && !loading && error && (
-        <p className="alert" role="alert">
-          {error}
-        </p>
-      )}
+      {date !== '' && !loading && error && <ErrorMessage message={error} onRetry={retry} />}
 
       {date !== '' && !loading && report && (
         <>

@@ -3,6 +3,7 @@ import { deviceToInput, getDevices, tuyaSyncOptions, updateDevice, type Device }
 import { useStatus } from '../../status/statusContext'
 import { measuredAtText } from '../measurements'
 import { StatusLed } from '../StatusLed'
+import { LoadingMessage } from '../StateMessages'
 
 type SyncTableProps = {
   // Standard-Takt laut Server (Tuya:AutoSyncSeconds), null solange unbekannt. 0 = Hintergrund-Abgleich aus.
@@ -58,7 +59,7 @@ export function SyncTable({ defaultSeconds }: SyncTableProps) {
         </p>
       )}
       {devices === null ? (
-        error === null && <p className="tile-text">Wird geladen …</p>
+        error === null && <LoadingMessage text="Geräte werden geladen …" />
       ) : devices.length === 0 ? (
         <p className="empty">Noch kein Gerät mit Tuya verknüpft.</p>
       ) : (

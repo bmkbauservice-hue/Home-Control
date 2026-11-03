@@ -32,6 +32,7 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | POST | `/api/auth/login` | Anmelden: Access Token im JSON, Refresh-Token im HTTP-only Cookie | 200 | 400, 401 |
 | POST | `/api/auth/refresh` | Neues Access Token, Refresh-Token wird dabei ersetzt (Rotation) | 200 | 401 |
 | POST | `/api/auth/logout` | Refresh-Token widerrufen, Cookie löschen | 204 | – |
+| GET | `/api/auth/setup` | `{ needsFirstAccount }`: gibt es noch keinen Benutzer? Immer offen, die Anmeldeseite zeigt „Erstes Konto anlegen“ nur dann | 200 | – |
 | GET | `/api/auth/profile` | Eigenes Profil (Access Token nötig) | 200 | 401 |
 | POST | `/api/auth/password` | Eigenes Passwort ändern, andere Sitzungen enden (nur JWT, Rate Limit `login`) | 204 | 400, 401, 429 |
 | GET | `/api/users` | Alle Benutzer mit Rolle (**Admin**) | 200 | 401, 403 |

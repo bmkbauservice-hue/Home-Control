@@ -102,7 +102,7 @@ Schlüssel 401, Schreiben mit Schlüssel 401, Lesen mit Benutzer-Token 200, Anme
 |---|---|
 | `src/api/tokenStore.ts` | Access Token merken (Local Storage), Refresh mit Sperre: immer nur **ein** Refresh gleichzeitig |
 | `src/api/http.ts` | `send()` hängt `Authorization: Bearer ...` an. Bei 401 einmal Refresh, dann Aufruf wiederholen |
-| `src/api/auth.ts` | login, register, logout, Profil, Sitzung beim Start wiederherstellen |
+| `src/api/auth.ts` | login, register, logout, Profil, Sitzung beim Start wiederherstellen, `needsFirstAccount` (Link „Erstes Konto anlegen“ nur ohne Benutzer) |
 | `src/auth/AuthProvider.tsx`, `authContext.ts` | Wer ist angemeldet? Context mit `useAuth()` (`user`, `isAdmin`, `signIn`, `signOut`) |
 | `src/pages/LoginPage.tsx` | Anmeldeformular, beim ersten Start auch „Erstes Konto anlegen“ (wird Admin) |
 

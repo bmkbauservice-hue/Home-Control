@@ -17,6 +17,7 @@ import { DeviceFields } from '../components/DeviceFields'
 import { DeviceTile } from '../components/DeviceTile'
 import { PlusIcon } from '../components/Icons'
 import type { Page } from '../components/Navigation'
+import { ErrorMessage, LoadingMessage } from '../components/StateMessages'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 type DevicesPageProps = {
@@ -43,7 +44,9 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   const [roomsLoading, setRoomsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // error: Speichern, Löschen oder Abgleich fehlgeschlagen. loadError: Laden fehlgeschlagen (mit "Erneut versuchen").
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   // Abgleich mit Tuya: läuft gerade? Ergebnis als kurzer Text.
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
@@ -55,16 +58,21 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   // bleibt dabei erhalten, sein Inhalt steht im State der DeviceTile.
   useAutoRefresh(() => setReloadKey((key) => key + 1))
 
-  // Räume einmal laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
-  useEffect(() => {
+  // Räume laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
+  function loadRooms() {
     getRooms()
       .then((loadedRooms) => {
         setRooms(loadedRooms)
         // Den ersten Raum vorauswählen, damit das Formular sofort benutzbar ist.
-        setNewDevice((current) => ({ ...current, roomId: loadedRooms[0]?.id ?? '' }))
+        setNewDevice((current) => ({ ...current, roomId: current.roomId || (loadedRooms[0]?.id ?? '') }))
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: Error) => setLoadError(err.message))
       .finally(() => setRoomsLoading(false))
+  }
+
+  // Einmal beim ersten Anzeigen.
+  useEffect(() => {
+    loadRooms()
   }, [])
 
   // Tuya-Geräte einmal laden. Tuya ist optional: Ein Fehler hier blockiert die Seite nicht,
@@ -96,8 +104,12 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
         .then((loaded) => {
           if (!ignore) setDevices(loaded)
         })
+        .then(() => {
+          // Ein früherer Ladefehler (z. B. kurz kein Netz) ist erledigt, sobald es wieder klappt.
+          if (!ignore) setLoadError(null)
+        })
         .catch((err: Error) => {
-          if (!ignore) setError(err.message)
+          if (!ignore) setLoadError(err.message)
         })
         .finally(() => {
           if (!ignore) setLoading(false)
@@ -114,6 +126,14 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
     setFilter(next)
     setLoading(true)
     setError(null)
+  }
+
+  // "Erneut versuchen": Räume und Geräte noch einmal laden.
+  function retry() {
+    setLoadError(null)
+    setLoading(true)
+    loadRooms()
+    setReloadKey((key) => key + 1)
   }
 
   const hasFilter = filter.q.trim() !== '' || filter.roomId !== '' || filter.type !== ''
@@ -197,24 +217,22 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
         </p>
       </header>
 
-      {error && (
-        <p className="alert" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <ErrorMessage message={error} />}
+
+      {loadError && <ErrorMessage message={loadError} onRetry={retry} />}
 
       {/* Schlanke Leiste: Erklärung bzw. Ergebnis links, Knopf rechts (auf dem Handy untereinander) */}
       <div className="tile sync-bar">
         <p className="sync-text">
           {syncMessage ??
-            'Sofort alle verknüpften Tuya-Geräte lesen (sonst automatisch alle 15 Minuten). Es wird nichts geschaltet.'}
+            'Sofort alle verknüpften Tuya-Geräte lesen (sonst automatisch im Hintergrund, Takt pro Gerät unter Einstellungen). Es wird nichts geschaltet.'}
         </p>
         <button type="button" className="button" onClick={handleSync} disabled={syncing}>
           {syncing ? 'Gleiche ab …' : 'Mit Tuya abgleichen'}
         </button>
       </div>
 
-      {!roomsLoading && !error && rooms.length === 0 && (
+      {!roomsLoading && !error && !loadError && rooms.length === 0 && (
         <div className="empty-state">
           <h2 className="tile-title">Zuerst einen Raum anlegen</h2>
           <p className="tile-text">
@@ -327,13 +345,15 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
         </div>
       )}
 
-      {!loading && !error && rooms.length > 0 && devices.length === 0 && !hasFilter && (
+      {loading && devices.length === 0 && <LoadingMessage text="Geräte werden geladen …" />}
+
+      {!loading && !error && !loadError && rooms.length > 0 && devices.length === 0 && !hasFilter && (
         <p className="empty">
           {isAdmin ? 'Noch keine Geräte. Lege oben dein erstes Gerät an.' : 'Noch keine Geräte. Ein Admin kann Geräte anlegen.'}
         </p>
       )}
 
-      {!loading && !error && rooms.length > 0 && devices.length === 0 && hasFilter && (
+      {!loading && !error && !loadError && rooms.length > 0 && devices.length === 0 && hasFilter && (
         <p className="empty">Keine passenden Geräte gefunden.</p>
       )}
 

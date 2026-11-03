@@ -39,3 +39,7 @@ public record UserResponse(Guid Id, string Email, string Role);
 // Antwort auf Login und Refresh. Das Refresh-Token steht bewusst NICHT im JSON, sondern nur im
 // HTTP-only Cookie: JavaScript im Browser kommt so nicht daran (Schutz bei XSS).
 public record LoginResponse(string AccessToken, DateTimeOffset AccessTokenExpiresAtUtc, UserResponse User);
+
+// Antwort von GET /api/auth/setup: true, solange es noch keinen Benutzer gibt (dann darf das erste Konto
+// angelegt werden). Die Anmeldeseite zeigt den Link "Erstes Konto anlegen" nur dann.
+public record SetupResponse(bool NeedsFirstAccount);

@@ -42,6 +42,18 @@ export async function register(email: string, password: string): Promise<void> {
   })
 }
 
+// Gibt es noch keinen Benutzer? Dann zeigt die Anmeldeseite "Erstes Konto anlegen" (GET /api/auth/setup,
+// ohne Anmeldung, entspricht SetupResponse im Backend). Bei einem Fehler lieber false: Der Link fehlt dann nur.
+export async function needsFirstAccount(): Promise<boolean> {
+  try {
+    const response = await send('/api/auth/setup')
+    const body = (await response.json()) as { needsFirstAccount: boolean }
+    return body.needsFirstAccount
+  } catch {
+    return false
+  }
+}
+
 export async function getProfile(): Promise<AuthUser> {
   const response = await send('/api/auth/profile')
   return (await response.json()) as AuthUser

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { needsFirstAccount } from '../api/auth'
 import { getDemoInfo } from '../api/demo'
 import { DemoBanner } from '../components/DemoBanner'
 import { HomeIcon } from '../components/Icons'
@@ -6,13 +7,28 @@ import { useAuth } from '../auth/authContext'
 
 // Anmeldeseite. Beim allerersten Start gibt es noch keinen Benutzer: Dann legt man hier das
 // erste Konto an, das automatisch Admin wird. Weitere Benutzer legt später nur ein Admin an.
+// Den Link "Erstes Konto anlegen" gibt es deshalb nur, solange der Server noch keinen Benutzer kennt.
 export function LoginPage() {
   const { signIn, setUpFirstAccount } = useAuth()
   const [firstAccount, setFirstAccount] = useState(false)
+  const [canSetUp, setCanSetUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Fragen, ob es schon einen Benutzer gibt. Wenn nicht, gleich das Formular für das erste Konto zeigen.
+  useEffect(() => {
+    let ignore = false
+    needsFirstAccount().then((needed) => {
+      if (ignore) return
+      setCanSetUp(needed)
+      setFirstAccount(needed)
+    })
+    return () => {
+      ignore = true
+    }
+  }, [])
 
   // Im Demo-Modus das Demo-Konto vorausfüllen (nur die E-Mail; das Passwort steht im Terminal).
   useEffect(() => {
@@ -101,17 +117,19 @@ export function LoginPage() {
           {busy ? 'Einen Moment …' : firstAccount ? 'Konto anlegen' : 'Anmelden'}
         </button>
 
-        <button
-          type="button"
-          className="button button-link"
-          disabled={busy}
-          onClick={() => {
-            setFirstAccount(!firstAccount)
-            setError(null)
-          }}
-        >
-          {firstAccount ? 'Zurück zur Anmeldung' : 'Noch kein Konto? Erstes Konto anlegen'}
-        </button>
+        {canSetUp && (
+          <button
+            type="button"
+            className="button button-link"
+            disabled={busy}
+            onClick={() => {
+              setFirstAccount(!firstAccount)
+              setError(null)
+            }}
+          >
+            {firstAccount ? 'Zurück zur Anmeldung' : 'Noch kein Konto? Erstes Konto anlegen'}
+          </button>
+        )}
       </form>
     </main>
   )

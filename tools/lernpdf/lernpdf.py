@@ -6,7 +6,7 @@ Benutzung (siehe lernunterlage_api_schluessel.py):
     d = Doc("Titel", "Untertitel", footer="Home Control · Thema · Lernunterlage")
     d.h1("1  Überschrift"); d.p("Text mit <b>fett</b>."); d.save("docs/Lernunterlage-X.pdf")
 
-Braucht: pip install reportlab  und die Schrift DejaVu Sans (unter Linux meist vorhanden).
+Braucht: pip install reportlab  und die Schrift DejaVu Sans (Linux: meist vorhanden, macOS: brew install --cask font-dejavu).
 """
 import os
 
@@ -22,7 +22,14 @@ from reportlab.platypus import (
     Spacer, Table, TableStyle,
 )
 
-FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
+# Erster Ordner, in dem DejaVu Sans liegt: Linux (Paket fonts-dejavu) oder macOS
+# (brew install --cask font-dejavu legt die Schrift unter ~/Library/Fonts ab).
+FONT_DIRS = [
+    "/usr/share/fonts/truetype/dejavu/",
+    os.path.expanduser("~/Library/Fonts/"),
+    "/Library/Fonts/",
+]
+FONT_DIR = next((d for d in FONT_DIRS if os.path.exists(d + "DejaVuSans.ttf")), FONT_DIRS[0])
 pdfmetrics.registerFont(TTFont("Sans", FONT_DIR + "DejaVuSans.ttf"))
 pdfmetrics.registerFont(TTFont("Sans-Bold", FONT_DIR + "DejaVuSans-Bold.ttf"))
 # Die Kursivschrift gehört unter Linux Mint zum Zusatzpaket fonts-dejavu-extra. Fehlt sie, wird die
