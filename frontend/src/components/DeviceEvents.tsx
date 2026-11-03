@@ -7,6 +7,7 @@ import {
   type DeviceEvent,
   type DeviceEventInput,
 } from '../api/deviceEvents'
+import { LoadingMessage } from './StateMessages'
 
 type DeviceEventsProps = {
   deviceId: string
@@ -51,7 +52,7 @@ export function DeviceEvents({ deviceId, canAdd }: DeviceEventsProps) {
       <section className="events-history" aria-label="Verlauf">
         <h4 className="field-label">Verlauf</h4>
 
-        {loading && <p className="tile-text">Wird geladen …</p>}
+        {loading && <LoadingMessage text="Ereignisse werden geladen …" />}
 
         {!loading && events.length === 0 && !error && (
           <p className="empty">

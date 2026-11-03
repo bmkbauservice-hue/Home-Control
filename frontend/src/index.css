@@ -1355,6 +1355,12 @@ select {
   white-space: nowrap;
 }
 
+/* Auswahlfeld in der Tabelle nicht zusammendrücken (auf dem Handy wurde "Admin" sonst zu einem Punkt).
+   Ist die Tabelle zu breit, scrollt nur sie (.table-scroll), nicht die Seite. */
+.settings-table .input-compact {
+  min-width: 120px;
+}
+
 .settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -1996,4 +2002,10 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 
 .device-tile {
   position: relative;
+}
+
+/* LED einer Gerätekachel: eigene Zeile unter dem Gerätetyp (nicht schwebend wie bei .tile-led) */
+.device-led {
+  margin-top: 4px;
+  font-size: 0.85rem;
 }

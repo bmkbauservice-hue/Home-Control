@@ -8,6 +8,7 @@ import { ChevronRightIcon, PlusIcon, RoomsIcon } from '../components/Icons'
 import { measurementsOf, stateLabel } from '../components/measurements'
 import type { Page } from '../components/Navigation'
 import { RoomIcon } from '../components/RoomIcon'
+import { ErrorMessage, LoadingMessage } from '../components/StateMessages'
 import { StatusBar } from '../components/StatusBar'
 import { heroLine, overallOf } from '../components/statusText'
 import { useDemoMode } from '../hooks/useDemoMode'
@@ -76,14 +77,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
 
       <StatusBar />
 
-      {error && (
-        <div className="alert alert-row" role="alert">
-          <span>{error}</span>
-          <button type="button" className="button" onClick={retry}>
-            Erneut versuchen
-          </button>
-        </div>
-      )}
+      {error && <ErrorMessage message={error} onRetry={retry} />}
 
       <div className="dashboard-columns">
         <section className="dashboard-section" aria-labelledby="rooms-heading">
@@ -96,7 +90,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
             )}
           </div>
 
-          {loading && <p className="empty">Räume werden geladen …</p>}
+          {loading && <LoadingMessage text="Räume werden geladen …" />}
 
           {!loading && error && <p className="empty">Räume konnten nicht geladen werden.</p>}
 

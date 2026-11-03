@@ -1,6 +1,7 @@
 import { BlinkCameras } from '../components/BlinkCameras'
 
-// Blink-Kameras mit ihrem letzten Vorschaubild. Nur lesend: Es wird nie ein neues Foto ausgelöst.
+// Blink-Kameras mit ihrem letzten Vorschaubild. Nur lesend, einzige Ausnahme: Admin-Knopf "Neues Bild"
+// (höchstens 1× pro Minute und Kamera, siehe docs/BLINK.md).
 export function BlinkPage() {
   return (
     <section>

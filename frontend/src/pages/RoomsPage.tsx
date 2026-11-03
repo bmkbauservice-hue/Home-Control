@@ -3,6 +3,7 @@ import { createRoom, deleteRoom, getRooms, updateRoom, type Room } from '../api/
 import { useAuth } from '../auth/authContext'
 import { PlusIcon } from '../components/Icons'
 import { RoomTile } from '../components/RoomTile'
+import { ErrorMessage, LoadingMessage } from '../components/StateMessages'
 
 export function RoomsPage() {
   const { isAdmin } = useAuth()
@@ -11,7 +12,11 @@ export function RoomsPage() {
   const [newName, setNewName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // error: Speichern/Löschen fehlgeschlagen. loadError: Laden fehlgeschlagen (dann mit "Erneut versuchen").
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  // Wird hochgezählt, um die Liste noch einmal zu laden ("Erneut versuchen").
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Räume laden – beim ersten Anzeigen und bei jeder Änderung der Suche.
   useEffect(() => {
@@ -27,7 +32,7 @@ export function RoomsPage() {
           if (!ignore) setRooms(loaded)
         })
         .catch((err: Error) => {
-          if (!ignore) setError(err.message)
+          if (!ignore) setLoadError(err.message)
         })
         .finally(() => {
           if (!ignore) setLoading(false)
@@ -38,12 +43,19 @@ export function RoomsPage() {
       ignore = true
       clearTimeout(timer)
     }
-  }, [search])
+  }, [search, reloadKey])
 
   function changeSearch(value: string) {
     setSearch(value)
     setLoading(true)
     setError(null)
+    setLoadError(null)
+  }
+
+  function retry() {
+    setLoading(true)
+    setLoadError(null)
+    setReloadKey((key) => key + 1)
   }
 
   const isSearching = search.trim() !== ''
@@ -139,17 +151,17 @@ export function RoomsPage() {
         </button>
       </div>
 
-      {error && (
-        <p className="alert" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <ErrorMessage message={error} />}
 
-      {!loading && rooms.length === 0 && !error && !isSearching && (
+      {loading && rooms.length === 0 && <LoadingMessage text="Räume werden geladen …" />}
+
+      {!loading && loadError && <ErrorMessage message={loadError} onRetry={retry} />}
+
+      {!loading && rooms.length === 0 && !error && !loadError && !isSearching && (
         <p className="empty">{isAdmin ? 'Noch keine Räume. Lege oben deinen ersten Raum an.' : 'Noch keine Räume. Ein Admin kann Räume anlegen.'}</p>
       )}
 
-      {!loading && rooms.length === 0 && !error && isSearching && (
+      {!loading && rooms.length === 0 && !error && !loadError && isSearching && (
         <p className="empty">Keine passenden Räume gefunden.</p>
       )}
 

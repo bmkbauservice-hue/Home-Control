@@ -123,14 +123,8 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
 
   return (
     <div className="tile device-tile">
-      <span className="tile-led">
-        {onlineState === 'unknown' ? (
-          <StatusLed state="unknown" title="Kein Online-Status (nicht mit Tuya verknüpft oder Tuya meldet nichts)" />
-        ) : (
-          <StatusLed state={onlineState} label={onlineState} />
-        )}
-      </span>
-      {/* Kopf wie bei den Räumen: Symbol des Gerätetyps, Name, Typ */}
+      {/* Kopf wie bei den Räumen: Symbol des Gerätetyps, Name, Typ. Die LED steht als eigene Zeile darunter,
+          damit auch ein langer Name die volle Breite hat und nichts überlappt. */}
       <div className="tile-head">
         <span className="room-icon">
           <DeviceTypeIcon type={device.type} />
@@ -138,6 +132,13 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
         <div className="tile-head-text">
           <h3 className="tile-title">{device.name}</h3>
           <p className="tile-text">{getDeviceTypeLabel(device.type)}</p>
+          <span className="device-led">
+            {onlineState === 'unknown' ? (
+              <StatusLed state="unknown" label="ohne Status" title="Kein Online-Status (nicht mit Tuya verknüpft oder Tuya meldet nichts)" />
+            ) : (
+              <StatusLed state={onlineState} label={onlineState} />
+            )}
+          </span>
         </div>
       </div>
       {/* Zustand groß, Messwerte darunter (feste Ziffernbreite, siehe .device-state) */}

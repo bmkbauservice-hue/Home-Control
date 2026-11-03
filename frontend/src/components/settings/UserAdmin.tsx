@@ -3,6 +3,7 @@ import type { Role } from '../../api/auth'
 import { changeRole, createUser, deleteUser, getUsers, type UserListItem } from '../../api/users'
 import { useAuth } from '../../auth/authContext'
 import { PlusIcon, TrashIcon } from '../Icons'
+import { LoadingMessage } from '../StateMessages'
 
 const dateFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' })
 
@@ -78,7 +79,7 @@ export function UserAdmin() {
       )}
 
       {users === null ? (
-        error === null && <p className="tile-text">Wird geladen …</p>
+        error === null && <LoadingMessage text="Benutzer werden geladen …" />
       ) : (
         <div className="table-scroll" tabIndex={0} aria-label="Benutzerliste">
           <table className="settings-table">
