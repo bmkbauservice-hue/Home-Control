@@ -37,6 +37,9 @@ Grenzen, Kurzantworten für Rückfragen, Merksätze).
 | Ereignis speichern (manueller Testeintrag) | 401 | 403 | ja |
 | Weitere Benutzer anlegen (`POST /api/auth/register`) | 401* | 403 | ja |
 | Eigenes Profil (`GET /api/auth/profile`) | 401 | ja | ja |
+| Eigenes Passwort ändern (`POST /api/auth/password`) | 401 | ja | ja |
+| Benutzer auflisten, Rolle ändern, löschen (`/api/users`, [EINSTELLUNGEN.md](EINSTELLUNGEN.md)) | 401 | 403 | ja (nicht sich selbst, nie den letzten Admin) |
+| Info (`GET /api/system/info`) | 401 | 403 | ja |
 | Tuya-Abgleich (`POST /api/tuya/test-device/sync`) | 401 | ja | ja |
 
 \* Nur solange es noch keinen Benutzer gibt, ist die Registrierung offen. Der erste Benutzer
