@@ -55,12 +55,28 @@ public class DemoModeTests(DemoModeTests.DemoApiFactory factory) : IClassFixture
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.Equal(5, await db.Rooms.CountAsync());
         Assert.Equal(12, await db.Devices.CountAsync());
-        Assert.All(await db.Devices.ToListAsync(), d => Assert.StartsWith("demo-", d.TuyaDeviceId));
+        Assert.All(await db.Devices.ToListAsync(), d => Assert.StartsWith("demo", d.TuyaDeviceId));
 
         var timestamps = (await db.DeviceEvents.ToListAsync()).Select(e => e.Timestamp).ToList();
         Assert.True(timestamps.Count > 100);
         Assert.True(timestamps.Max() - timestamps.Min() > TimeSpan.FromDays(5));
         Assert.True(timestamps.Max() <= DateTimeOffset.UtcNow);
+    }
+
+    // Fehler aus der ersten Fassung: Ids mit Bindestrich ("demo-computer") lehnt DeviceEndpoints ab, weil echte
+    // Tuya-Ids nur Buchstaben und Ziffern haben. Dann ließ sich in der Demo kein Gerät bearbeiten.
+    [Fact]
+    public async Task Jedes_Demo_Geraet_laesst_sich_bearbeiten()
+    {
+        using var client = await factory.CreateDemoClientAsync();
+        var devices = await client.GetFromJsonAsync<List<DeviceResponse>>("/api/devices");
+
+        foreach (var d in devices!)
+        {
+            var update = await client.PutAsJsonAsync($"/api/devices/{d.Id}",
+                new DeviceRequest(d.Name, d.Type, d.RoomId, d.TuyaDeviceId, d.TuyaSyncSeconds));
+            Assert.True(update.IsSuccessStatusCode, $"{d.Name}: {await update.Content.ReadAsStringAsync()}");
+        }
     }
 
     [Fact]

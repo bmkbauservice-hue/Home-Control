@@ -16,7 +16,8 @@ public enum DemoKind
     Temperature,
 }
 
-// Ein Gerät im Beispielhaus. Key ist kurz und lesbar, daraus entsteht die erfundene Tuya-Id "demo-<Key>".
+// Ein Gerät im Beispielhaus. Key ist kurz und lesbar, daraus entsteht die erfundene Tuya-Id "demo<Key>" ohne
+// Bindestriche: Echte Tuya-Ids bestehen nur aus Buchstaben und Ziffern, und DeviceEndpoints prüft das beim Speichern.
 public record DemoDevice(
     string Key,
     string Name,
@@ -27,7 +28,7 @@ public record DemoDevice(
     int? Battery = null,
     int? SyncSeconds = null)
 {
-    public string TuyaId => $"demo-{Key}";
+    public string TuyaId => "demo" + Key.Replace("-", "");
 }
 
 // Das Beispielhaus: 5 Räume, 12 Geräte. Seeder (Datenbank) und DemoTuyaHandler (Fake-Cloud) lesen beide

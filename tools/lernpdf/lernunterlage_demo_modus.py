@@ -139,6 +139,10 @@ d.p("<b>Gefundener Fehler:</b> Im ersten Versuch fehlte der Kühlschrank. EF Cor
     "hinzufügt <i>oder</i> die über eine Verknüpfung erreichbar sind. Die Geräte hingen nur an den Ereignissen, "
     "der Kühlschrank hat aber keine (er ist immer an). Lösung: Räume und Geräte ausdrücklich mit "
     + M + "AddRange" + E + " hinzufügen. Ein Test zählt jetzt 12 Geräte.")
+d.p("<b>Zweiter Fehler:</b> Die erfundenen Tuya-Ids hießen zuerst " + M + "demo-computer" + E + ". Echte Tuya-Ids "
+    "bestehen aber nur aus Buchstaben und Ziffern, und das Speichern eines Geräts prüft das. Folge: In der Demo "
+    "ließ sich kein Gerät bearbeiten. Lehre: Fake-Daten müssen dieselben Regeln erfüllen wie echte. Jetzt heißen "
+    "sie " + M + "democomputer" + E + ", und ein Test speichert jedes Demo-Gerät einmal.")
 
 # ------------------------------------------------------------------ 7
 d.h1("7  Läuft neben dem Dienst")
