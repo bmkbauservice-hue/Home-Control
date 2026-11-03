@@ -34,7 +34,8 @@ Frontend einfach `/api/...` aufrufen kann.
 |---|---|
 | `Program.cs` | Startpunkt: Dienste registrieren, Middleware, Migrationen, Seeding, Endpunkte einbinden |
 | `Models/` | Datenbank-Klassen: `Room`, `Device`, `DeviceEvent`, `BlinkCredential` |
-| `Data/` | `ApplicationDbContext` (Tabellen, Längen, Beziehungen) und `DatabaseSeeder` (Demo-Daten) |
+| `Data/` | `ApplicationDbContext` (Tabellen, Längen, Beziehungen) und `DatabaseSeeder` (kleine Demo-Daten) |
+| `Demo/` | Demo-Modus ([DEMO.md](DEMO.md)): `DemoMode` (Prüfung beim Start, Fakes per DI), `DemoHouse` (Beispielhaus), `DemoBehavior` (Werte nach Uhrzeit), `DemoTuyaHandler` (Fake-Cloud), `DemoBlinkCameraClient`, `DemoDataSeeder`, `Bilder/` |
 | `Migrations/` | Von EF Core erzeugte Migrationen, u. a. `InitialCreate`, `BlinkAnmeldedatenErgaenzt` |
 | `Contracts/` | DTOs: was die API annimmt (`…Request`) und zurückgibt (`…Response`) |
 | `Endpoints/` | Minimal-API-Endpunkte, je Bereich eine Datei mit eigener `MapGroup`; `Search.cs` hilft bei der Textsuche |
@@ -53,6 +54,7 @@ Die Endpunkte sind in sechs Gruppen aufgeteilt:
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
 | `TuyaEndpoints.cs` | `/api/tuya` (bei Tuya nur lesend; der Abgleich `POST /sync` speichert den Zustand in der Datenbank, siehe [TUYA.md](TUYA.md)) |
+| `DemoEndpoints.cs` | `GET /api/demo` (ohne Anmeldung: läuft der Demo-Modus? Für das Banner) |
 | `BlinkEndpoints.cs` | `/api/blink` (lesend: `GET /status`, `GET /cameras`, `GET /cameras/{id}/thumbnail`; einzige Ausnahme `POST /cameras/{id}/snapshot` „Neues Bild“, siehe [BLINK.md](BLINK.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
