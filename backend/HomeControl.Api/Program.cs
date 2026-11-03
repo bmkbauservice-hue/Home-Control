@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
 using HomeControl.Api.Data;
+using HomeControl.Api.Demo;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
@@ -21,6 +22,11 @@ using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Demo-Modus (./demo-starten.sh, docs/DEMO.md): Beispieldaten, Fake-Tuya und Fake-Blink, eigene Datenbank.
+// Passt die Umgebung nicht dazu (z. B. DemoMode im Dienst/Production), startet die App gar nicht.
+DemoMode.EnsureConsistent(builder.Environment, builder.Configuration);
+var demoMode = DemoMode.IsEnabled(builder.Configuration);
 
 // Dauerbetrieb auf diesem Rechner (dienst-einrichten.sh): Der Dienst läuft als "Production", damit
 // die sicheren Einstellungen greifen (Secure-Cookie, keine API-Doku, kein Ersatz-JWT-Schlüssel).
@@ -51,7 +57,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Singleton: Das Token bleibt zwischen den Anfragen erhalten. Der TuyaClient selbst ist
 // als typisierter HttpClient "transient" und wird pro Anfrage neu erzeugt.
 builder.Services.AddSingleton<TuyaTokenStore>();
-builder.Services.AddHttpClient<TuyaClient>((services, client) =>
+var tuyaHttpClient = builder.Services.AddHttpClient<TuyaClient>((services, client) =>
 {
     var tuya = services.GetRequiredService<IOptions<TuyaOptions>>().Value;
     client.BaseAddress = new Uri(tuya.BaseUrl);
@@ -73,7 +79,7 @@ builder.Services.AddSingleton<TuyaOnlineCache>();
 // wäre z. B. in einem Git-Worktree das gespeicherte Blink-Refresh-Token nicht entschlüsselbar.
 var dataProtectionKeyPath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "HomeControl", "dataprotection-keys");
+    "HomeControl", demoMode ? "dataprotection-keys-demo" : "dataprotection-keys");
 builder.Services.AddDataProtection()
     .SetApplicationName("HomeControl")
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
@@ -87,7 +93,8 @@ builder.Services.AddScoped<BlinkCredentialStore>();
 // letzter Stand bleiben erhalten. Für die Datenbank holt er sich über IServiceScopeFactory einen Scope.
 // Der HttpClient kommt aus der IHttpClientFactory, ohne Standard-Header (kein alter App-Build).
 builder.Services.AddHttpClient(BlinkHttpCameraClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
-builder.Services.AddSingleton<IBlinkCameraClient, BlinkHttpCameraClient>();
+// Echter Blink-Client oder (im Demo-Modus) Fake-Kameras, dazu im Demo die Fake-Tuya-Cloud hinter dem TuyaClient.
+DemoMode.AddTuyaAndBlink(builder.Services, demoMode, tuyaHttpClient);
 
 // Anmeldung mit JWT (siehe docs/AUTHENTIFIZIERUNG.md). Issuer, Audience und Laufzeiten stehen
 // in appsettings.json, der geheime Signaturschlüssel in den User Secrets (Jwt:SigningKey).
@@ -247,6 +254,15 @@ using (var scope = app.Services.CreateScope())
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
         await seeder.SeedAsync();
     }
+
+    // Demo-Modus: Beispielhaus (nur in die leere Demo-Datenbank) und Demo-Konto mit dem Passwort aus dem Skript.
+    if (demoMode)
+    {
+        var demoSeeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+        await demoSeeder.SeedAsync(app.Configuration[DemoMode.PasswordSetting]!);
+        app.Logger.LogWarning("DEMO-MODUS: Beispieldaten, Fake-Tuya und Fake-Blink, keine echten Aufrufe. Konto {Email}.",
+            DemoHouse.Email);
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -270,6 +286,7 @@ app.MapTuyaEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
+app.MapDemoEndpoints();
 
 if (frontendFiles is not null)
 {
