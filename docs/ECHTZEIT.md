@@ -62,16 +62,33 @@ Browser ◄── event: device-change ── GET /api/live/devices ◄───
 
 ### Sicherheit
 
-- Nur mit JWT (Policy `SignedInUser`), der Agenten-Schlüssel bekommt 401.
-- **Der Strom endet, wenn das Access Token abläuft** (höchstens 15 Minuten). Die Anmeldung wird nur beim Aufbau
-  geprüft, sonst könnte jemand mit einem abgelaufenen Token ewig weiterlauschen. Der Browser verbindet sich neu; ein
-  abgelaufenes Token bekommt 401, `send()` holt per Refresh ein neues. Ist die Sitzung beendet, gibt es keins mehr.
-- Das Token steht im Header, nie in der URL (und damit nie in Logs).
-- Das Ereignis enthält keine Messwerte, nur Geräte-Ids.
+Geprüft am 05.11.2026 mit Tests (`RealtimeSecurityTests`) und im Browser mit echt ablaufenden 1-Minuten-Tokens.
+
+| Fall | Verhalten |
+|---|---|
+| Ohne Token, falsche Signatur, Agenten-Schlüssel | 401 (Policy `SignedInUser`, nur JWT) |
+| Token in der Adresse (`?access_token=`) | 401: Das Token muss in den Header und landet so nie in Logs |
+| Rolle User | darf mitlesen: Der Kanal zeigt nichts, was `GET /api/devices` nicht auch zeigt |
+| Token läuft ab | Der Strom endet (höchstens 15 Minuten). Die Anmeldung wird nur beim Aufbau geprüft, deshalb dieses Ende. |
+| Abgelaufen, aber im 30-s-Spielraum der JWT-Prüfung | 401 vom Endpunkt selbst, kein Strom |
+| Wiederverbindung nach Ablauf | Im Browser gemessen: `200`, Ende, `401`, Refresh `200`, `200`. Nicht abgemeldet, Änderungen kommen weiter an. |
+| Abmelden | Kanal zu, 0 neue Verbindungen |
+| Sitzung serverseitig beendet (Passwort woanders geändert) | Beim nächsten Tokenablauf 401, Refresh abgelehnt, Anmeldeseite, 0 neue Verbindungen |
+| Browser trennt oder Antwort bricht ab | Platz wird frei |
+| Alle 100 Plätze belegt | 503, die Seite aktualisiert sich weiter jede Minute |
+| Inhalt | nur Geräte-Ids, Quelle und Zeit, keine Messwerte. `Cache-Control: no-cache,no-store` |
+| CSRF | nicht möglich: Der Kanal wertet nur den Authorization-Header aus, keine Cookies |
+
+**Bewusst verbleibend:**
+
+- Ein JWT lässt sich nicht zurückrufen. Wird ein Benutzer gelöscht oder herabgestuft, kann er bis zu 15 Minuten
+  weiter mitlesen, wie bei den REST-Endpunkten auch. Es geht dabei nur um Geräte-Ids.
+- Die 100 Plätze gelten für alle gemeinsam, ein angemeldetes Konto könnte sie allein belegen. Folge wäre nur der
+  Rückfall auf das Neuladen jede Minute. Für einen Haushalt vertretbar.
 
 ### Nachweis
 
-Automatisch (`RealtimeTests`, ohne echtes Tuya): Verteilung, volle Warteschlange, Obergrenze, Reihenfolge, Lebenszeichen,
+Automatisch (`RealtimeTests` und `RealtimeSecurityTests`, ohne echtes Tuya): Verteilung, volle Warteschlange, Obergrenze, Reihenfolge, Lebenszeichen,
 Ende beim Tokenablauf, Browser trennt, nur echte Änderungen werden gemeldet, 401 ohne JWT und mit Agenten-Schlüssel,
 der ganze Weg im Demo-Modus.
 
@@ -84,6 +101,7 @@ Von Hand im echten Browser (Chromium, Demo-Modus, 05.11.2026):
 | Server beenden mit offenem Strom | beendet nach 0,1 s, Chip „Live aus“ |
 | Server neu starten (neuer JWT-Schlüssel) | verbindet sich selbst neu, bleibt angemeldet, nächste Änderung sofort sichtbar |
 | Tab verstecken und zurückholen | Verbindung zu, danach wieder auf |
+| Access Token läuft ab (1-Minuten-Tokens) | nach 61 s neu verbunden, angemeldet geblieben, nächste Änderung sichtbar |
 
 **Nicht geprüft:** echte Tuya-Geräte über den Kanal, `tailscale serve` und Safari auf dem iPhone. Das geht erst nach
 dem Merge im Dienst.

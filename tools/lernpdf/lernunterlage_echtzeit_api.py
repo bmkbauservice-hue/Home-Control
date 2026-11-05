@@ -77,13 +77,13 @@ HTTP/1.1 200 OK
 Content-Type: text/event-stream
 
 event: connected
-data: null
+data:
 
 event: device-change
 data: {"deviceIds":["3f2c..."],"source":"tuya-abgleich","atUtc":"2026-11-05T13:06:00Z"}
 
 event: ping
-data: null""")
+data:""")
 d.bullets([
     "<b>Nur Ids, keine Werte:</b> Der Browser lädt danach über die normalen Endpunkte neu. Es gibt nur einen Weg zu den "
     "Daten, und eine verlorene Meldung schadet nicht.",

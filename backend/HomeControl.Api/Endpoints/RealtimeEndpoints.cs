@@ -58,6 +58,8 @@ public static class RealtimeEndpoints
         // Auch beim Beenden der App schließen, sonst wartet der Dienst bis zu 30 s auf die offenen Verbindungen.
         var stop = CancellationTokenSource.CreateLinkedTokenSource(http.RequestAborted, lifetime.ApplicationStopping);
         http.Response.RegisterForDispose(stop);
+        // Doppelt abgesichert: Bricht die Antwort ab, bevor der Strom überhaupt läuft, wird der Platz trotzdem frei.
+        http.Response.RegisterForDispose(subscription);
 
         return TypedResults.ServerSentEvents(ReadEventsAsync(subscription, closeAtUtc, timeProvider, stop.Token));
     }
