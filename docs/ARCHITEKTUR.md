@@ -54,7 +54,8 @@ Die Endpunkte sind in sechs Gruppen aufgeteilt:
 | `DeviceEventEndpoints.cs` | `/api/devices/{id}/events` |
 | `ReportEndpoints.cs` | `/api/reports` |
 | `TuyaEndpoints.cs` | `/api/tuya` (bei Tuya nur lesend; der Abgleich `POST /sync` speichert den Zustand in der Datenbank, siehe [TUYA.md](TUYA.md)) |
-| `DemoEndpoints.cs` | `GET /api/demo` (ohne Anmeldung: läuft der Demo-Modus? Für das Banner) |
+| `DemoEndpoints.cs` | `GET /api/demo` (ohne Anmeldung: läuft der Demo-Modus? Für das Banner), nur im Demo `POST /api/demo/simulation/tuer` |
+| `RealtimeEndpoints.cs` | `GET /api/live/devices`: Server-Sent Events für geänderte Geräte, Verteilstelle `Realtime/DeviceChangeHub.cs` ([ECHTZEIT.md](ECHTZEIT.md)) |
 | `BlinkEndpoints.cs` | `/api/blink` (lesend: `GET /status`, `GET /cameras`, `GET /cameras/{id}/thumbnail`; einzige Ausnahme `POST /cameras/{id}/snapshot` „Neues Bild“, siehe [BLINK.md](BLINK.md)) |
 
 ## Ordner im Frontend (`frontend/src`)
