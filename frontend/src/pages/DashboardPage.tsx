@@ -14,6 +14,7 @@ import { heroLine, overallOf } from '../components/statusText'
 import { useDemoMode } from '../hooks/useDemoMode'
 import { StatusLed } from '../components/StatusLed'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
+import { useLiveRefresh } from '../hooks/useLiveRefresh'
 import { useStatus } from '../status/statusContext'
 
 // So viele Geräte zeigt eine Raumkarte, der Rest wird als "+ N weitere" zusammengefasst.
@@ -52,6 +53,8 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
   // Jede Minute und beim Zurückkehren in die App neu laden: Der Tuya-Hintergrund-Abgleich im Backend
   // speichert neue Zustände (z. B. Tür OFFEN) auch, wenn niemand klickt.
   useAutoRefresh(loadData)
+  // Meldet das Backend eine Änderung über den Live-Kanal, sofort neu laden.
+  useLiveRefresh(loadData)
 
   function retry() {
     setLoading(true)

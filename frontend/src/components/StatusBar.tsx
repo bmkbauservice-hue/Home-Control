@@ -1,3 +1,4 @@
+import type { LiveState } from '../api/liveEvents'
 import type { BlinkStatusInfo, SystemStatus } from '../api/status'
 import { useStatus } from '../status/statusContext'
 import { RefreshIcon } from './Icons'
@@ -9,7 +10,7 @@ import { StatusLed } from './StatusLed'
 // Chips: Server, Tuya-Cloud, Blink und die Anzahl der Geräte online/offline/ohne Status. Auf dem Handy
 // passt die Reihe nicht in die Breite, sie lässt sich dann waagerecht wischen (siehe .status-chips).
 export function StatusBar() {
-  const { status, blink, serverUnreachable, statusError, refreshing, refresh } = useStatus()
+  const { status, blink, serverUnreachable, statusError, refreshing, refresh, live } = useStatus()
   const overall = overallOf(status, blink, serverUnreachable, statusError)
   // Der Server hat geantwortet, wenn es eine Antwort oder eine Fehlermeldung von ihm gibt.
   const serverAnswered = !serverUnreachable && (status !== null || statusError !== null)
@@ -50,6 +51,9 @@ export function StatusBar() {
         <li className="status-chip">
           <StatusLed {...blinkLed(blink)} />
         </li>
+        <li className="status-chip">
+          <StatusLed {...liveLed(live)} />
+        </li>
         {status && (
           <>
             <li className="status-chip">
@@ -69,6 +73,27 @@ export function StatusBar() {
       </ul>
     </section>
   )
+}
+
+// Ehrlich benannt: "Live" gilt für den Weg vom Server zum Browser. Von Tuya holt der Server die Werte weiter im Takt
+// des Abgleichs (Tür 3 Minuten, Rest 30 Minuten), das steht im Tooltip.
+function liveLed(live: LiveState) {
+  switch (live) {
+    case 'live':
+      return {
+        state: 'online' as const,
+        label: 'Live',
+        title: 'Der Server meldet Änderungen sofort an diesen Browser. Von Tuya holt er sie im Takt des Abgleichs.',
+      }
+    case 'connecting':
+      return { state: 'unknown' as const, label: 'Live', title: 'Live-Verbindung wird aufgebaut' }
+    default:
+      return {
+        state: 'unknown' as const,
+        label: 'Live aus',
+        title: 'Keine Live-Verbindung. Die Seite aktualisiert sich weiter jede Minute.',
+      }
+  }
 }
 
 function checkedText(status: SystemStatus | null, serverUnreachable: boolean): string {

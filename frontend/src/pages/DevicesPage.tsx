@@ -19,6 +19,7 @@ import { PlusIcon } from '../components/Icons'
 import type { Page } from '../components/Navigation'
 import { ErrorMessage, LoadingMessage } from '../components/StateMessages'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
+import { useLiveRefresh } from '../hooks/useLiveRefresh'
 
 type DevicesPageProps = {
   onNavigate: (page: Page) => void
@@ -57,6 +58,8 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   // Der Tuya-Hintergrund-Abgleich speichert neue Werte auch ohne Klick. Ein offenes Bearbeiten-Formular
   // bleibt dabei erhalten, sein Inhalt steht im State der DeviceTile.
   useAutoRefresh(() => setReloadKey((key) => key + 1))
+  // Meldet das Backend eine Änderung über den Live-Kanal, sofort neu laden.
+  useLiveRefresh(() => setReloadKey((key) => key + 1))
 
   // Räume laden. Man braucht sie für das Formular, den Raumfilter und die Gruppen.
   function loadRooms() {
