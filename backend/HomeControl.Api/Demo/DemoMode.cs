@@ -69,8 +69,9 @@ public static class DemoMode
         if (demoMode)
         {
             // Der echte TuyaClient bekommt statt des Netzwerks die Fake-Cloud als "letzten" Handler.
+            services.AddSingleton<DemoSimulation>();
             tuyaHttpClient.ConfigurePrimaryHttpMessageHandler(provider =>
-                new DemoTuyaHandler(provider.GetRequiredService<TimeProvider>()));
+                new DemoTuyaHandler(provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<DemoSimulation>()));
             services.AddSingleton<IBlinkCameraClient, DemoBlinkCameraClient>();
             services.AddScoped<DemoDataSeeder>();
         }

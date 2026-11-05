@@ -8,6 +8,7 @@ using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
 using HomeControl.Api.RateLimiting;
+using HomeControl.Api.Realtime;
 using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.Authentication;
@@ -79,6 +80,8 @@ builder.Services.AddHostedService<TuyaSyncBackgroundService>();
 // Merkt sich, welche Tuya-Geräte online sind (Status-LEDs, GET /api/status). Gefüllt vom Abgleich,
 // ohne Hintergrund-Abgleich höchstens alle 5 Minuten neu geladen (siehe Status/TuyaOnlineCache.cs).
 builder.Services.AddSingleton<TuyaOnlineCache>();
+// Verteilt Geräteänderungen an offene Browser-Verbindungen (GET /api/live/devices, docs/ECHTZEIT.md).
+builder.Services.AddSingleton<DeviceChangeHub>();
 
 // Data Protection: Schlüssel liegen außerhalb des Repos (überleben git clean/checkout).
 // SetApplicationName hält den Schlüssel unabhängig vom Pfad des Checkouts gleich – sonst
@@ -301,6 +304,7 @@ app.MapTuyaEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
+app.MapRealtimeEndpoints();
 app.MapDemoEndpoints();
 app.MapUserEndpoints();
 app.MapSystemEndpoints();

@@ -9,7 +9,7 @@ namespace HomeControl.Api.Demo;
 // (ConfigurePrimaryHttpMessageHandler in DemoRegistration). Gleiches Prinzip wie FakeTuyaHandler in den Tests:
 // Alles hinter dem HttpClient bleibt echter Code (Signatur, Token-Cache, Abgleich, Messwerte, Online-LEDs),
 // nur die Antworten sind erfunden. Werte und Codes im Format der echten Tuya-Cloud (docs/TUYA.md).
-public class DemoTuyaHandler(TimeProvider timeProvider) : HttpMessageHandler
+public class DemoTuyaHandler(TimeProvider timeProvider, DemoSimulation simulation) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -46,7 +46,14 @@ public class DemoTuyaHandler(TimeProvider timeProvider) : HttpMessageHandler
                 return Json("""{ "success": false, "code": 2009, "msg": "device not found" }""");
             }
 
-            return Ok(StatusItems(DemoBehavior.StateAt(device, timeProvider.GetUtcNow())));
+            var state = DemoBehavior.StateAt(device, timeProvider.GetUtcNow());
+            // Simulierte Tür (POST /api/demo/simulation/tuer) geht vor dem Zeitplan.
+            if (device.Kind == DemoKind.Door && simulation.DoorOpen is { } open)
+            {
+                state = state with { DoorOpen = open };
+            }
+
+            return Ok(StatusItems(state));
         }
 
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));

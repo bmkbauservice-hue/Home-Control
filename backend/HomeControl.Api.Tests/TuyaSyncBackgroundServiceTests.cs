@@ -45,6 +45,7 @@ public class TuyaSyncBackgroundServiceTests : IDisposable
         collection.AddSingleton<IOptionsMonitor<TuyaOptions>>(options);
         collection.AddSingleton<TuyaTokenStore>();
         collection.AddSingleton<TuyaOnlineCache>();
+        collection.AddSingleton<HomeControl.Api.Realtime.DeviceChangeHub>();
         collection.AddScoped(sp => new TuyaClient(
             new HttpClient(tuya) { BaseAddress = new Uri("https://tuya.test") },
             options, sp.GetRequiredService<TuyaTokenStore>(), clock));
