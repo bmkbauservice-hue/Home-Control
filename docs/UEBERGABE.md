@@ -10,15 +10,17 @@ was offen ist und welche Regeln gelten.
 
 - Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
 - Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
-- Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Android-Quellcode enthält Temperatur-Traits, bisher keinen Aufruf des Senders.
-- `tools/android-bridge-einrichten.py` ergänzt die vorhandene Android-Test-App nach Quellcode-Prüfung und Sicherung. Erster Hardwaretest über USB; tatsächlicher Build und Sensor-Empfang noch offen.
+- Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Alle vier vom Nutzer im USB-Test bestätigt; Android-Build und Installation erfolgreich. Flur und Küche aus der Klima-Ansicht ausblenden, die Räume selbst erhalten.
+- `tools/android-bridge-einrichten.py` ergänzt die vorhandene Android-Test-App nach Quellcode-Prüfung und Sicherung. Android-App im Vordergrund, USB und Gateway-Terminal müssen weiterlaufen.
 - ADB-Auswahl berücksichtigt zusätzliche Netzwerkgeräte: ein USB-Handy automatisch, bei mehreren USB-Geräten `--device SERIENNUMMER`. Keine Mi Box trennen und keinen ADB-Server neu starten.
 - Klima-Seite zeigt nur Räume mit Zuordnung oder Messwert. Fehlende Messwerte bleiben leer.
-- Docker ist vorhanden; Klima-SQLite wird im Daten-Volume gespeichert, Demo separat. Docker-Gateway-Weg und Volume-Test stehen noch aus.
+- Docker enthält jetzt einen optionalen Sensor-Gateway im Netzwerkraum der API. Neuer CI-Test baut das Image und prüft Gateway und Datenerhaltung nach Container-Neuerstellung. Tatsächlichen CI-Ausgang am neuesten Commit prüfen; auf dem Nutzer-PC noch nicht gestartet.
 - Blink ist vorhanden, im Test bewusst aus. Vor dem Übernehmen aktuelle tokenführende Instanz bestimmen und Token/Schlüssel erhalten.
 - Anleitung und Grenzen: [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
 - Nutzer bestätigt inzwischen: Android-App erfolgreich gebaut/installiert und alle vier Klimasensoren in Home Control sichtbar/aktualisiert. Nur USB-Testbetrieb ist damit bestätigt.
-- Aktueller Arbeitsschritt: Badlicht, Bar Licht und Stehlampe schaltbar bekommen sowie letzte Messung der Silvergear Smart Scale anzeigen. Lesendes Werkzeug `tools/TuyaDiagnose` ergänzt; direkte Online-Antworten und echte Waagen-Datenpunkte müssen lokal geprüft werden. Anleitung: [TUYA_DIAGNOSE_UND_WAAGE.md](TUYA_DIAGNOSE_UND_WAAGE.md).
+- Tuya-Diagnose lokal ausgeführt: Bad Licht, Barlicht, Licht Wohnzimmer in App-Liste UND direkter Geräteinformation offline; `switch_1` vorhanden. Tuya bietet Reparatur dieser drei Geräte an. Nutzer verschiebt Neukopplung ausdrücklich. Kein Online-Schutz umgehen und keine Zuordnung löschen.
+- Silvergear Smart Scale fehlt in der abgefragten Cloud-Geräteliste. Tatsächliche Bluetooth-Messwerte sind weiter unbekannt. Keine Werte erfinden und keinen beliebigen Eigenschaftszeitpunkt als Wiegezeit ausgeben.
+- Teststarter merkt sich nun dieselben Haus-/Klima-Dateien; `--nur-sichern` übernimmt die laufende eigene Test-API ohne Neustart. Zuerst so die aktuellen Zuordnungen sichern. Ohne gültige Sitzung ältere Kopien nicht still ersetzen. Anleitung und Blink-Übernahmegrenzen: [TESTDATEN_UND_CONTAINER.md](TESTDATEN_UND_CONTAINER.md).
 - Validierung: Python-Einbau- und SQLite-Tests lokal. In dieser Bearbeitungsumgebung fehlen .NET SDK, Android SDK und Docker; deshalb sind lokale Gesamtprüfung, Android-Build und Container-Lauf hier nicht nachgewiesen. GitHub-CI separat prüfen.
 
 Die folgenden Tabellen dokumentieren auch frühere Entwicklungsschritte; bei widersprechenden Angaben gilt der obige aktuelle Arbeitsstand.
@@ -169,4 +171,5 @@ Aufgabe: <hier die Aufgabe, z. B. Punkt 4 aus docs/UEBERGABE.md>
 | `tools/BlinkSpike/` | Erst-Login bei Blink mit 2FA |
 | `tools/lernpdf/` | Skripte für die Lern-PDFs |
 | `tools/demo-bilder/` | Zeichnet die Demo-Kamerabilder (Pillow) |
+
 

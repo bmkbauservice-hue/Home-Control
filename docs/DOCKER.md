@@ -75,8 +75,9 @@ Seit der Klima-Integration liegt zusätzlich `homecontrol-climate.db` unter `/da
 `Climate__DatabasePath` ist im Dockerfile und in der Konfigurationsvorlage gesetzt.
 Die Demo überschreibt den Pfad mit `/data/homecontrol-climate-demo.db` im tmpfs.
 Bei einer Sicherung müssen Haus- und Klima-Datenbank erhalten werden.
-Der neue USB-Sensor-Test läuft zunächst gegen das Host-Backend auf 5181;
-der Gateway-Weg in den Container ist noch zu prüfen. Siehe [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
+Der bestätigte USB-Sensor-Test läuft gegen das Host-Backend auf 5181.
+Der optionale Compose-Dienst `sensor-gateway` leitet intern über Loopback weiter (Profil `sensoren`,
+Host-Port 5391). Ablauf, Datensicherung und Grenzen: [TESTDATEN_UND_CONTAINER.md](TESTDATEN_UND_CONTAINER.md).
 
 | Volume | Im Container | Inhalt |
 |---|---|---|
@@ -106,4 +107,5 @@ Blink-Token nach einem Update nicht mehr entschlüsseln.
   `localhost` die Adresse des Docker-Netzes, nicht die des Geräts. Alle lokalen Zugriffe teilen sich dann einen
   Zähler.
 - Ports nur auf `127.0.0.1`. Von außen ist der Container nicht direkt erreichbar.
+
 

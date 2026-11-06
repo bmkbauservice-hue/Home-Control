@@ -40,3 +40,14 @@ jobs:
       - name: Frontend Lint
         working-directory: frontend
         run: npm run lint
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Container-Image bauen
+        run: docker build -t homecontrol:latest .
+      - name: Sensor-Gateway und dauerhafte Daten prüfen
+        run: python3 tools/tests/docker_smoke.py
+

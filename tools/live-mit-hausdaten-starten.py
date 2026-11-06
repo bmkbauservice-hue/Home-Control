@@ -2,6 +2,8 @@
 """Startet die Wetter-/Schalter-Testversion mit einer sicheren Kopie der bestehenden Hausdaten."""
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import sqlite3
 import subprocess
@@ -14,6 +16,75 @@ from uuid import uuid4
 BASE = Path(__file__).resolve().parent.parent
 SCHOOL = Path.home() / "Schreibtisch" / "Umschulung"
 SNAPSHOTS = Path.home() / ".local" / "share" / "home-control" / "test-snapshots"
+PROC = Path("/proc")
+
+
+def checked_session(data: dict) -> tuple[Path, Path]:
+    """Nur eigene Testkopien zulassen, niemals eine Produktionsdatenbank."""
+    if not isinstance(data, dict) or data.get("version") != 1:
+        raise ValueError("Unbekanntes Sitzungsformat.")
+    paths = []
+    for name in ("house", "climate"):
+        path = Path(data[name]).resolve(strict=True)
+        if not path.is_relative_to(SNAPSHOTS.resolve()) or not path.is_file():
+            raise ValueError("Die Sitzung verweist nicht auf eigene Testdaten.")
+        paths.append(path)
+    if paths[0] == paths[1] or counts(paths[0]) is None:
+        raise ValueError("Ungültige Haus- oder Klima-Datenbank.")
+    with closing(sqlite3.connect(paths[1].as_uri() + "?mode=ro", uri=True)) as db:
+        if db.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+            raise ValueError("Klima-Datenbank nicht lesbar.")
+    return paths[0], paths[1]
+
+
+def save_session(house: Path, climate: Path) -> None:
+    data = {"version": 1, "house": str(house.resolve()), "climate": str(climate.resolve())}
+    checked_session(data)
+    temporary = SNAPSHOTS / f"session-{uuid4().hex}.tmp"
+    try:
+        with temporary.open("x", encoding="utf-8") as file:
+            os.chmod(temporary, 0o600)
+            json.dump(data, file)
+            file.flush()
+            os.fsync(file.fileno())
+        temporary.replace(SNAPSHOTS / "session.json")
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def running_session() -> tuple[Path, Path] | None:
+    """Linux: Nur Pfade der eigenen Test-API lesen, keine Geheimnisse ausgeben."""
+    found = []
+    for process in PROC.glob("[0-9]*"):
+        try:
+            if process.stat().st_uid != os.getuid():
+                continue
+            if (process / "cwd").resolve(strict=True) != (BASE / "backend/HomeControl.Api").resolve():
+                continue
+            values = dict(part.split(b"=", 1) for part in (process / "environ").read_bytes().split(b"\0") if b"=" in part)
+            if values.get(b"ASPNETCORE_URLS") != b"http://127.0.0.1:5181":
+                continue
+            connection = values.get(b"ConnectionStrings__DefaultConnection", b"").decode()
+            if not connection.startswith("Data Source=") or ";" in connection:
+                raise ValueError("Test-Datenbankpfad der laufenden API ist nicht eindeutig.")
+            found.append(checked_session({"version": 1, "house": connection[12:],
+                                         "climate": values.get(b"Climate__DatabasePath", b"").decode()}))
+        except (PermissionError, ProcessLookupError, FileNotFoundError):
+            continue
+    if len(found) > 1:
+        raise ValueError("Mehrere Test-APIs gefunden. Keine Sitzung verändert.")
+    return found[0] if found else None
+
+
+def backup_session(house: Path, climate: Path) -> Path:
+    target = SNAPSHOTS / "sicherungen" / f"{datetime.now():%Y%m%d-%H%M%S}-{uuid4().hex[:6]}"
+    target.mkdir(mode=0o700, parents=True)
+    copy_sqlite(house, target / "homecontrol.db")
+    copy_sqlite(climate, target / "homecontrol-climate.db")
+    if counts(target / "homecontrol.db") is None:
+        raise ValueError("Sicherung der Hausdaten nicht lesbar.")
+    print(f"Haus- und Klima-Daten separat gesichert: {target}")
+    return target
 
 
 def counts(path: Path) -> tuple[int, int] | None:
@@ -82,10 +153,39 @@ def climate_snapshot(label: str) -> Path:
     return target
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--nur-sichern", action="store_true", help="Aktuelle Testdaten sichern, keinen Dienst starten.")
+    parser.add_argument("--neu", action="store_true", help="Bewusst neue Kopien importieren; die bisherige Sitzung bleibt gesichert.")
+    args = parser.parse_args(argv or [])
     if not (BASE / "app-starten.sh").is_file():
         print("Fehler: App-Startskript im Projekt nicht gefunden.")
         return 1
+
+    os.umask(0o077)
+    try:
+        active = running_session()
+        manifest = SNAPSHOTS / "session.json"
+        session = active or (checked_session(json.loads(manifest.read_text())) if manifest.exists() else None)
+        if session:
+            backup_session(*session)
+            save_session(*session)
+        if active:
+            print("Laufende Testversion auf Port 5181 erkannt und gesichert. Kein Neustart ausgeführt.")
+            return 0
+        if args.nur_sichern:
+            if not session:
+                print("Keine laufende oder gespeicherte Test-Sitzung gefunden. Nichts verändert.")
+                return 2
+            return 0
+        if session and not args.neu:
+            print("Gespeicherte Test-Sitzung wird mit denselben Zuordnungen und Geräten fortgesetzt.")
+            return launch(*session)
+        if not session and not args.neu and SNAPSHOTS.exists() and any(SNAPSHOTS.glob("*.db")):
+            raise ValueError("Ältere Testkopien ohne Sitzung gefunden. Zuerst die bisherige Test-API sichern; --neu importiert bewusst neu.")
+    except (OSError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
+        print(f"Sitzung nicht verändert: {type(exc).__name__}: {exc}")
+        return 7
 
     candidates: list[tuple[Path, tuple[int, int]]] = []
     for folder in SCHOOL.glob("Home-Control*"):
@@ -135,15 +235,20 @@ def main() -> int:
     print("Achtung: Die Schalter können ECHTE Tuya-Geräte bedienen. Nur unkritische Lampen testen.")
     print("Zum Beenden im Terminal Strg+C drücken.\n", flush=True)
 
+    try:
+        climate_db = climate_snapshot(target.stem)
+        save_session(target, climate_db)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"Klima-Sicherheitskopie fehlgeschlagen: {type(exc).__name__}: {exc}")
+        return 6
+    return launch(target, climate_db)
+
+
+def launch(target: Path, climate_db: Path) -> int:
     environment = os.environ.copy()
     environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     environment["ASPNETCORE_URLS"] = "http://127.0.0.1:5181"
     environment["ConnectionStrings__DefaultConnection"] = f"Data Source={target}"
-    try:
-        climate_db = climate_snapshot(target.stem)
-    except (OSError, sqlite3.Error) as exc:
-        print(f"Klima-Sicherheitskopie fehlgeschlagen: {type(exc).__name__}: {exc}")
-        return 6
     environment["Climate__DatabasePath"] = str(climate_db)
     key_file = Path.home() / ".config" / "home-control" / "sensor-bridge.key"
     if key_file.is_file():
@@ -163,4 +268,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
+
