@@ -1,4 +1,5 @@
 using HomeControl.Api.Contracts;
+using HomeControl.Api.Climate;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -24,6 +25,8 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
 
     private readonly string dbPath =
         Path.Combine(Path.GetTempPath(), $"homecontrol-test-{Guid.NewGuid():N}.db");
+    private readonly string climateDbPath =
+        Path.Combine(Path.GetTempPath(), $"homecontrol-climate-test-{Guid.NewGuid():N}.db");
 
     private Task<(string AdminToken, string UserToken)>? tokens;
 
@@ -33,6 +36,7 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
     private static readonly Dictionary<string, string?> FixedSettings = new()
     {
         ["Auth:RequireLoginForReading"] = "false",
+        ["SensorBridge:Key"] = "",
         ["Agent:ApiKey"] = "",
         // Großzügige Grenzen: Die Tests melden sich sehr oft an. Mit den echten Werten aus
         // appsettings.json (10 pro Minute) bekämen sie 429. Kleine Grenzen nur in RateLimitingTests.
@@ -63,8 +67,12 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
         // Läuft nach Program.cs und hängt eine weitere Einstellung an den DbContext an.
         // Das zweite UseSqlite ersetzt den Connection String aus appsettings.json.
         builder.ConfigureTestServices(services =>
+        {
             services.ConfigureDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite($"Data Source={dbPath}")));
+                options.UseSqlite($"Data Source={dbPath}"));
+            services.ConfigureDbContext<ClimateDbContext>(options =>
+                options.UseSqlite($"Data Source={climateDbPath}"));
+        });
     }
 
     // Legt einmal pro Factory einen Admin (erster Benutzer) und einen User an und meldet beide an.
@@ -115,6 +123,7 @@ public class HomeControlApiFactory : WebApplicationFactory<Program>
         try
         {
             File.Delete(dbPath);
+            File.Delete(climateDbPath);
         }
         catch (IOException)
         {
