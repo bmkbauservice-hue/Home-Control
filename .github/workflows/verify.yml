@@ -1,0 +1,40 @@
+name: Home Control prüfen
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: .NET Werkzeuge laden
+        run: dotnet tool restore
+      - name: Backend bauen
+        run: dotnet build --nologo
+      - name: Datenmodell und Migrationen prüfen
+        run: dotnet ef migrations has-pending-model-changes --project backend/HomeControl.Api --no-build
+      - name: Backend-Tests
+        run: dotnet test --nologo --no-build
+      - name: Frontend installieren
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Frontend bauen
+        working-directory: frontend
+        run: npm run build
+      - name: Frontend Lint
+        working-directory: frontend
+        run: npm run lint
