@@ -47,13 +47,14 @@ class LiveStartTests(unittest.TestCase):
         result, output, start = self.run_start()
         self.assertEqual(0, result)
         self.assertIn("2/3", output)
-        snapshot = next(self.snapshots.glob("*.db"))
+        snapshot = next(self.snapshots.glob("homecontrol-test-*.db"))
         self.assertEqual((2, 3), module.counts(snapshot))
         self.assertEqual((2, 3), module.counts(self.main_db))
         self.assertNotEqual(snapshot, self.main_db)
         self.assertEqual(0o600, snapshot.stat().st_mode & 0o777)
         self.assertEqual("http://127.0.0.1:5181", start.call_args.kwargs["env"]["ASPNETCORE_URLS"])
         self.assertEqual("false", start.call_args.kwargs["env"]["Blink__Enabled"])
+        self.assertTrue(Path(start.call_args.kwargs["env"]["Climate__DatabasePath"]).is_file())
 
     def test_ohne_geraete_wird_nicht_gestartet(self):
         self.set_db(devices=0)
