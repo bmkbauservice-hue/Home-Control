@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DemoBanner } from './components/DemoBanner'
 import { Navigation, type Page } from './components/Navigation'
 import { BlinkPage } from './pages/BlinkPage'
+import { ClimatePage } from './pages/ClimatePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { ReportsPage } from './pages/ReportsPage'
@@ -56,6 +57,7 @@ function AppShell() {
           {page === 'dashboard' && <DashboardPage onNavigate={navigate} onOpenRoom={openDevicesInRoom} />}
           {page === 'rooms' && <RoomsPage />}
           {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}
+          {page === 'climate' && <ClimatePage />}
           {page === 'reports' && <ReportsPage />}
           {page === 'blink' && <BlinkPage />}
           {page === 'settings' && isAdmin && <SettingsPage />}
