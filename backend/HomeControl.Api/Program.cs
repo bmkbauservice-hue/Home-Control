@@ -306,6 +306,7 @@ app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapWeatherEndpoints();
+app.MapTuyaControlEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
