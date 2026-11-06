@@ -29,6 +29,8 @@ jobs:
         run: dotnet ef migrations has-pending-model-changes --project backend/HomeControl.Api --no-build
       - name: Backend-Tests
         run: dotnet test --nologo --no-build
+      - name: SQLite-Startskript testen
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
       - name: Frontend installieren
         working-directory: frontend
         run: npm ci --no-audit --no-fund
