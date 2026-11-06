@@ -3,6 +3,7 @@ import { deviceToInput, getDeviceTypeLabel, type Device, type DeviceInput } from
 import type { Room } from '../api/rooms'
 import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
+import { DeviceSwitch } from './DeviceSwitch'
 import { DeviceFields } from './DeviceFields'
 import { DeviceTypeIcon } from './DeviceTypeIcon'
 import { EditIcon, HistoryIcon, TrashIcon } from './Icons'
@@ -21,12 +22,13 @@ type DeviceTileProps = {
   // Beide Funktionen geben true zurück, wenn die Aktion geklappt hat.
   onSave: (input: DeviceInput) => Promise<boolean>
   onDelete: () => Promise<boolean>
+  onSwitched: () => void
 }
 
 // Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen – zusätzlich den Verlauf zeigen.
 type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
-export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSave, onDelete }: DeviceTileProps) {
+export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSave, onDelete, onSwitched }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
   const [input, setInput] = useState<DeviceInput>(deviceToInput(device))
   const [busy, setBusy] = useState(false)
@@ -173,6 +175,7 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
           </>
         )}
       </dl>
+      <DeviceSwitch device={device} onlineState={onlineState} onSwitched={onSwitched} />
       <div className="tile-actions tile-actions-row">
         <button type="button" className="button" onClick={() => setMode('events')}>
           <HistoryIcon size={20} />
