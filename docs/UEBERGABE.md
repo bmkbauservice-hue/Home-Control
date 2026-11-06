@@ -21,10 +21,18 @@ was offen ist und welche Regeln gelten.
 - Tuya-Diagnose lokal ausgeführt: Bad Licht, Barlicht, Licht Wohnzimmer in App-Liste UND direkter Geräteinformation offline; `switch_1` vorhanden. Tuya bietet Reparatur dieser drei Geräte an. Nutzer verschiebt Neukopplung ausdrücklich. Kein Online-Schutz umgehen und keine Zuordnung löschen.
 - Neue Admin-Seite „Waage“: Gerätezuordnung, Gewichtsfeld bewusst auswählen, alle gemeldeten Cloud-Eigenschaften mit Rohwert, belegter Skalierung/Einheit und eigener Meldezeit. Keine Körperwerte werden lokal gespeichert. Silvergear fehlt bisher in der Cloud-Liste; echte Bluetooth-Daten bleiben unbestätigt. Anleitung: [WAAGE.md](WAAGE.md).
 - Teststarter merkt sich nun dieselben Haus-/Klima-Dateien; `--nur-sichern` übernimmt die laufende eigene Test-API ohne Neustart. Zuerst so die aktuellen Zuordnungen sichern. Ohne gültige Sitzung ältere Kopien nicht still ersetzen. Anleitung und Blink-Übernahmegrenzen: [TESTDATEN_UND_CONTAINER.md](TESTDATEN_UND_CONTAINER.md).
-- CI auf `b45a56c4` erfolgreich: .NET/Tests/Migrationen/Frontend sowie echter Docker-Bau, Gateway-Schlüsselprüfung und Datenerhaltung nach Neuerstellung. Die anschließende Waagen-Erweiterung muss am neuesten Commit erneut vollständig geprüft werden. Kein Hardwaretest der Waage und keine Docker-/Blink-Umstellung auf dem Nutzer-PC.
+- CI auf `7e65ae3b` vollständig erfolgreich: 289 Backend-Tests, 21 Python-Tests, 3 Formatierungstests, Migrationen und Frontend-Build/Lint sowie echter Docker-Bau, Gateway-Schlüsselprüfung und Datenerhaltung nach Neuerstellung. Prüflauf: https://github.com/bmkbauservice-hue/Home-Control/actions/runs/42218272723. Kein Hardwaretest der Waage und keine Docker-/Blink-Umstellung auf dem Nutzer-PC. Browserdarstellung hier wegen Laufzeitbeschränkungen nicht geprüft.
 - Validierung: Python-Einbau- und SQLite-Tests lokal. In dieser Bearbeitungsumgebung fehlen .NET SDK, Android SDK und Docker; deshalb sind lokale Gesamtprüfung, Android-Build und Container-Lauf hier nicht nachgewiesen. GitHub-CI separat prüfen.
 
 Die folgenden Tabellen dokumentieren auch frühere Entwicklungsschritte; bei widersprechenden Angaben gilt der obige aktuelle Arbeitsstand.
+
+### Wiedereinstieg nach der Abwesenheit
+
+1. USB-Handy, Android-App und laufendes Gateway-Terminal zunächst weiterlaufen lassen.
+2. Im bestehenden `Home-Control-Gemeinsam` den aktuellen PR-41-Stand abrufen und nur per Fast-forward übernehmen. Das startet und stoppt keinen Dienst.
+3. Noch vor einem Backend-Neustart `python3 tools/live-mit-hausdaten-starten.py --nur-sichern` aus diesem Ordner ausführen. Nur bei bestätigter Sicherung mit dem Neustart fortfahren. Bei nicht eindeutig erkannter Sitzung keine alte Datenbank auf Verdacht auswählen.
+4. Danach die Testversion mit `python3 tools/live-mit-hausdaten-starten.py` fortsetzen; für neue Funktionen ist ein Backend-Neustart nötig. `--neu` ist dafür ausdrücklich nicht gedacht. `app-starten.sh` nicht direkt ohne die Sitzungsumgebung starten.
+5. Drei Tuya-Steckdosen bleiben bis zur vom Nutzer gewünschten Neukopplung offen. Silvergear-Cloud-Zugriff und Blink-Übernahme benötigen die tatsächlichen lokalen Verbindungen. Keine zusätzlichen Worktrees und kein paralleles Blink-Login anlegen.
 
 **Neuer Entwurf (PR #40, noch nicht auf `main` oder im Dauerdienst):** Live-Wetter/Open-Meteo,
 Uhr und Tuya-EIN/AUS für Admins mit Online-Prüfung und Readback, neue GitHub-CI.
