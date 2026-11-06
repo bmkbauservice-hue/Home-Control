@@ -29,7 +29,7 @@ Schlüssel: `~/.config/home-control/sensor-bridge.key`, Rechte 0600. Android-`lo
 
 ```bash
 curl -i http://127.0.0.1:5390/healthz
-curl -i -X POST http://127.0.0.1:5390/api/climate/bridge/readings
+curl -i -X POST -H 'Content-Type: application/json' --data '{}' http://127.0.0.1:5390/api/climate/bridge/readings
 tail -30 /tmp/home-control-wetter-api.log
 tail -30 /tmp/home-control-sensor-gateway.log
 adb -s c84bca2 logcat -d -s HomeControlBridge:V
