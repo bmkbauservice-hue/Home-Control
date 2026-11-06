@@ -74,7 +74,7 @@ def set_up_frontend():
       "  const [readings, setReadings] = useState<ClimateReading[]>([])\n  const [bridgeSensors, setBridgeSensors] = useState<BridgeSensor[]>([])")
     patch(page,
       "return Promise.all([getRooms(), getClimate(), getClimateRoomVisibility()])\n      .then(([loadedRooms, loadedReadings, loadedVisibility]) => {",
-      "return Promise.all([getRooms(), getClimate(), getClimateRoomVisibility(), getBridgeSensors()])\n      .then(([loadedRooms, loadedReadings, loadedVisibility, loadedSensors]) => {")
+      "return Promise.all([getRooms(), getClimate(), getClimateRoomVisibility(), getBridgeSensors().catch(() => [] as BridgeSensor[])])\n      .then(([loadedRooms, loadedReadings, loadedVisibility, loadedSensors]) => {")
     patch(page, "        setVisibility(loadedVisibility)",
       "        setVisibility(loadedVisibility)\n        setBridgeSensors(loadedSensors)")
     patch(page, "  const climateRooms = rooms.filter((room) => {",
