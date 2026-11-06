@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import subprocess
+from contextlib import closing
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +19,7 @@ SNAPSHOTS = Path.home() / ".local" / "share" / "home-control" / "test-snapshots"
 def counts(path: Path) -> tuple[int, int] | None:
     """Nur die Anzahlen lesen, keine persönlichen Daten ausgeben."""
     try:
-        with sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=4) as db:
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=4)) as db:
             return (
                 db.execute("SELECT count(*) FROM Rooms").fetchone()[0],
                 db.execute("SELECT count(*) FROM Devices").fetchone()[0],
@@ -58,8 +59,8 @@ def main() -> int:
     try:
         # SQLite-Backup-API: kopiert konsistent auch bei aktiver WAL-Datenbank.
         # Das Original bleibt offen nur zum LESEN und wird niemals verändert.
-        with sqlite3.connect(f"file:{source}?mode=ro", uri=True, timeout=10) as original:
-            with sqlite3.connect(target, timeout=10) as copy:
+        with closing(sqlite3.connect(f"file:{source}?mode=ro", uri=True, timeout=10)) as original:
+            with closing(sqlite3.connect(target, timeout=10)) as copy:
                 original.backup(copy)
         os.chmod(target, 0o600)
     except (OSError, sqlite3.Error) as exc:
