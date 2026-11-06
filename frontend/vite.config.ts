@@ -7,8 +7,10 @@ export default defineConfig({
   server: {
     // Alle Aufrufe an /api werden an das .NET-Backend weitergeleitet.
     // So braucht das Frontend keine feste Backend-Adresse und kein CORS.
+    // Standard ist das Entwicklungs-Backend. Gegen den Dienst nur ausdrücklich, denn dort sind es echte Daten:
+    // HC_BACKEND=http://127.0.0.1:5200 npm run dev
     proxy: {
-      '/api': 'http://localhost:5111',
+      '/api': process.env.HC_BACKEND ?? 'http://localhost:5111',
     },
   },
 })

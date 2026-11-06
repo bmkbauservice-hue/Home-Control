@@ -48,7 +48,8 @@ docker compose --profile demo up # dasselbe im Container (docs/DOCKER.md)
 ```
 
 Entwickeln wie bisher: Backend `dotnet run` im Ordner `backend/HomeControl.Api` (Port 5111),
-Frontend `npm run dev` im Ordner `frontend` (Port 5173).
+Frontend `npm run dev` im Ordner `frontend` (Port 5173). Gegen den Dienst statt gegen das Entwicklungs-Backend:
+`HC_BACKEND=http://127.0.0.1:5200 npm run dev` (Vorsicht: echte Daten).
 
 **Auf dem MacBook** (zweiter Clone, ohne User Secrets, ohne Dienst, ohne Tuya/Blink): `./pruefen.sh` und
 `./demo-starten.sh` laufen unverändert. Für die Lern-PDFs `reportlab` in einer venv und die Schrift DejaVu
