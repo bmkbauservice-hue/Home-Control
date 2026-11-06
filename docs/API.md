@@ -40,6 +40,8 @@ Alle Daten werden als JSON gesendet und empfangen. IDs sind GUIDs.
 | DELETE | `/api/users/{id}` | Benutzer löschen (**Admin**, nicht sich selbst, nie den letzten Admin) | 204 | 401, 403, 404, 409 |
 | GET | `/api/system/info` | Version, Commit, Umgebung, Datenbankgröße, Bestand (**Admin**) | 200 | 401, 403 |
 | GET | `/api/demo` | Läuft der Demo-Modus? (ohne Anmeldung, für das Banner) | 200 | – |
+| POST | `/api/demo/simulation/tuer` | Nur im Demo-Modus: simulierte Haustür umschalten (**Admin**) | 204 | 401, 403, 404 |
+| GET | `/api/live/devices` | Server-Sent Events: welche Geräte sich geändert haben, nur JWT ([ECHTZEIT.md](ECHTZEIT.md)) | 200 (Strom) | 401, 503 |
 | GET | `/api/status` | Status-LEDs: Tuya-Cloud erreichbar?, jedes Gerät online/offline/unbekannt (aus dem Hintergrund-Abgleich, ohne ihn höchstens alle 5 min neu) | 200 | – |
 
 **Wer darf was:** Alle `GET`-Endpunkte sind standardmäßig ohne Anmeldung erreichbar (Frontend und

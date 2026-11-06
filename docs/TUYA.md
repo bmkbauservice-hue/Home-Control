@@ -331,6 +331,9 @@ Ereigniszeit gilt der Abruf, nicht die echte Änderung.
 
 ### Ausblick: Push statt Polling (Tuya Message Service)
 
+Aktuelles Rechercheergebnis mit offenen Risiken: [ECHTZEIT.md](ECHTZEIT.md), Abschnitt B. Vom Backend zum Browser
+ist der Weg schon sofort (Server-Sent Events), von Tuya zum Backend noch Polling.
+
 Tuya kann jede Gerätemeldung sofort schicken (**Message Service**, technisch Apache Pulsar,
 Europa `pulsar+ssl://mqe.tuyaeu.com:7285/`). Dann gäbe es keine verpassten Türöffnungen und die echte Uhrzeit.
 Geplant nach der Präsentation, zuerst als Spike (Konsolenprogramm wie `tools/BlinkSpike`):
@@ -340,7 +343,7 @@ Geplant nach der Präsentation, zuerst als Spike (Konsolenprogramm wie `tools/Bl
   [Python-SDK](https://github.com/tuya/tuya-pulsar-sdk-python).
 - Nachrichten AES-128 verschlüsselt (Schlüssel `Secret[8..24]`, GCM oder ECB), in .NET mit `AesGcm`.
 - Hintergrunddienst mit dauerhafter Verbindung, Wiederverbinden und Bestätigen.
-- Kontingent: laut Produktseite 68 000 Nachrichten im Monat. Man bekommt **alle** Meldungen (kein Filter);
+- Kontingent: laut Produktseite 68 000 Nachrichten im Monat, eine Drittquelle nennt 140 000; maßgeblich ist das Portal. Man bekommt **alle** Meldungen (kein Filter);
   Steckdosen mit Strommessung könnten viele schicken, das muss der Spike messen.
 - Voraussetzung: im Tuya-Portal den Reiter **Message Service** des Cloud-Projekts einschalten.
 

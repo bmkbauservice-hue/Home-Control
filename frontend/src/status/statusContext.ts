@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { LiveState } from '../api/liveEvents'
 import type { BlinkStatusInfo, OnlineState, SystemStatus } from '../api/status'
 
 export type StatusContextValue = {
@@ -15,6 +16,8 @@ export type StatusContextValue = {
   refreshing: boolean
   // Sofort neu abfragen (Knopf "Aktualisieren").
   refresh: () => void
+  // Live-Kanal zum Backend: Meldet es Änderungen sofort, oder bleibt nur das Neuladen jede Minute?
+  live: LiveState
   // LED-Zustand eines Geräts. 'unknown', solange nichts geladen ist.
   stateOf: (deviceId: string) => OnlineState
 }

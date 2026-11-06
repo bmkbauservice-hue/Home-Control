@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/http'
+import { startLiveEvents, subscribeDeviceChanges, type LiveState } from '../api/liveEvents'
 import { getBlinkStatus, getStatus, type BlinkStatusInfo, type OnlineState, type SystemStatus } from '../api/status'
 import { refreshIntervalMs } from '../hooks/useAutoRefresh'
 import { StatusContext, type StatusContextValue } from './statusContext'
@@ -17,6 +18,7 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   const [serverUnreachable, setServerUnreachable] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [live, setLive] = useState<LiveState>('connecting')
   // Verhindert, dass nach dem Verlassen der App noch ein State gesetzt wird.
   const active = useRef(true)
 
@@ -86,6 +88,17 @@ export function StatusProvider({ children }: { children: ReactNode }) {
     }
   }, [loadStatus, loadBlink])
 
+  // Live-Kanal: Meldet das Backend eine Änderung, die LEDs sofort neu laden. Der Kanal läuft nur hier, nach der
+  // Anmeldung, und endet beim Abmelden. Er ersetzt den Minutentakt oben nicht, er ergänzt ihn.
+  useEffect(() => {
+    const stopLive = startLiveEvents(setLive)
+    const unsubscribe = subscribeDeviceChanges(() => void loadStatus())
+    return () => {
+      unsubscribe()
+      stopLive()
+    }
+  }, [loadStatus])
+
   // Knopf "Aktualisieren": Hier ist setState erlaubt, denn es ist ein Klick (Ereignis), kein Effekt.
   const refresh = useCallback(() => {
     setRefreshing(true)
@@ -103,9 +116,10 @@ export function StatusProvider({ children }: { children: ReactNode }) {
       statusError,
       refreshing,
       refresh,
+      live,
       stateOf: (deviceId: string) => byId.get(deviceId) ?? 'unknown',
     }
-  }, [status, blink, serverUnreachable, statusError, refreshing, refresh])
+  }, [status, blink, serverUnreachable, statusError, refreshing, refresh, live])
 
   return <StatusContext.Provider value={value}>{children}</StatusContext.Provider>
 }

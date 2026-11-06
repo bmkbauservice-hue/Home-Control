@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HomeControl.Api.Data;
 using HomeControl.Api.Models;
+using HomeControl.Api.Realtime;
 using HomeControl.Api.Status;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,7 @@ public class TuyaDeviceSyncer(
     ApplicationDbContext db,
     TuyaClient client,
     TuyaOnlineCache onlineCache,
+    DeviceChangeHub changeHub,
     ILogger<TuyaDeviceSyncer> logger)
 {
     // Ein Abgleich gleichzeitig, sonst könnten zwei fast gleichzeitige Aufrufe (z. B. StrictMode)
@@ -89,6 +91,7 @@ public class TuyaDeviceSyncer(
 
             // Online/Offline aller Geräte aus EINER Abfrage, immer frisch. Das Ergebnis landet im selben
             // Speicher, aus dem die Status-LEDs lesen (TuyaOnlineCache). Nur beim Speichern nötig, siehe Apply.
+            var onlineBefore = onlineCache.Latest?.Online;
             var online = !apply ? null : refreshOnline ? await LoadOnlineAsync(cancellationToken) : CachedOnline();
 
             foreach (var device in devices)
@@ -139,7 +142,14 @@ public class TuyaDeviceSyncer(
 
             if (apply)
             {
+                var changedIds = FindChangedDevices(devices, onlineBefore, online);
                 await db.SaveChangesAsync(cancellationToken);
+
+                // Erst NACH dem Speichern melden: Der Browser lädt sofort neu und soll die neuen Werte bekommen.
+                if (changedIds.Count > 0)
+                {
+                    changeHub.Publish(new DeviceChangeEvent(changedIds, DeviceChangeSources.TuyaSync, DateTimeOffset.UtcNow));
+                }
             }
 
             return results;
@@ -148,6 +158,32 @@ public class TuyaDeviceSyncer(
         {
             SyncLock.Release();
         }
+    }
+
+    // Geräte, bei denen der Browser neu laden sollte: EF Core weiß, welche Zeilen sich wirklich geändert haben
+    // (gleicher Wert zählt nicht), dazu Geräte, deren Online-Zustand gewechselt hat (der steht nicht in der Tabelle).
+    private List<Guid> FindChangedDevices(
+        List<Device> devices,
+        IReadOnlyDictionary<string, bool?>? onlineBefore,
+        IReadOnlyDictionary<string, bool?>? onlineNow)
+    {
+        var changed = db.ChangeTracker.Entries<Device>()
+            .Where(entry => entry.State == EntityState.Modified)
+            .Select(entry => entry.Entity.Id)
+            .ToHashSet();
+
+        if (onlineNow is not null)
+        {
+            foreach (var device in devices)
+            {
+                if (IsOnline(onlineBefore, device.TuyaDeviceId!) != IsOnline(onlineNow, device.TuyaDeviceId!))
+                {
+                    changed.Add(device.Id);
+                }
+            }
+        }
+
+        return changed.ToList();
     }
 
     // Online-Zustand je Tuya-Id. null, wenn die Liste gerade nicht abrufbar ist: Dann wird so
