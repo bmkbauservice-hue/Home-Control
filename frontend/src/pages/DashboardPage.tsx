@@ -64,7 +64,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
     loadData()
   }
 
-  const { status, blink, serverUnreachable, statusError } = useStatus()
+  const { status, blink, serverUnreachable, statusError, stateOf } = useStatus()
   const overall = overallOf(status, blink, serverUnreachable, statusError)
   const activeDevices = devices.filter((device) => device.lastValue === 'EIN')
   // Im Demo-Modus ohne echten Namen: Auf dem Beamer soll nichts Persönliches stehen.
@@ -153,7 +153,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
             {activeDevices.map((device) => (
               <li key={device.id}>
                 <span>{device.roomName} · <strong>{device.name}</strong></span>
-                <DeviceSwitch device={device} onlineState="unknown" onSwitched={() => void loadData()} compact />
+                <DeviceSwitch device={device} onlineState={stateOf(device.id)} onSwitched={() => void loadData()} compact />
               </li>
             ))}
           </ul>
