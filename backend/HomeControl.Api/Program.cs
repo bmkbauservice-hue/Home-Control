@@ -58,7 +58,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Raumklima besitzt eine eigene Datenbank. So ändern wir keine bestehenden Haus-Migrationen.
 var climateFile = builder.Configuration["Climate:DatabasePath"] ?? Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "HomeControl", "homecontrol-climate.db");
+    "HomeControl", demoMode ? "homecontrol-climate-demo.db" : "homecontrol-climate.db");
+// Die Demo darf niemals die echte Klima-Datenbank lesen oder beschreiben.
+if (demoMode && !Path.GetFileName(climateFile).Contains("demo", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("Die Klima-Datenbank im Demo-Modus muss 'demo' im Dateinamen haben.");
 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(climateFile))!);
 builder.Services.AddDbContext<ClimateDbContext>(options => options.UseSqlite($"Data Source={climateFile}"));
 
