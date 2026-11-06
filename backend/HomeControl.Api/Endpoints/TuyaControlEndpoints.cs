@@ -5,6 +5,7 @@ using HomeControl.Api.Demo;
 using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Realtime;
 using HomeControl.Api.Tuya;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
