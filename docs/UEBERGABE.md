@@ -17,6 +17,8 @@ was offen ist und welche Regeln gelten.
 - Docker ist vorhanden; Klima-SQLite wird im Daten-Volume gespeichert, Demo separat. Docker-Gateway-Weg und Volume-Test stehen noch aus.
 - Blink ist vorhanden, im Test bewusst aus. Vor dem Übernehmen aktuelle tokenführende Instanz bestimmen und Token/Schlüssel erhalten.
 - Anleitung und Grenzen: [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
+- Nutzer bestätigt inzwischen: Android-App erfolgreich gebaut/installiert und alle vier Klimasensoren in Home Control sichtbar/aktualisiert. Nur USB-Testbetrieb ist damit bestätigt.
+- Aktueller Arbeitsschritt: Badlicht, Bar Licht und Stehlampe schaltbar bekommen sowie letzte Messung der Silvergear Smart Scale anzeigen. Lesendes Werkzeug `tools/TuyaDiagnose` ergänzt; direkte Online-Antworten und echte Waagen-Datenpunkte müssen lokal geprüft werden. Anleitung: [TUYA_DIAGNOSE_UND_WAAGE.md](TUYA_DIAGNOSE_UND_WAAGE.md).
 - Validierung: Python-Einbau- und SQLite-Tests lokal. In dieser Bearbeitungsumgebung fehlen .NET SDK, Android SDK und Docker; deshalb sind lokale Gesamtprüfung, Android-Build und Container-Lauf hier nicht nachgewiesen. GitHub-CI separat prüfen.
 
 Die folgenden Tabellen dokumentieren auch frühere Entwicklungsschritte; bei widersprechenden Angaben gilt der obige aktuelle Arbeitsstand.

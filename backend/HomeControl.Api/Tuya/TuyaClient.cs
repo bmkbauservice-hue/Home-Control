@@ -15,6 +15,10 @@ public record TuyaStatusItem(string Code, JsonElement Value);
 // Online ist das, was Tuya meldet (null, wenn Tuya nichts dazu sagt).
 public record TuyaCloudDevice(string Id, string Name, string ProductName, string Category, bool? Online);
 
+public record TuyaDataPointDefinition(string Code, string Name, string Type, string Values);
+public record TuyaDeviceSpecification(string Category, List<TuyaDataPointDefinition> Functions, List<TuyaDataPointDefinition> Status);
+public record TuyaReportedProperty(string Code, JsonElement Value, DateTimeOffset? ReportedAtUtc);
+
 // Tuya hat die Anfrage abgelehnt (z. B. falsche Zugangsdaten oder fehlende Berechtigung).
 // Code und Meldung stammen von Tuya und enthalten keine Geheimnisse.
 public class TuyaApiException(string tuyaCode, string tuyaMessage)
@@ -61,6 +65,62 @@ public class TuyaClient(
                 item.GetProperty("code").GetString() ?? string.Empty,
                 item.GetProperty("value").Clone()))
             .ToList();
+    }
+
+    // Direkte Geräteinformation zusätzlich zur App-Geräteliste prüfen. Private Felder bleiben verworfen.
+    public async Task<TuyaCloudDevice> GetDeviceInformationAsync(string deviceId, CancellationToken cancellationToken)
+    {
+        var result = await SendWithTokenAsync($"/v1.1/iot-03/devices/{Uri.EscapeDataString(deviceId)}", cancellationToken);
+        if (result.ValueKind != JsonValueKind.Object)
+            throw new JsonException("Tuya-Geräteinformation hat ein unerwartetes Format.");
+        if (!result.TryGetProperty("id", out _) && result.TryGetProperty("result", out var inner)
+            && inner.ValueKind == JsonValueKind.Object)
+            result = inner;
+        return ReadCloudDevice(result);
+    }
+
+    // Eigenschaften inklusive Einheit/Skalierung; Grundlage für neue Geräte, keine geratenen Faktoren.
+    public async Task<TuyaDeviceSpecification> GetDeviceSpecificationAsync(string deviceId, CancellationToken cancellationToken)
+    {
+        var result = await SendWithTokenAsync($"/v1.0/iot-03/devices/{Uri.EscapeDataString(deviceId)}/specification", cancellationToken);
+        if (result.ValueKind != JsonValueKind.Object)
+            throw new JsonException("Tuya-Gerätespezifikation hat ein unerwartetes Format.");
+        return new TuyaDeviceSpecification(ReadText(result, "category"), ReadDefinitions(result, "functions"), ReadDefinitions(result, "status"));
+    }
+
+    // Letzte Cloud-Eigenschaftswerte mit Meldezeit. Die Meldezeit ist nicht automatisch eine Wiegezeit.
+    public async Task<List<TuyaReportedProperty>> GetReportedPropertiesAsync(string deviceId, CancellationToken cancellationToken)
+    {
+        var result = await SendWithTokenAsync($"/v2.0/cloud/thing/{Uri.EscapeDataString(deviceId)}/shadow/properties", cancellationToken);
+        if (result.ValueKind != JsonValueKind.Object || !result.TryGetProperty("properties", out var properties)
+            || properties.ValueKind != JsonValueKind.Array)
+            throw new JsonException("Tuya-Eigenschaftswerte haben ein unerwartetes Format.");
+        return properties.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object)
+            .Select(item => new TuyaReportedProperty(ReadText(item, "code"),
+                item.TryGetProperty("value", out var value) ? value.Clone() : JsonSerializer.SerializeToElement((object?)null),
+                ReadReportedAt(item))).ToList();
+    }
+
+    private static string ReadText(JsonElement item, string name) =>
+        item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+
+    private static List<TuyaDataPointDefinition> ReadDefinitions(JsonElement result, string name)
+    {
+        if (!result.TryGetProperty(name, out var list) || list.ValueKind != JsonValueKind.Array)
+            return [];
+        return list.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object)
+            .Select(item => new TuyaDataPointDefinition(ReadText(item, "code"), ReadText(item, "name"), ReadText(item, "type"),
+                item.TryGetProperty("values", out var values)
+                    ? values.ValueKind == JsonValueKind.String ? values.GetString() ?? "" : values.GetRawText()
+                    : "")).ToList();
+    }
+
+    private static DateTimeOffset? ReadReportedAt(JsonElement item)
+    {
+        if (!item.TryGetProperty("time", out var time) || time.ValueKind != JsonValueKind.Number || !time.TryGetInt64(out var milliseconds))
+            return null;
+        try { return milliseconds > 0 ? DateTimeOffset.FromUnixTimeMilliseconds(milliseconds) : null; }
+        catch (ArgumentOutOfRangeException) { return null; }
     }
 
     // Nur ein ausdrücklich ermittelter Schaltcode wird an die Tuya-Cloud geschickt.
@@ -240,3 +300,4 @@ public class TuyaClient(
         return result.Clone();
     }
 }
+
