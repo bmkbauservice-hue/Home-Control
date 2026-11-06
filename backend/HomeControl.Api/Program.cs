@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
+using HomeControl.Api.Climate;
 using HomeControl.Api.Data;
 using HomeControl.Api.Demo;
 using HomeControl.Api.Endpoints;
@@ -53,6 +54,13 @@ if (!builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
+
+// Raumklima besitzt eine eigene Datenbank. So ändern wir keine bestehenden Haus-Migrationen.
+var climateFile = builder.Configuration["Climate:DatabasePath"] ?? Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "HomeControl", "homecontrol-climate.db");
+Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(climateFile))!);
+builder.Services.AddDbContext<ClimateDbContext>(options => options.UseSqlite($"Data Source={climateFile}"));
 
 // Legt bei Bedarf Demo-Daten an (siehe Data/DatabaseSeeder.cs).
 builder.Services.AddScoped<DatabaseSeeder>();
@@ -306,6 +314,7 @@ app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapWeatherEndpoints();
+app.MapClimateEndpoints();
 app.MapTuyaControlEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
