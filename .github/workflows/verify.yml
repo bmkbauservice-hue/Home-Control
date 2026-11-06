@@ -26,7 +26,7 @@ jobs:
       - name: Backend bauen
         run: dotnet build --nologo
       - name: Datenmodell und Migrationen prüfen
-        run: dotnet ef migrations has-pending-model-changes --project backend/HomeControl.Api --no-build
+        run: dotnet ef migrations has-pending-model-changes --context ApplicationDbContext --project backend/HomeControl.Api --no-build
       - name: Backend-Tests
         run: dotnet test --nologo --no-build
       - name: SQLite-Startskript testen
