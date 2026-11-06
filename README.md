@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Dein Zuhause auf einen Blick: Räume, Geräte, Energie, Batterien und Kameras –<br>
-  gelesen aus der Tuya-Cloud und von Blink, ohne dass die App etwas schaltet.</strong>
+  aus Tuya, Blink und Open-Meteo, mit sicheren Schaltern für verknüpfte Tuya-Geräte.</strong>
 </p>
 
 <p align="center">
@@ -29,9 +29,9 @@ Home Control ist eine Web-App für das eigene Zuhause. Sie zeigt in einer ruhige
 Welche Geräte an sind, was gerade Strom zieht, welcher Akku bald leer ist, ob die Haustür offen steht und was die
 Kameras zuletzt gesehen haben. Dazu gibt es pro Gerät einen Verlauf und eine Tagesauswertung.
 
-Die Daten kommen aus der **Tuya-Cloud** (Steckdosen, Lampen, Türsensor, Temperatur) und von **Blink** (Kameras).
-Die App ist bewusst **nur lesend**: Sie schaltet nichts. Einzige Ausnahme ist der Knopf „Neues Bild“ für Kameras
-(nur Admin, höchstens einmal pro Minute und Kamera).
+Die Gerätewerte kommen aus der **Tuya-Cloud**, die Kamerabilder von **Blink**, und das aktuelle Außenwetter von **Open-Meteo**.
+Tuya-Schalter können durch Admins ein- und ausgeschaltet werden, aber nur nach Online-Prüfung und mit bestätigter Rückmeldung.
+Außerdem gibt es den Blink-Knopf „Neues Bild“ (nur Admin, höchstens einmal pro Minute und Kamera).
 
 Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Geplant, entschieden
 und geprüft habe ich jeden Schritt selbst. Als Werkzeuge habe ich KI-Assistenten (Claude, Codex) eingesetzt, deshalb
@@ -42,6 +42,8 @@ steht Claude auch bei den Mitwirkenden.
 | | Bereich | Was die App kann |
 |---|---|---|
 | 🏠 | **Übersicht** | Begrüßung mit einer Aussage in einem Satz („Ein Gerät braucht deinen Blick“), Status-Leiste mit LEDs (Server, Tuya, Blink, Geräte online/offline), Raumkarten mit Gerätezeilen, „Energie jetzt“, Batterien, Kameras |
+| 🌤️ | **Live-Wetter** | Außentemperatur, Sonne/Wolken/Regen, Uhrzeit, Zeitstempel; Open-Meteo und 5-Minuten-Cache |
+| 💡 | **Steuern** | Licht, Steckdosen und Schalter mit Tuya-`switch_1` an/aus; Admin-Rechte und echte Zustandsbestätigung |
 | 🚪 | **Räume** | Anlegen, umbenennen, löschen, suchen |
 | 🔌 | **Geräte** | Anlegen, bearbeiten, löschen, suchen und filtern; Verknüpfung mit einem Tuya-Gerät; Zustand, Watt, Volt, Akku; Verlauf pro Gerät |
 | ⏱️ | **Hintergrund-Abgleich** | Holt die Werte automatisch bei Tuya, Takt pro Gerät (Standard 30 Minuten, Tür 3 Minuten), Backoff bei Störungen, Knopf „Mit Tuya abgleichen“ |
@@ -96,7 +98,7 @@ flowchart LR
         Sync["Hintergrund-Abgleich<br>BackgroundService"]
         DB[("SQLite<br>EF Core")]
     end
-    Tuya["Tuya-Cloud<br>nur lesend"]
+    Tuya["Tuya-Cloud<br>lesen + sichere Schaltbefehle"]
     Blink["Blink<br>nur lesend + Neues Bild"]
 
     Browser -- "HTTPS (Tailscale)" --> API
@@ -119,7 +121,7 @@ Mehr: [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) �
 | Sicherheit | ASP.NET Core Identity · JWT + Refresh-Token-Rotation · Rollen · Rate Limiting · Data Protection |
 | API | REST · DTOs · `AddValidation` + DataAnnotations · ProblemDetails · OpenAPI + Scalar |
 | Frontend | React 19 · TypeScript · Vite · eigenes CSS mit Design-Tokens · PWA |
-| Anbindungen | Tuya Cloud API (HMAC-SHA256, Token-Cache) · Blink (eigener HTTP-Client) |
+| Anbindungen | Tuya Cloud API (HMAC-SHA256, Token-Cache, Schaltbefehl) · Blink · Open-Meteo |
 | Qualität | über 230 xUnit-Tests · oxlint · `./pruefen.sh` (Build, Migrationen, Tests, Frontend, Lint) |
 | Betrieb | systemd-Dienst · Tailscale HTTPS · Docker (mehrstufiges Image, nicht als root, Healthcheck) |
 
