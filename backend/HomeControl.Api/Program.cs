@@ -178,6 +178,10 @@ builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("datenbank");
 // OpenAPI-Beschreibung der API (für die Scalar-Oberfläche)
 builder.Services.AddOpenApi();
 
+// Wetterdienst (Open-Meteo): fünf Minuten Zwischenspeicher, kurzer Timeout.
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient("weather", client => client.Timeout = TimeSpan.FromSeconds(8));
+
 // Einheitliche Fehlerantworten im ProblemDetails-Format (RFC 9457)
 builder.Services.AddProblemDetails();
 
@@ -301,6 +305,7 @@ app.MapDeviceEndpoints();
 app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
+app.MapWeatherEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
