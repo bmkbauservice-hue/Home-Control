@@ -23,6 +23,7 @@ public class AdminOnlyEndpointTests(HomeControlApiFactory factory) : IClassFixtu
         { "PUT", $"/api/devices/{SomeId}" },
         { "DELETE", $"/api/devices/{SomeId}" },
         { "POST", $"/api/devices/{SomeId}/events" },
+        { "POST", $"/api/tuya/devices/{SomeId}/switch" },
     };
 
     [Theory]
