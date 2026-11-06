@@ -39,7 +39,7 @@ schritt() {
 schritt "dotnet tool restore" dotnet tool restore
 schritt "dotnet build" dotnet build --nologo
 # Meldet einen Fehler, wenn sich das Datenmodell geändert hat, es aber noch keine Migration dafür gibt.
-schritt "Migrationen vollständig" dotnet ef migrations has-pending-model-changes --project backend/HomeControl.Api --no-build
+schritt "Migrationen vollständig" dotnet ef migrations has-pending-model-changes --context ApplicationDbContext --project backend/HomeControl.Api --no-build
 schritt "dotnet test" dotnet test --nologo --no-build
 schritt "npm ci" bash -c "cd frontend && npm ci --no-audit --no-fund"
 schritt "npm run build" bash -c "cd frontend && npm run build"
