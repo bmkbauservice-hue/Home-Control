@@ -23,6 +23,7 @@ d.numbered(["Gemeinsame Testversion auf Port 5181 laufen lassen und Android per 
 d.merksatz("Python-Tests prüfen den Einbau. Sie beweisen weder einen erfolgreichen Android-Build noch echte Sensorübertragung. Beides muss auf dem Linux-PC geprüft werden.", warn=True)
 d.page_break()
 d.h1("4  Grenzen des ersten Tests")
+d.p("Das Skript wählt ein eindeutig erkanntes USB-Handy. Weitere Netzwerkgeräte wie eine Mi Box bleiben verbunden. Bei mehreren USB-Geräten legt --device SERIENNUMMER das Ziel fest. Nicht freigegebene und offline gemeldete Geräte werden abgelehnt.")
 d.p("USB-Verbindung, Android-App im Vordergrund und Gateway-Terminal müssen offen bleiben. Dies ist noch kein Hintergrunddienst. Der Sender reagiert auf SDK-Ereignisse; alte Werte werden nicht als neue Messungen wiederholt.")
 d.p("Der Zeitstempel im Backend beschreibt den Empfang. Er belegt nicht den Zeitpunkt der Messung am physischen Sensor. Nicht vorhandene Luftfeuchte wird nicht aus einer Temperatur berechnet.")
 d.h1("5  Docker und Blink")

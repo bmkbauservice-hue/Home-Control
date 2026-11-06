@@ -15,7 +15,11 @@ Stand: 06.11.2026. Gemeinsamer Arbeitsstand: PR #41, lokaler Testordner
 ## Einbau auf dem Linux-PC
 
 Die vorhandene gemeinsame Testversion auf 5181 muss laufen. Das entsperrte Android-Handy
-per USB verbinden und USB-Debugging erlauben. Genau ein Gerät anschließen.
+per USB verbinden und USB-Debugging erlauben. Ein eindeutig erkanntes USB-Handy wird automatisch
+ausgewählt. Zusätzliche Netzwerkgeräte wie eine Mi Box bleiben verbunden und werden nicht benutzt.
+Bei mehreren USB-Geräten das Handy mit `--device SERIENNUMMER` ausdrücklich auswählen;
+alle ADB-Aufrufe verwenden anschließend genau dieses Ziel. Offline- oder nicht freigegebene
+Geräte werden abgelehnt.
 
 Im Ordner `Home-Control-Gemeinsam` zunächst nur prüfen:
 

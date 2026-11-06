@@ -24,6 +24,22 @@ ANDROID = "http://schemas.android.com/apk/res/android"
 TAG = "// Home Control: Sensor-Bridge"
 
 
+def select_device(output: str, requested: str | None = None) -> str:
+    """Ein USB-Handy auswählen; zusätzliche Netzwerkgeräte bleiben verbunden."""
+    ready = [line.split() for line in output.splitlines()
+             if len(line.split()) >= 2 and line.split()[1] == "device"]
+    if requested:
+        if any(fields[0] == requested for fields in ready):
+            return requested
+        raise ValueError("Das mit --device gewählte Gerät ist nicht verbunden oder noch nicht freigegeben.")
+    usb = [fields[0] for fields in ready if any(field.startswith("usb:") for field in fields[2:])]
+    if len(usb) == 1:
+        return usb[0]
+    if len(usb) > 1:
+        raise ValueError("Mehrere USB-Geräte erkannt. Das Handy mit --device SERIENNUMMER auswählen.")
+    raise ValueError("Kein freigegebenes USB-Handy erkannt. USB verbinden, entsperren und Debugging zulassen.")
+
+
 def replace_once(text: str, old: str, new: str, label: str) -> str:
     if text.count(old) != 1:
         raise ValueError(f"{label}: Quellcode weicht ab. Keine Datei wurde geändert.")
@@ -159,6 +175,7 @@ def run() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--android", type=Path,
                         default=Path.home() / "Schreibtisch/Umschulung/google-home-api-sample-app-android")
+    parser.add_argument("--device", help="ADB-Seriennummer des gewünschten Handys")
     parser.add_argument("--install", action="store_true", help="Sichern, ergänzen, bauen, per USB installieren und Gateway starten")
     options = parser.parse_args()
     root = options.android.resolve()
@@ -175,11 +192,8 @@ def run() -> int:
             adb = str(candidate)
     if not adb or not shutil.which("dotnet"):
         raise ValueError("ADB oder dotnet nicht gefunden. Keine Quelldateien wurden geändert.")
-    devices = subprocess.check_output([adb, "devices"], text=True)
-    connected = [line.split()[0] for line in devices.splitlines()[1:] if line.endswith("\tdevice")]
-    if len(connected) != 1:
-        raise ValueError("Bitte genau ein entsperrtes Android-Handy per USB verbinden und USB-Debugging erlauben.")
-    adb_command = [adb, "-s", connected[0]]
+    devices = subprocess.check_output([adb, "devices", "-l"], text=True)
+    adb_command = [adb, "-s", select_device(devices, options.device)]
     # Eigenen Port vor dem Build prüfen. Keinen vorhandenen Gateway beenden.
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 5390))

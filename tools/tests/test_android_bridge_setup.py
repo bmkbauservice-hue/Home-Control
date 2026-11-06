@@ -14,6 +14,35 @@ spec.loader.exec_module(setup)
 
 
 class AndroidBridgeSetupTests(unittest.TestCase):
+    def test_usb_phone_is_selected_with_network_box_connected(self):
+        devices = "List of devices attached\nPHONE device usb:3-1 model:Phone\nBOX device model:TV\n"
+        self.assertEqual("PHONE", setup.select_device(devices))
+
+    def test_explicit_phone_selection_is_used_with_multiple_usb_devices(self):
+        devices = "FIRST device usb:1\nSECOND device usb:2\n"
+        self.assertEqual("SECOND", setup.select_device(devices, "SECOND"))
+
+    def test_multiple_usb_devices_require_explicit_selection(self):
+        with self.assertRaisesRegex(ValueError, "Mehrere USB-Geräte"):
+            setup.select_device("FIRST device usb:1\nSECOND device usb:2\n")
+
+    def test_unauthorized_and_offline_devices_are_not_selected(self):
+        for state in ("unauthorized", "offline"):
+            with self.subTest(state=state):
+                devices = f"PHONE {state} usb:1\nBOX device model:TV\n"
+                with self.assertRaisesRegex(ValueError, "nicht verbunden"):
+                    setup.select_device(devices, "PHONE")
+                with self.assertRaisesRegex(ValueError, "Kein freigegebenes USB"):
+                    setup.select_device(devices)
+
+    def test_network_box_alone_is_not_implicitly_selected(self):
+        with self.assertRaisesRegex(ValueError, "Kein freigegebenes USB"):
+            setup.select_device("List of devices attached\nBOX device model:TV\n")
+
+    def test_empty_device_list_is_rejected(self):
+        with self.assertRaises(ValueError):
+            setup.select_device("List of devices attached\n")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

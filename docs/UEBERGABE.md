@@ -12,6 +12,7 @@ was offen ist und welche Regeln gelten.
 - Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
 - Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Android-Quellcode enthält Temperatur-Traits, bisher keinen Aufruf des Senders.
 - `tools/android-bridge-einrichten.py` ergänzt die vorhandene Android-Test-App nach Quellcode-Prüfung und Sicherung. Erster Hardwaretest über USB; tatsächlicher Build und Sensor-Empfang noch offen.
+- ADB-Auswahl berücksichtigt zusätzliche Netzwerkgeräte: ein USB-Handy automatisch, bei mehreren USB-Geräten `--device SERIENNUMMER`. Keine Mi Box trennen und keinen ADB-Server neu starten.
 - Klima-Seite zeigt nur Räume mit Zuordnung oder Messwert. Fehlende Messwerte bleiben leer.
 - Docker ist vorhanden; Klima-SQLite wird im Daten-Volume gespeichert, Demo separat. Docker-Gateway-Weg und Volume-Test stehen noch aus.
 - Blink ist vorhanden, im Test bewusst aus. Vor dem Übernehmen aktuelle tokenführende Instanz bestimmen und Token/Schlüssel erhalten.
