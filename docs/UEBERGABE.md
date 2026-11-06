@@ -1,14 +1,28 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 06.11.2026, Entwicklungsbranch für Wetter und Schalter.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 06.11.2026, gemeinsamer Entwicklungsstand in PR #41.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
 **Zum Lernen:** [Lernunterlage-Uebergabe.pdf](Lernunterlage-Uebergabe.pdf)
 
+## Aktueller verbindlicher Arbeitsstand
+
+- Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
+- Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
+- Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Android-Quellcode enthält Temperatur-Traits, bisher keinen Aufruf des Senders.
+- `tools/android-bridge-einrichten.py` ergänzt die vorhandene Android-Test-App nach Quellcode-Prüfung und Sicherung. Erster Hardwaretest über USB; tatsächlicher Build und Sensor-Empfang noch offen.
+- Klima-Seite zeigt nur Räume mit Zuordnung oder Messwert. Fehlende Messwerte bleiben leer.
+- Docker ist vorhanden; Klima-SQLite wird im Daten-Volume gespeichert, Demo separat. Docker-Gateway-Weg und Volume-Test stehen noch aus.
+- Blink ist vorhanden, im Test bewusst aus. Vor dem Übernehmen aktuelle tokenführende Instanz bestimmen und Token/Schlüssel erhalten.
+- Anleitung und Grenzen: [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
+- Validierung: Python-Einbau- und SQLite-Tests lokal. In dieser Bearbeitungsumgebung fehlen .NET SDK, Android SDK und Docker; deshalb sind lokale Gesamtprüfung, Android-Build und Container-Lauf hier nicht nachgewiesen. GitHub-CI separat prüfen.
+
+Die folgenden Tabellen dokumentieren auch frühere Entwicklungsschritte; bei widersprechenden Angaben gilt der obige aktuelle Arbeitsstand.
+
 **Neuer Entwurf (PR #40, noch nicht auf `main` oder im Dauerdienst):** Live-Wetter/Open-Meteo,
 Uhr und Tuya-EIN/AUS für Admins mit Online-Prüfung und Readback, neue GitHub-CI.
-Build/Tests/Migrationen/Frontend/Lint wurden in CI grün geprüft. Hardwaretest steht noch aus.
+Build/Tests/Migrationen/Frontend/Lint wurden für den bisherigen Stand in CI grün geprüft. Die Heizdecke wurde inzwischen vom Nutzer geschaltet; weitere Hardwaretests sind offen.
 Beschreibung: [WETTER_UND_SCHALTER.md](WETTER_UND_SCHALTER.md).
 
 ## 1. Was fertig ist
@@ -152,3 +166,4 @@ Aufgabe: <hier die Aufgabe, z. B. Punkt 4 aus docs/UEBERGABE.md>
 | `tools/BlinkSpike/` | Erst-Login bei Blink mit 2FA |
 | `tools/lernpdf/` | Skripte für die Lern-PDFs |
 | `tools/demo-bilder/` | Zeichnet die Demo-Kamerabilder (Pillow) |
+

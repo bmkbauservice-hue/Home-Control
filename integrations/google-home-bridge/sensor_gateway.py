@@ -9,6 +9,7 @@ import os
 
 BACKEND = os.environ.get("HOME_CONTROL_SENSOR_BACKEND", "http://127.0.0.1:5181").rstrip("/")
 PORT = int(os.environ.get("HOME_CONTROL_SENSOR_PORT", "5390"))
+BIND = os.environ.get("HOME_CONTROL_SENSOR_BIND", "0.0.0.0")
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -68,4 +69,5 @@ if __name__ == "__main__":
     if not BACKEND.startswith("http://127.0.0.1:") and not BACKEND.startswith("http://localhost:"):
         raise SystemExit("Backend muss an Loopback gebunden sein.")
     print("Sensor-Gateway gestartet (LAN-Port " + str(PORT) + ").", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
+

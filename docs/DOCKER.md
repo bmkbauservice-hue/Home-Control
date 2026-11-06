@@ -71,6 +71,13 @@ Stufe 3  dotnet/aspnet:10.0        nur /app + wwwroot              → fertiges 
 
 ## Volumes
 
+Seit der Klima-Integration liegt zusätzlich `homecontrol-climate.db` unter `/data`.
+`Climate__DatabasePath` ist im Dockerfile und in der Konfigurationsvorlage gesetzt.
+Die Demo überschreibt den Pfad mit `/data/homecontrol-climate-demo.db` im tmpfs.
+Bei einer Sicherung müssen Haus- und Klima-Datenbank erhalten werden.
+Der neue USB-Sensor-Test läuft zunächst gegen das Host-Backend auf 5181;
+der Gateway-Weg in den Container ist noch zu prüfen. Siehe [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
+
 | Volume | Im Container | Inhalt |
 |---|---|---|
 | `homecontrol-daten` | `/data` | `homecontrol.db` (SQLite) |
@@ -99,3 +106,4 @@ Blink-Token nach einem Update nicht mehr entschlüsseln.
   `localhost` die Adresse des Docker-Netzes, nicht die des Geräts. Alle lokalen Zugriffe teilen sich dann einen
   Zähler.
 - Ports nur auf `127.0.0.1`. Von außen ist der Container nicht direkt erreichbar.
+

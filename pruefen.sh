@@ -36,6 +36,7 @@ schritt() {
     echo ".NET SDK: $(dotnet --version 2>/dev/null || echo fehlt)   Node: $(node --version 2>/dev/null || echo fehlt)   npm: $(npm --version 2>/dev/null || echo fehlt)"
 } 2>&1 | tee -a "$LOG"
 
+schritt "Sensor- und SQLite-Startskripte" python3 -m unittest discover -s tools/tests -p 'test_*.py'
 schritt "dotnet tool restore" dotnet tool restore
 schritt "dotnet build" dotnet build --nologo
 # Meldet einen Fehler, wenn sich das Datenmodell geändert hat, es aber noch keine Migration dafür gibt.
@@ -56,3 +57,4 @@ schritt "npm run lint" bash -c "cd frontend && npm run lint"
 } 2>&1 | tee -a "$LOG"
 
 exit "$fehler"
+

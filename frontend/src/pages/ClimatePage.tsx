@@ -60,6 +60,10 @@ export function ClimatePage() {
     }
   }
 
+  const climateRooms = rooms.filter((room) =>
+    sensors.some((sensor) => sensor.roomId === room.id) || readings.some((reading) => reading.roomId === room.id),
+  )
+
   return (
     <section className="climate-page">
       <header className="page-header">
@@ -82,7 +86,7 @@ export function ClimatePage() {
             <p className="climate-warning">Der Sensor-Bridge-Schlüssel ist noch nicht am Backend eingerichtet.</p>
           )}
           <p className="climate-note">
-            Die Google-Home-App auf dem Android-Gerät und der lokale Sensor-Gateway müssen laufen.
+            Die Sensor-Bridge in der Android-Test-App und der lokale Sensor-Gateway müssen laufen.
             Alte Werte werden ausdrücklich als veraltet gekennzeichnet.
           </p>
           <button type="button" className="button" onClick={() => void reload()}>Aktualisieren</button>
@@ -91,8 +95,11 @@ export function ClimatePage() {
 
       <section className="dashboard-section">
         <h2>Temperaturen nach Räumen</h2>
+        {climateRooms.length === 0 && (
+          <p>Noch keine Sensoren zugeordnet. Nach dem ersten Empfang unten die vier vorhandenen Sensoren ihren Räumen zuordnen.</p>
+        )}
         <div className="climate-room-grid">
-          {rooms.map((room) => {
+          {climateRooms.map((room) => {
             const reading = readings.find((item) => item.roomId === room.id)
             return (
               <article key={room.id} className="tile climate-room">
@@ -143,3 +150,4 @@ export function ClimatePage() {
     </section>
   )
 }
+

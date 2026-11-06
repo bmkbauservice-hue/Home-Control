@@ -42,6 +42,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Demo
       ConnectionStrings__DefaultConnection: "Data Source=/data/homecontrol-demo.db"
+      Climate__DatabasePath: /data/homecontrol-climate-demo.db
       HomeControl__DemoPassword: ${DEMO_PASSWORT:-Demo-Haus-2026}
     ports:
       - "127.0.0.1:${DEMO_PORT:-5300}:8080"
@@ -53,3 +54,4 @@ services:
 volumes:
   homecontrol-daten:
   homecontrol-schluessel:
+
