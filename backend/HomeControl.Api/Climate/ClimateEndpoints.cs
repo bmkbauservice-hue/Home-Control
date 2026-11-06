@@ -25,7 +25,7 @@ public static class ClimateEndpoints
     public static void MapClimateEndpoints(this WebApplication app)
     {
         var climate = app.MapGroup("/api/climate").WithTags("Raumklima");
-        climate.MapGet("/", GetReadings).RequireAuthorization(AuthPolicies.SignedInUser);
+        climate.MapGet("", GetReadings).RequireAuthorization(AuthPolicies.SignedInUser);
         climate.MapGet("/bridge/sensors", GetSensors).RequireAuthorization(AuthPolicies.SignedInUser);
         climate.MapGet("/bridge/status", GetStatus).RequireAuthorization(AuthPolicies.SignedInUser);
         climate.MapPut("/bridge/sensors/{sensorId}/room", AssignRoom)
