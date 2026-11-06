@@ -2132,3 +2132,24 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   .room-device { gap: 6px; padding: 10px 8px; }
   .room-device-value { max-width: 80px; white-space: normal; }
 }
+
+
+/* Raumklima: echte Sensormessungen mit Kennzeichnung älterer Daten */
+.climate-page { display: grid; gap: 22px; }
+.climate-info { display: grid; gap: 12px; }
+.climate-info h2, .climate-sensors h2 { font-size: 1.2rem; }
+.climate-note { color: var(--text-muted); font-size: .85rem; }
+.climate-warning { color: var(--warning); font-size: .85rem; }
+.climate-room-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,210px),1fr)); gap: 12px; }
+.climate-room { display: grid; gap: 12px; }
+.climate-temperature { font-variant-numeric: tabular-nums; font-size: clamp(1.6rem,3vw,2.4rem); }
+.climate-sensors { display: grid; gap: 14px; }
+.climate-sensor-list { display: grid; gap: 10px; }
+.climate-sensor { display: flex; gap: 14px; justify-content: space-between; align-items: center; flex-wrap: wrap;
+  border-radius: var(--radius-small); padding: 12px; background: rgba(255,255,255,.04); }
+.climate-sensor p { margin: 6px 0; }
+.climate-sensor .input { min-width: 180px; }
+.climate-dashboard-note { color: var(--text-muted); line-height: 1.5; }
+.room-climate { margin: 0 14px 8px; padding: 6px 9px; border-radius: 9px; background: rgba(124,196,255,.08);
+  color: var(--accent); font-size: .78rem; font-weight: 600; }
+.room-climate-stale { color: var(--warning); }
