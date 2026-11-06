@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/authContext'
-import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, LogoutIcon, RoomsIcon, SettingsIcon } from './Icons'
+import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, LogoutIcon, RoomsIcon, SettingsIcon, ThermometerIcon } from './Icons'
 
 // Die Seiten der App. Neue Seiten werden hier ergänzt.
-export type Page = 'dashboard' | 'rooms' | 'devices' | 'reports' | 'blink' | 'settings'
+export type Page = 'dashboard' | 'rooms' | 'devices' | 'climate' | 'reports' | 'blink' | 'settings'
 
 // shortLabel: kürzere Beschriftung für die Leiste auf dem Handy. adminOnly: nur für Admins sichtbar.
 const items: { page: Page; label: string; shortLabel?: string; adminOnly?: boolean; icon: ReactNode }[] = [
   { page: 'dashboard', label: 'Übersicht', icon: <HomeIcon /> },
   { page: 'rooms', label: 'Räume', icon: <RoomsIcon /> },
   { page: 'devices', label: 'Geräte', icon: <DeviceIcon /> },
+  { page: 'climate', label: 'Klima', icon: <ThermometerIcon /> },
   { page: 'reports', label: 'Reports', icon: <ChartIcon /> },
   { page: 'blink', label: 'Blink', icon: <CameraIcon /> },
   { page: 'settings', label: 'Einstellungen', shortLabel: 'Admin', adminOnly: true, icon: <SettingsIcon /> },
