@@ -45,6 +45,43 @@ einen verzögert umgesetzten Zustand nachtragen.
 von Tür- oder Temperatursensoren, nicht von nicht verknüpften oder offline gemeldeten Geräten.
 Die Zugangsdaten bleiben ausschließlich auf dem Backend.
 
+## Testversion mit den vorhandenen Geräten starten
+
+Die lokale Testkopie hat normalerweise eine **andere, leere SQLite-Datenbank** als
+der bereits laufende Home-Control-Dienst. Dann zeigt das Dashboard zwar das Wetter,
+aber null Räume und null Geräte. Nicht alle Geräte neu anlegen!
+
+Das Hilfsskript `tools/live-mit-hausdaten-starten.py` sucht die bestehende Hausdatenbank
+im üblichen Umschulungs-Ordner, liest nur die Anzahlen der Räume und Geräte und legt
+mit der SQLite-Backup-API eine separate, geschützte **Kopie** an. Die Originaldatenbank
+wird nicht beschrieben; laufender Dienst, Passwörter und Live-Tuya-Verknüpfungen bleiben
+unangetastet. In der Testversion sind alle Räume und Geräte aus der Kopie vorhanden.
+
+```bash
+cd ~/Schreibtisch/Umschulung/Home-Control
+git fetch origin
+git worktree add ../Home-Control-MitGeraeten origin/feature/live-wetter-tuya-schalten-20261106
+cd ../Home-Control-MitGeraeten
+python3 tools/live-mit-hausdaten-starten.py
+```
+
+Die Testversion wird unter **http://127.0.0.1:5181** geöffnet. Auf der Geräteseite
+`Mit Tuya abgleichen` drücken, um aktuelle Schalterzustände zu holen. Mit einem
+**unkritischen** Licht oder einer Steckdose erstmals EIN/AUS testen. Die Cloud-
+Verknüpfung muss bestehen und den Schaltcode `switch_1` unterstützen.
+Die Testversion verwendet echte Tuya-Cloud-Zugangsdaten aus den vorhandenen .NET
+User Secrets; deshalb bewirkt EIN/AUS auch einen **wirklichen** Schaltversuch.
+
+Blink und automatische Tuya-Abgleiche sind in dieser Testinstanz deaktiviert, um
+den produktiven Betrieb nicht durch parallele Hintergrunddienste zu stören. Manuelles
+Abgleichen ist möglich. Die Test-SQLite-Dateien liegen mit Benutzerrechten 0600
+unter `~/.local/share/home-control/test-snapshots`. Auf dem Bildschirm werden keine
+Geräte-IDs, Tokens oder anderen Zugangsdaten ausgegeben.
+
+**Wenn keine befüllte Ursprungsdatenbank gefunden wird:** Das Skript startet nicht
+und verändert nichts. Dann zuerst den tatsächlichen Datenbankpfad des laufenden
+Dienstes feststellen, nicht irgendwelche Datenbanken vermischen.
+
 ## Lokal kontrollieren (Linux Mint)
 
 Das bisherige `Home-Control-Wetter` ist ein **separater lokaler Worktree**. Dieser PR verändert
