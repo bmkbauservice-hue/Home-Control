@@ -3,6 +3,8 @@ import { getDevices, getDeviceTypeLabel, type Device } from '../api/devices'
 import { createRoom, getRooms, type Room } from '../api/rooms'
 import { useAuth } from '../auth/authContext'
 import { BlinkCameras } from '../components/BlinkCameras'
+import { DeviceSwitch } from '../components/DeviceSwitch'
+import { WeatherCard } from '../components/WeatherCard'
 import { EnergyCard } from '../components/EnergyCard'
 import { ChevronRightIcon, PlusIcon, RoomsIcon } from '../components/Icons'
 import { measurementsOf, stateLabel } from '../components/measurements'
@@ -64,6 +66,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
 
   const { status, blink, serverUnreachable, statusError } = useStatus()
   const overall = overallOf(status, blink, serverUnreachable, statusError)
+  const activeDevices = devices.filter((device) => device.lastValue === 'EIN')
   // Im Demo-Modus ohne echten Namen: Auf dem Beamer soll nichts Persönliches stehen.
   const demoMode = useDemoMode()
 
@@ -78,6 +81,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
         </h1>
       </header>
 
+      <WeatherCard />
       <StatusBar />
 
       {error && <ErrorMessage message={error} onRetry={retry} />}
@@ -109,6 +113,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
                   room={room}
                   devices={devices.filter((d) => d.roomId === room.id)}
                   onOpen={() => onOpenRoom(room.id)}
+                  onSwitched={() => void loadData()}
                 />
               ))}
             </div>
@@ -135,6 +140,25 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
           </section>
         </div>
       </div>
+
+      <section className="dashboard-section" aria-labelledby="active-devices-heading">
+        <div className="section-header">
+          <h2 id="active-devices-heading">Gerade eingeschaltet</h2>
+          <span>{activeDevices.length} {activeDevices.length === 1 ? 'Gerät' : 'Geräte'}</span>
+        </div>
+        {activeDevices.length === 0 ? (
+          <p className="empty">Aktuell meldet kein Gerät den Zustand EIN.</p>
+        ) : (
+          <ul className="active-device-list">
+            {activeDevices.map((device) => (
+              <li key={device.id}>
+                <span>{device.roomName} · <strong>{device.name}</strong></span>
+                <DeviceSwitch device={device} onlineState="unknown" onSwitched={() => void loadData()} compact />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   )
 }
@@ -143,11 +167,12 @@ type RoomCardProps = {
   room: Room
   devices: Device[]
   onOpen: () => void
+  onSwitched: () => void
 }
 
 // Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter. Darunter je Gerät eine Zeile:
 // LED · Name und Typ · Zustand rechts (groß) mit Messwerten darunter (klein).
-function RoomCard({ room, devices, onOpen }: RoomCardProps) {
+function RoomCard({ room, devices, onOpen, onSwitched }: RoomCardProps) {
   const { stateOf } = useStatus()
   const shown = devices.slice(0, devicesPerCard)
   const hidden = devices.length - shown.length
@@ -196,6 +221,7 @@ function RoomCard({ room, devices, onOpen }: RoomCardProps) {
                   {main}
                   {sub && <small>{sub}</small>}
                 </span>
+                <DeviceSwitch device={device} onlineState={stateOf(device.id)} onSwitched={onSwitched} compact />
               </li>
             )
           })}
