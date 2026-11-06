@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/authContext'
-import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, LogoutIcon, RoomsIcon, SettingsIcon, ThermometerIcon } from './Icons'
+import { CameraIcon, ChartIcon, DeviceIcon, HomeIcon, LogoutIcon, RoomsIcon, ScaleIcon, SettingsIcon, ThermometerIcon } from './Icons'
 
 // Die Seiten der App. Neue Seiten werden hier ergänzt.
-export type Page = 'dashboard' | 'rooms' | 'devices' | 'climate' | 'reports' | 'blink' | 'settings'
+export type Page = 'dashboard' | 'rooms' | 'devices' | 'climate' | 'scale' | 'reports' | 'blink' | 'settings'
 
 // shortLabel: kürzere Beschriftung für die Leiste auf dem Handy. adminOnly: nur für Admins sichtbar.
 const items: { page: Page; label: string; shortLabel?: string; adminOnly?: boolean; icon: ReactNode }[] = [
@@ -11,6 +11,7 @@ const items: { page: Page; label: string; shortLabel?: string; adminOnly?: boole
   { page: 'rooms', label: 'Räume', icon: <RoomsIcon /> },
   { page: 'devices', label: 'Geräte', icon: <DeviceIcon /> },
   { page: 'climate', label: 'Klima', icon: <ThermometerIcon /> },
+  { page: 'scale', label: 'Waage', adminOnly: true, icon: <ScaleIcon /> },
   { page: 'reports', label: 'Reports', icon: <ChartIcon /> },
   { page: 'blink', label: 'Blink', icon: <CameraIcon /> },
   { page: 'settings', label: 'Einstellungen', shortLabel: 'Admin', adminOnly: true, icon: <SettingsIcon /> },
@@ -66,3 +67,4 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
     </nav>
   )
 }
+

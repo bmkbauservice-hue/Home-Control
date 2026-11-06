@@ -10,6 +10,7 @@ using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
 using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Realtime;
+using HomeControl.Api.Scale;
 using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.Authentication;
@@ -191,6 +192,8 @@ builder.Services.AddOpenApi();
 
 // Wetterdienst (Open-Meteo): fünf Minuten Zwischenspeicher, kurzer Timeout.
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ScaleSettingsStore>();
+builder.Services.AddSingleton<ScaleReadGate>();
 builder.Services.AddHttpClient("weather", client => client.Timeout = TimeSpan.FromSeconds(8));
 
 // Einheitliche Fehlerantworten im ProblemDetails-Format (RFC 9457)
@@ -318,6 +321,7 @@ app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapWeatherEndpoints();
 app.MapClimateEndpoints();
+app.MapScaleEndpoints();
 app.MapTuyaControlEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
@@ -351,3 +355,4 @@ app.Run();
 
 // Für die Endpunkt-Tests (WebApplicationFactory<Program> in HomeControl.Api.Tests).
 public partial class Program { }
+

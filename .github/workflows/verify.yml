@@ -40,6 +40,8 @@ jobs:
       - name: Frontend Lint
         working-directory: frontend
         run: npm run lint
+      - name: Waagenwerte ohne erfundene Skalierung prüfen
+        run: node --test frontend/tests/scaleValues.test.ts
 
   docker:
     runs-on: ubuntu-latest

@@ -81,6 +81,10 @@ def backup_session(house: Path, climate: Path) -> Path:
     target.mkdir(mode=0o700, parents=True)
     copy_sqlite(house, target / "homecontrol.db")
     copy_sqlite(climate, target / "homecontrol-climate.db")
+    scale_settings = SNAPSHOTS / "scale-settings.json"
+    if scale_settings.is_file():
+        (target / "scale-settings.json").write_bytes(scale_settings.read_bytes())
+        os.chmod(target / "scale-settings.json", 0o600)
     if counts(target / "homecontrol.db") is None:
         raise ValueError("Sicherung der Hausdaten nicht lesbar.")
     print(f"Haus- und Klima-Daten separat gesichert: {target}")
@@ -250,6 +254,7 @@ def launch(target: Path, climate_db: Path) -> int:
     environment["ASPNETCORE_URLS"] = "http://127.0.0.1:5181"
     environment["ConnectionStrings__DefaultConnection"] = f"Data Source={target}"
     environment["Climate__DatabasePath"] = str(climate_db)
+    environment["Scale__SettingsPath"] = str(SNAPSHOTS / "scale-settings.json")
     key_file = Path.home() / ".config" / "home-control" / "sensor-bridge.key"
     if key_file.is_file():
         key = key_file.read_text(encoding="utf-8").strip()

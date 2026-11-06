@@ -7,6 +7,7 @@
 *.db-wal
 *.bak
 **/secrets.json
+**/scale-settings.json
 
 # Build-Ausgaben und Pakete: werden im Container frisch erzeugt
 **/bin/
@@ -25,3 +26,4 @@ tools/
 pruefen.log
 **/__pycache__/
 backend/HomeControl.Api.Tests/
+

@@ -2153,3 +2153,28 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 .room-climate { margin: 0 14px 8px; padding: 6px 9px; border-radius: 9px; background: rgba(124,196,255,.08);
   color: var(--accent); font-size: .78rem; font-weight: 600; }
 .room-climate-stale { color: var(--warning); }
+
+/* Persönliche Waagendaten: große Gewichtsanzeige und lesbare Feldliste. */
+.scale-page, .scale-card { display: grid; gap: 18px; }
+.scale-card { min-width: 0; }
+.scale-card h2 { font-size: 1.2rem; }
+.scale-weight { font-size: clamp(2rem, 5vw, 3.5rem); font-variant-numeric: tabular-nums; }
+.scale-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.scale-table-wrap { overflow-x: auto; }
+.scale-table { width: 100%; border-collapse: collapse; text-align: left; }
+.scale-table td, .scale-table th { padding: 12px; border-bottom: 1px solid var(--glass-border); vertical-align: top; }
+.scale-table small { display: block; margin-top: 5px; color: var(--text-muted); overflow-wrap: anywhere; }
+.scale-table th { font-weight: 600; }
+@media (max-width: 767px) {
+  /* Zusätzliche Seiten bleiben auf kleinen Displays erreichbar. */
+  .nav { justify-content: flex-start; overflow-x: auto; scrollbar-width: thin; }
+  .nav-item { flex: 0 0 62px; }
+}
+@media (min-width: 768px) {
+  .nav { overflow-y: auto; }
+}
+@media (max-width: 640px) {
+  .scale-card { padding: 18px; }
+  .scale-table td, .scale-table th { padding: 8px; }
+}
+

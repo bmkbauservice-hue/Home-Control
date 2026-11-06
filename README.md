@@ -244,6 +244,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Android-Sensor-Bridge (bestehende App ergänzen, USB-Test, Sicherung, Docker-Persistenz) | [Lernunterlage-Android-Sensor-Bridge.pdf](docs/Lernunterlage-Android-Sensor-Bridge.pdf) |
 | Tuya-Diagnose und Waage (Online-Abgleich, Datenpunkte, Einheiten, Meldezeit) | [Lernunterlage-Tuya-Diagnose-und-Waage.pdf](docs/Lernunterlage-Tuya-Diagnose-und-Waage.pdf) |
 | Testdaten und Container (Sitzung fortsetzen, SQLite/WAL sichern, Docker-Sensorweg) | [Lernunterlage-Testdaten-und-Container.pdf](docs/Lernunterlage-Testdaten-und-Container.pdf) |
+| Waagenansicht (Cloud-Eigenschaften, Feldzeiten, Skalierung, private Zuordnung) | [Lernunterlage-Waagenansicht.pdf](docs/Lernunterlage-Waagenansicht.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |

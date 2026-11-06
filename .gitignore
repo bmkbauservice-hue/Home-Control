@@ -30,3 +30,5 @@ __pycache__/
 
 # Geheimnisse für Docker Compose (Vorlage: .env.example)
 .env
+scale-settings.json
+

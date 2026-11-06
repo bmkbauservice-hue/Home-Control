@@ -43,6 +43,7 @@ COPY --from=frontend /src/frontend/dist ./wwwroot
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ConnectionStrings__DefaultConnection="Data Source=/data/homecontrol.db" \
     Climate__DatabasePath=/data/homecontrol-climate.db \
+    Scale__SettingsPath=/data/scale-settings.json \
     HomeControl__DataProtectionKeysPath=/keys
 
 # Nicht als root: Bricht jemand über eine Lücke in die App ein, hat er nur die Rechte von "app",
@@ -57,4 +58,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD ["dotnet", "HomeControl.Api.dll", "--healthcheck"]
 
 ENTRYPOINT ["dotnet", "HomeControl.Api.dll"]
+
 

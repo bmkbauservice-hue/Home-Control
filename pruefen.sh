@@ -45,6 +45,7 @@ schritt "dotnet test" dotnet test --nologo --no-build
 schritt "npm ci" bash -c "cd frontend && npm ci --no-audit --no-fund"
 schritt "npm run build" bash -c "cd frontend && npm run build"
 schritt "npm run lint" bash -c "cd frontend && npm run lint"
+schritt "Waagenwerte formatieren" node --test frontend/tests/scaleValues.test.ts
 
 {
     printf '\n===== Zusammenfassung =====\n'
@@ -57,4 +58,5 @@ schritt "npm run lint" bash -c "cd frontend && npm run lint"
 } 2>&1 | tee -a "$LOG"
 
 exit "$fehler"
+
 
