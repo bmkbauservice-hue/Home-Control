@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Blink;
+using HomeControl.Api.Climate;
 using HomeControl.Api.Data;
 using HomeControl.Api.Demo;
 using HomeControl.Api.Endpoints;
@@ -9,6 +10,7 @@ using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
 using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Realtime;
+using HomeControl.Api.Scale;
 using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.Authentication;
@@ -53,6 +55,16 @@ if (!builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
+
+// Raumklima besitzt eine eigene Datenbank. So ändern wir keine bestehenden Haus-Migrationen.
+var climateFile = builder.Configuration["Climate:DatabasePath"] ?? Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "HomeControl", demoMode ? "homecontrol-climate-demo.db" : "homecontrol-climate.db");
+// Die Demo darf niemals die echte Klima-Datenbank lesen oder beschreiben.
+if (demoMode && !Path.GetFileName(climateFile).Contains("demo", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("Die Klima-Datenbank im Demo-Modus muss 'demo' im Dateinamen haben.");
+Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(climateFile))!);
+builder.Services.AddDbContext<ClimateDbContext>(options => options.UseSqlite($"Data Source={climateFile}"));
 
 // Legt bei Bedarf Demo-Daten an (siehe Data/DatabaseSeeder.cs).
 builder.Services.AddScoped<DatabaseSeeder>();
@@ -180,6 +192,8 @@ builder.Services.AddOpenApi();
 
 // Wetterdienst (Open-Meteo): fünf Minuten Zwischenspeicher, kurzer Timeout.
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ScaleSettingsStore>();
+builder.Services.AddSingleton<ScaleReadGate>();
 builder.Services.AddHttpClient("weather", client => client.Timeout = TimeSpan.FromSeconds(8));
 
 // Einheitliche Fehlerantworten im ProblemDetails-Format (RFC 9457)
@@ -306,6 +320,8 @@ app.MapDeviceEventEndpoints();
 app.MapReportEndpoints();
 app.MapTuyaEndpoints();
 app.MapWeatherEndpoints();
+app.MapClimateEndpoints();
+app.MapScaleEndpoints();
 app.MapTuyaControlEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
@@ -339,3 +355,4 @@ app.Run();
 
 // Für die Endpunkt-Tests (WebApplicationFactory<Program> in HomeControl.Api.Tests).
 public partial class Program { }
+

@@ -31,6 +31,15 @@ export function HomeIcon(props: IconProps) {
   )
 }
 
+export function ScaleIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="4" />
+      <path d="M8 7h8v4H8zM12 7v2" />
+    </Icon>
+  )
+}
+
 export function RoomsIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -236,3 +245,4 @@ export function RefreshIcon(props: IconProps) {
     </Icon>
   )
 }
+

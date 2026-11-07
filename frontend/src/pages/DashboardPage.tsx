@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getDevices, getDeviceTypeLabel, type Device } from '../api/devices'
+import { getClimate, type RoomClimate } from '../api/climate'
 import { createRoom, getRooms, type Room } from '../api/rooms'
 import { useAuth } from '../auth/authContext'
 import { BlinkCameras } from '../components/BlinkCameras'
@@ -32,11 +33,17 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
   const { isAdmin } = useAuth()
   const [rooms, setRooms] = useState<Room[]>([])
   const [devices, setDevices] = useState<Device[]>([])
+  const [climate, setClimate] = useState<RoomClimate[]>([])
+  const [climateError, setClimateError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Räume und Geräte gleichzeitig laden. Die Geräte braucht man für die Raumkarten.
   function loadData() {
+    void getClimate().then((readings) => {
+      setClimate(readings)
+      setClimateError(null)
+    }).catch((err: Error) => setClimateError(err.message))
     return Promise.all([getRooms(), getDevices()])
       .then(([loadedRooms, loadedDevices]) => {
         setRooms(loadedRooms)
@@ -83,6 +90,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
 
       <WeatherCard />
       <StatusBar />
+      {climateError && <p className="climate-warning" role="status">Klima-Daten derzeit nicht verfügbar: {climateError}</p>}
 
       {error && <ErrorMessage message={error} onRetry={retry} />}
 
@@ -112,6 +120,7 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
                   key={room.id}
                   room={room}
                   devices={devices.filter((d) => d.roomId === room.id)}
+                  climateReading={climate.find((reading) => reading.roomId === room.id) ?? null}
                   onOpen={() => onOpenRoom(room.id)}
                   onSwitched={() => void loadData()}
                 />
@@ -126,6 +135,17 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
               <h2 id="energy-heading">Auf einen Blick</h2>
             </div>
             <EnergyCard devices={devices} />
+          </section>
+
+          <section className="dashboard-section" aria-labelledby="climate-heading">
+            <div className="section-header">
+              <h2 id="climate-heading">Raumklima</h2>
+              <button type="button" className="link-button" onClick={() => onNavigate('climate')}>Alle</button>
+            </div>
+            <div className="tile climate-dashboard-note">
+              {climate.length === 0 ? 'Noch keine Raumklima-Messwerte empfangen. Sensoren unter Klima zuordnen.' :
+                `${climate.filter((reading) => !reading.stale).length} Räume mit aktuellen Klimawerten · ${climate.filter((reading) => reading.stale).length} mit älteren Daten`}
+            </div>
           </section>
 
           <section className="dashboard-section" aria-labelledby="blink-heading">
@@ -168,11 +188,12 @@ type RoomCardProps = {
   devices: Device[]
   onOpen: () => void
   onSwitched: () => void
+  climateReading: RoomClimate | null
 }
 
 // Eine Raumkarte: Der Kopf führt zur Geräteseite mit diesem Raum als Filter. Darunter je Gerät eine Zeile:
 // LED · Name und Typ · Zustand rechts (groß) mit Messwerten darunter (klein).
-function RoomCard({ room, devices, onOpen, onSwitched }: RoomCardProps) {
+function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCardProps) {
   const { stateOf } = useStatus()
   const shown = devices.slice(0, devicesPerCard)
   const hidden = devices.length - shown.length
@@ -193,6 +214,14 @@ function RoomCard({ room, devices, onOpen, onSwitched }: RoomCardProps) {
         <ChevronRightIcon size={20} />
       </button>
 
+      <p className={climateReading?.stale ? 'room-climate room-climate-stale' : 'room-climate'}>
+        {climateReading ? (
+          <>🌡 {climateReading.temperatureCelsius === null ? 'Keine Temperatur' : climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'}
+            {' · '}💧 {climateReading.humidityPercent === null ? 'Keine Feuchte' : climateReading.humidityPercent.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %'}
+            {climateReading.stale ? ' · letzter Stand, veraltet' : ''}</>
+        ) : '🌡 Keine Raumklima-Daten'}
+      </p>
+
       {devices.length === 0 ? (
         <p className="room-empty">Noch keine Geräte in diesem Raum.</p>
       ) : (
@@ -200,8 +229,13 @@ function RoomCard({ room, devices, onOpen, onSwitched }: RoomCardProps) {
           {shown.map((device) => {
             const measurements = measurementsOf(device)
             const warning = measurements.some((m) => m.warning)
-            const main = stateLabel(device.lastValue)
-            const sub = measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
+            const tempFromBridge = device.type === 'TemperatureSensor' && climateReading?.temperatureCelsius != null
+              ? climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'
+              : null
+            const main = tempFromBridge ?? stateLabel(device.lastValue)
+            const sub = tempFromBridge
+              ? climateReading?.stale ? 'älterer Messwert' : 'Sensor-Bridge'
+              : measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
             const valueClass = [
               'room-device-value',
               device.lastValue === 'EIN' ? 'is-on' : '',

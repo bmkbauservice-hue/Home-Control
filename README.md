@@ -221,6 +221,9 @@ Ein eigenes Review mit Umsetzungsstand liegt in [REVIEW.md](REVIEW.md). Das Wich
 
 ### Lernunterlagen (PDF)
 
+Aktueller gemeinsamer Teststand (Wetter, Tuya und vier Klimasensoren):
+[Android-Verbindung und nächster Hardwaretest](docs/ANDROID_SENSOR_BRIDGE.md).
+
 Zu jedem größeren Schritt gibt es eine Lernunterlage: Begriffe, Ablauf, Code-Landkarte, Grenzen und Kurzantworten für
 Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 
@@ -233,11 +236,16 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Prüfskript und Identity-Migration (pruefen.sh, Exit-Codes, Migrationen, „loss of data“) | [Lernunterlage-Pruefen-und-Migration.pdf](docs/Lernunterlage-Pruefen-und-Migration.pdf) |
 | Betrieb: Dienst und HTTPS (systemd, dotnet publish, Ports, tailscale serve, iPhone) | [Lernunterlage-Betrieb.pdf](docs/Lernunterlage-Betrieb.pdf) |
 | Status-LEDs (GET /api/status, Cache, Context-Provider, CSS-LEDs, Barrierefreiheit) | [Lernunterlage-Status-LEDs.pdf](docs/Lernunterlage-Status-LEDs.pdf) |
+| Energiezähler (Watt, kWh-Schätzung und Messlücken) | [Lernunterlage-Energiezaehler.pdf](docs/Lernunterlage-Energiezaehler.pdf) |
 | Tuya-Messwerte (Skalierung, Watt/Volt/Akku, Offline-Werte, reproduzierbare Tests) | [Lernunterlage-Tuya-Messwerte.pdf](docs/Lernunterlage-Tuya-Messwerte.pdf) |
 | Production-Modus (Umgebungen, User Secrets im Dienst, Secure-Cookie, Reihenfolge der Konfiguration) | [Lernunterlage-Production-Modus.pdf](docs/Lernunterlage-Production-Modus.pdf) |
 | Rate Limiting (Fixed Window, Sliding, Token Bucket, 429, Retry-After, Proxy-Problem, Middleware-Reihenfolge) | [Lernunterlage-Rate-Limiting.pdf](docs/Lernunterlage-Rate-Limiting.pdf) |
 | Hintergrund-Abgleich (BackgroundService, PeriodicTimer, Scopes im Singleton, Kontingent-Rechnung, Backoff, Polling vs. Push) | [Lernunterlage-Hintergrund-Abgleich.pdf](docs/Lernunterlage-Hintergrund-Abgleich.pdf) |
 | Blink-Anbindung (Geheimnisse über stdin, Token-Rotation, eigener Client statt Blink.NET, kein Login-Kreisel) | [Lernunterlage-Blink-Anbindung.pdf](docs/Lernunterlage-Blink-Anbindung.pdf) |
+| Android-Sensor-Bridge (bestehende App ergänzen, USB-Test, Sicherung, Docker-Persistenz) | [Lernunterlage-Android-Sensor-Bridge.pdf](docs/Lernunterlage-Android-Sensor-Bridge.pdf) |
+| Tuya-Diagnose und Waage (Online-Abgleich, Datenpunkte, Einheiten, Meldezeit) | [Lernunterlage-Tuya-Diagnose-und-Waage.pdf](docs/Lernunterlage-Tuya-Diagnose-und-Waage.pdf) |
+| Testdaten und Container (Sitzung fortsetzen, SQLite/WAL sichern, Docker-Sensorweg) | [Lernunterlage-Testdaten-und-Container.pdf](docs/Lernunterlage-Testdaten-und-Container.pdf) |
+| Waagenansicht (Cloud-Eigenschaften, Feldzeiten, Skalierung, private Zuordnung) | [Lernunterlage-Waagenansicht.pdf](docs/Lernunterlage-Waagenansicht.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
@@ -269,3 +277,5 @@ Dockerfile, docker-compose.yml  Container für Betrieb und Demo
 
 Entwickelt von **Mario Kujoth** als Solo-Projekt während der Umschulung zum Software-Ingenieur (2026/27),
 mit KI-Assistenten als Werkzeug.
+
+

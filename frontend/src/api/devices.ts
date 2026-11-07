@@ -15,6 +15,8 @@ export type Device = {
   tuyaDeviceId: string | null
   // Letzte Messwerte von Tuya, null = das Gerät liefert diesen Wert nicht (siehe measurements.ts)
   powerWatt: number | null
+  powerMeasuredAtUtc?: string | null
+  estimatedEnergyKwh?: number | null
   voltageVolt: number | null
   batteryPercent: number | null
   // Wann die Messwerte zuletzt von einem ONLINE-Gerät kamen (ISO-Zeit, UTC)
@@ -116,3 +118,4 @@ export async function updateDevice(id: string, input: DeviceInput): Promise<Devi
 export async function deleteDevice(id: string): Promise<void> {
   await send(`${BASE_URL}/${id}`, { method: 'DELETE' })
 }
+

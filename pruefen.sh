@@ -36,14 +36,16 @@ schritt() {
     echo ".NET SDK: $(dotnet --version 2>/dev/null || echo fehlt)   Node: $(node --version 2>/dev/null || echo fehlt)   npm: $(npm --version 2>/dev/null || echo fehlt)"
 } 2>&1 | tee -a "$LOG"
 
+schritt "Sensor- und SQLite-Startskripte" python3 -m unittest discover -s tools/tests -p 'test_*.py'
 schritt "dotnet tool restore" dotnet tool restore
 schritt "dotnet build" dotnet build --nologo
 # Meldet einen Fehler, wenn sich das Datenmodell geändert hat, es aber noch keine Migration dafür gibt.
-schritt "Migrationen vollständig" dotnet ef migrations has-pending-model-changes --project backend/HomeControl.Api --no-build
+schritt "Migrationen vollständig" dotnet ef migrations has-pending-model-changes --context ApplicationDbContext --project backend/HomeControl.Api --no-build
 schritt "dotnet test" dotnet test --nologo --no-build
 schritt "npm ci" bash -c "cd frontend && npm ci --no-audit --no-fund"
 schritt "npm run build" bash -c "cd frontend && npm run build"
 schritt "npm run lint" bash -c "cd frontend && npm run lint"
+schritt "Waagenwerte formatieren" node --test frontend/tests/scaleValues.test.ts
 
 {
     printf '\n===== Zusammenfassung =====\n'
@@ -56,3 +58,5 @@ schritt "npm run lint" bash -c "cd frontend && npm run lint"
 } 2>&1 | tee -a "$LOG"
 
 exit "$fehler"
+
+

@@ -227,7 +227,12 @@ public class TuyaDeviceSyncer(
         var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(retrievedAtUtc.ToUnixTimeMilliseconds());
 
         // Messwerte zuerst und unabhängig vom Schalter: Eine Steckdose mit Strommesser hat beides.
-        var measured = online != false && ApplyMeasurements(device, status, timestamp);
+        if (online != true)
+        {
+            device.PowerMeasuredAtUtc = null;
+        }
+
+        var measured = online != false && ApplyMeasurements(device, status, timestamp, online == true);
 
         if (GetBoolean(status, TuyaSwitchRecorder.SwitchCode) is { } isOn)
         {
@@ -270,17 +275,48 @@ public class TuyaDeviceSyncer(
         return measured ? TuyaSyncResults.Measured : TuyaSyncResults.UnknownValue;
     }
 
+    // Schätzung zwischen zwei Online-Abfragen. Über längere Lücken wird nichts hochgerechnet.
+    private static void ApplyEnergySample(Device device, double watt, DateTimeOffset timestamp)
+    {
+        if (device.PowerMeasuredAtUtc is { } previousTime && device.PowerWatt is { } previousWatt)
+        {
+            var interval = timestamp - previousTime;
+            if (interval > TimeSpan.Zero && interval <= TimeSpan.FromMinutes(35))
+            {
+                var averageWatt = (previousWatt + watt) / 2;
+                device.EstimatedEnergyKwh = (device.EstimatedEnergyKwh ?? 0) + averageWatt * interval.TotalHours / 1000;
+            }
+        }
+
+        device.PowerMeasuredAtUtc = timestamp;
+    }
+
     // Überträgt Leistung, Spannung und Akku, soweit vorhanden und plausibel. Bewusst KEIN Ereignis:
     // Die Leistung schwankt ständig, der Verlauf wäre sonst voller Einträge ohne Aussage.
     // Gibt true zurück, wenn mindestens ein Messwert übernommen wurde.
-    public static bool ApplyMeasurements(Device device, List<TuyaStatusItem> status, DateTimeOffset timestamp)
+    private static bool ApplyMeasurements(
+        Device device, List<TuyaStatusItem> status, DateTimeOffset timestamp, bool confirmedOnline)
     {
         var found = false;
 
         if (GetNumber(status, PowerCode) is { } power && power >= 0)
         {
-            device.PowerWatt = power / PowerScale;
+            if (device.PowerMeasuredAtUtc is null || timestamp > device.PowerMeasuredAtUtc)
+            {
+                var watt = power / PowerScale;
+                if (confirmedOnline && device.Type is ("Light" or "Socket" or "Switch"))
+                {
+                    ApplyEnergySample(device, watt, timestamp);
+                }
+
+                device.PowerWatt = watt;
+            }
+
             found = true;
+        }
+        else
+        {
+            device.PowerMeasuredAtUtc = null;
         }
 
         if (GetNumber(status, VoltageCode) is { } voltage && voltage >= 0)
@@ -334,3 +370,4 @@ public class TuyaDeviceSyncer(
         };
     }
 }
+

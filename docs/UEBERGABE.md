@@ -1,14 +1,43 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 06.11.2026, Entwicklungsbranch für Wetter und Schalter.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 06.11.2026, gemeinsamer Entwicklungsstand in PR #41.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
 **Zum Lernen:** [Lernunterlage-Uebergabe.pdf](Lernunterlage-Uebergabe.pdf)
 
+## Aktueller verbindlicher Arbeitsstand
+
+- Die Energieübersicht zählt Licht, Steckdosen und Schalter. Wattwerte stammen aus bestätigten Online-Abfragen. Die kWh-Schätzung beginnt mit zwei Wattproben und überspringt bekannte Offline-Zeiten und Lücken über 35 Minuten. Im Test auf Port 5181 ist der automatische Tuya-Abgleich aus.
+- Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
+- Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
+- Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Alle vier vom Nutzer im USB-Test bestätigt; Android-Build und Installation erfolgreich. Flur und Küche aus der Klima-Ansicht ausblenden, die Räume selbst erhalten.
+- `tools/android-bridge-einrichten.py` ergänzt die vorhandene Android-Test-App nach Quellcode-Prüfung und Sicherung. Android-App im Vordergrund, USB und Gateway-Terminal müssen weiterlaufen.
+- ADB-Auswahl berücksichtigt zusätzliche Netzwerkgeräte: ein USB-Handy automatisch, bei mehreren USB-Geräten `--device SERIENNUMMER`. Keine Mi Box trennen und keinen ADB-Server neu starten.
+- Klima-Seite zeigt nur Räume mit Zuordnung oder Messwert. Fehlende Messwerte bleiben leer.
+- Docker enthält jetzt einen optionalen Sensor-Gateway im Netzwerkraum der API. Neuer CI-Test baut das Image und prüft Gateway und Datenerhaltung nach Container-Neuerstellung. Tatsächlichen CI-Ausgang am neuesten Commit prüfen; auf dem Nutzer-PC noch nicht gestartet.
+- Blink ist vorhanden, im Test bewusst aus. Vor dem Übernehmen aktuelle tokenführende Instanz bestimmen und Token/Schlüssel erhalten.
+- Anleitung und Grenzen: [ANDROID_SENSOR_BRIDGE.md](ANDROID_SENSOR_BRIDGE.md).
+- Nutzer bestätigt inzwischen: Android-App erfolgreich gebaut/installiert und alle vier Klimasensoren in Home Control sichtbar/aktualisiert. Nur USB-Testbetrieb ist damit bestätigt.
+- Tuya-Diagnose lokal ausgeführt: Bad Licht, Barlicht, Licht Wohnzimmer in App-Liste UND direkter Geräteinformation offline; `switch_1` vorhanden. Tuya bietet Reparatur dieser drei Geräte an. Nutzer verschiebt Neukopplung ausdrücklich. Kein Online-Schutz umgehen und keine Zuordnung löschen.
+- Neue Admin-Seite „Waage“: Gerätezuordnung, Gewichtsfeld bewusst auswählen, alle gemeldeten Cloud-Eigenschaften mit Rohwert, belegter Skalierung/Einheit und eigener Meldezeit. Keine Körperwerte werden lokal gespeichert. Silvergear fehlt bisher in der Cloud-Liste; echte Bluetooth-Daten bleiben unbestätigt. Anleitung: [WAAGE.md](WAAGE.md).
+- Teststarter merkt sich nun dieselben Haus-/Klima-Dateien; `--nur-sichern` übernimmt die laufende eigene Test-API ohne Neustart. Zuerst so die aktuellen Zuordnungen sichern. Ohne gültige Sitzung ältere Kopien nicht still ersetzen. Anleitung und Blink-Übernahmegrenzen: [TESTDATEN_UND_CONTAINER.md](TESTDATEN_UND_CONTAINER.md).
+- CI auf `7e65ae3b` vollständig erfolgreich: 289 Backend-Tests, 21 Python-Tests, 3 Formatierungstests, Migrationen und Frontend-Build/Lint sowie echter Docker-Bau, Gateway-Schlüsselprüfung und Datenerhaltung nach Neuerstellung. Prüflauf: https://github.com/bmkbauservice-hue/Home-Control/actions/runs/42218272723. Kein Hardwaretest der Waage und keine Docker-/Blink-Umstellung auf dem Nutzer-PC. Browserdarstellung hier wegen Laufzeitbeschränkungen nicht geprüft.
+- Validierung: Python-Einbau- und SQLite-Tests lokal. In dieser Bearbeitungsumgebung fehlen .NET SDK, Android SDK und Docker; deshalb sind lokale Gesamtprüfung, Android-Build und Container-Lauf hier nicht nachgewiesen. GitHub-CI separat prüfen.
+
+Die folgenden Tabellen dokumentieren auch frühere Entwicklungsschritte; bei widersprechenden Angaben gilt der obige aktuelle Arbeitsstand.
+
+### Wiedereinstieg nach der Abwesenheit
+
+1. USB-Handy, Android-App und laufendes Gateway-Terminal zunächst weiterlaufen lassen.
+2. Im bestehenden `Home-Control-Gemeinsam` den aktuellen PR-41-Stand abrufen und nur per Fast-forward übernehmen. Das startet und stoppt keinen Dienst.
+3. Noch vor einem Backend-Neustart `python3 tools/live-mit-hausdaten-starten.py --nur-sichern` aus diesem Ordner ausführen. Nur bei bestätigter Sicherung mit dem Neustart fortfahren. Bei nicht eindeutig erkannter Sitzung keine alte Datenbank auf Verdacht auswählen.
+4. Danach die Testversion mit `python3 tools/live-mit-hausdaten-starten.py` fortsetzen; für neue Funktionen ist ein Backend-Neustart nötig. `--neu` ist dafür ausdrücklich nicht gedacht. `app-starten.sh` nicht direkt ohne die Sitzungsumgebung starten.
+5. Drei Tuya-Steckdosen bleiben bis zur vom Nutzer gewünschten Neukopplung offen. Silvergear-Cloud-Zugriff und Blink-Übernahme benötigen die tatsächlichen lokalen Verbindungen. Keine zusätzlichen Worktrees und kein paralleles Blink-Login anlegen.
+
 **Neuer Entwurf (PR #40, noch nicht auf `main` oder im Dauerdienst):** Live-Wetter/Open-Meteo,
 Uhr und Tuya-EIN/AUS für Admins mit Online-Prüfung und Readback, neue GitHub-CI.
-Build/Tests/Migrationen/Frontend/Lint wurden in CI grün geprüft. Hardwaretest steht noch aus.
+Build/Tests/Migrationen/Frontend/Lint wurden für den bisherigen Stand in CI grün geprüft. Die Heizdecke wurde inzwischen vom Nutzer geschaltet; weitere Hardwaretests sind offen.
 Beschreibung: [WETTER_UND_SCHALTER.md](WETTER_UND_SCHALTER.md).
 
 ## 1. Was fertig ist
@@ -152,3 +181,5 @@ Aufgabe: <hier die Aufgabe, z. B. Punkt 4 aus docs/UEBERGABE.md>
 | `tools/BlinkSpike/` | Erst-Login bei Blink mit 2FA |
 | `tools/lernpdf/` | Skripte für die Lern-PDFs |
 | `tools/demo-bilder/` | Zeichnet die Demo-Kamerabilder (Pillow) |
+
+
