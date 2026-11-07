@@ -67,6 +67,22 @@ public class TuyaClient(
             .ToList();
     }
 
+    // Die Cloud liefert hier die Geräte unter einem vorhandenen Gateway.
+    public async Task<List<TuyaCloudDevice>> GetGatewayDevicesAsync(
+        string gatewayId, CancellationToken cancellationToken)
+    {
+        var path = $"/v1.0/iot-03/devices/{Uri.EscapeDataString(gatewayId)}/sub-devices";
+        var result = await SendWithTokenAsync(path, cancellationToken);
+        if (result.ValueKind != JsonValueKind.Array)
+            throw new JsonException("Tuya hat für das Gateway keine Geräteliste geliefert.");
+
+        return result.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.Object)
+            .Select(ReadCloudDevice)
+            .Where(device => device.Id.Length > 0)
+            .ToList();
+    }
+
     // Direkte Geräteinformation zusätzlich zur App-Geräteliste prüfen. Private Felder bleiben verworfen.
     public async Task<TuyaCloudDevice> GetDeviceInformationAsync(string deviceId, CancellationToken cancellationToken)
     {
@@ -300,4 +316,5 @@ public class TuyaClient(
         return result.Clone();
     }
 }
+
 

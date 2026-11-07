@@ -6,6 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 // Eigenes, rein lesendes Werkzeug. Keine Web-App starten und keine Datenbank öffnen.
+var gatewayMode = args is ["--gateway"];
+if (args.Length != 0 && !gatewayMode)
+{
+    Console.Error.WriteLine("Aufruf: TuyaDiagnose [--gateway]");
+    return 1;
+}
+
 DirectoryInfo? folder = new DirectoryInfo(AppContext.BaseDirectory);
 while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "HomeControl.slnx")))
     folder = folder.Parent;
@@ -44,6 +51,25 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
 var client = provider.GetRequiredService<TuyaClient>();
 try
 {
+    if (gatewayMode)
+    {
+        Console.Write("Virtuelle Geräte-ID von Muju Gateway (leer = beenden): ");
+        var gatewayId = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(gatewayId)) return 0;
+        if (gatewayId.Length > 128 || gatewayId.Any(character => !char.IsAsciiLetterOrDigit(character) &&
+            character is not ('-' or '_')))
+        {
+            Console.Error.WriteLine("Bitte die virtuelle ID direkt aus den Geräteinformationen des Gateways kopieren.");
+            return 1;
+        }
+
+        var children = await client.GetGatewayDevicesAsync(gatewayId, cancellation.Token);
+        Console.WriteLine($"Tuya meldet {children.Count} Geräte unter diesem Gateway.");
+        foreach (var child in children.OrderBy(device => device.Name, StringComparer.CurrentCultureIgnoreCase))
+            Console.WriteLine($"  {child.Name} | Kategorie {child.Category} | {Online(child.Online)}");
+        return 0;
+    }
+
     var devices = (await client.GetLinkedAppDevicesAsync(cancellation.Token))
         .OrderBy(device => device.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     Console.WriteLine("Tuya-Diagnose: nur lesen, kein Schaltbefehl und keine Speicherung.");
@@ -143,3 +169,4 @@ static void PrintError(Exception exception)
         ? $"  Tuya lehnt den Abruf ab (Code {tuya.TuyaCode}). Kein Messwert daraus ableiten."
         : "  Abruf fehlgeschlagen oder Zeitlimit erreicht. Keine Werte ersetzt.");
 }
+
