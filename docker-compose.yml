@@ -21,15 +21,45 @@ services:
     restart: unless-stopped
     # Geheimnisse (JWT-Schlüssel, Tuya, Blink, Agent) nur zur Laufzeit aus .env, nie im Image.
     env_file:
-      - path: .env
+      - path: ${HC_ENV_FILE:-.env}
         required: false
     ports:
       # Nur auf diesem Rechner erreichbar. Von außen (Handy) über HTTPS, z. B. tailscale serve.
       - "127.0.0.1:${HC_PORT:-5400}:8080"
+      # Separater USB-Sensorzugang; 5390 am Host bleibt für den laufenden Test frei.
+      - "127.0.0.1:${HC_SENSOR_PORT:-5391}:5390"
     volumes:
       # Volumes überleben neue Container (Update = neues Image, Daten bleiben).
       - homecontrol-daten:/data
       - homecontrol-schluessel:/keys
+
+  sensor-gateway:
+    profiles: [sensoren]
+    image: python:3.13-alpine
+    restart: unless-stopped
+    user: "1654:1654"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # Gemeinsamer Netzwerkraum: Der API-Aufruf kommt weiterhin von Loopback.
+    network_mode: service:homecontrol
+    depends_on:
+      homecontrol:
+        condition: service_healthy
+        restart: true
+    environment:
+      HOME_CONTROL_SENSOR_BACKEND: http://127.0.0.1:8080
+      HOME_CONTROL_SENSOR_BIND: 0.0.0.0
+      HOME_CONTROL_SENSOR_PORT: "5390"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./integrations/google-home-bridge/sensor_gateway.py:/app/sensor_gateway.py:ro
+    command: ["python3", "-u", "/app/sensor_gateway.py"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:5390/healthz', timeout=3).close()"]
+      interval: 5s
+      timeout: 4s
+      retries: 5
 
   # Demo-Modus mit Beispielhaus, Fake-Tuya und Fake-Blink (docs/DEMO.md). Keine .env, keine echten Daten.
   demo:
@@ -42,6 +72,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Demo
       ConnectionStrings__DefaultConnection: "Data Source=/data/homecontrol-demo.db"
+      Climate__DatabasePath: /data/homecontrol-climate-demo.db
       HomeControl__DemoPassword: ${DEMO_PASSWORT:-Demo-Haus-2026}
     ports:
       - "127.0.0.1:${DEMO_PORT:-5300}:8080"
@@ -53,3 +84,5 @@ services:
 volumes:
   homecontrol-daten:
   homecontrol-schluessel:
+
+
