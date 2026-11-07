@@ -17,6 +17,23 @@ public class TuyaDiagnosticReadTests
     }
 
     [Fact]
+    public async Task GatewayLiefertUntergeraeteUeberLesendenAbruf()
+    {
+        var handler = new DiagnosticHandler
+        {
+            Result = """[{"id":"light1","name":"Küchenlicht","category":"dj","online":true,"node_id":"private-node","local_key":"private-key"}]"""
+        };
+
+        var device = Assert.Single(await CreateClient(handler).GetGatewayDevicesAsync("gateway1", CancellationToken.None));
+        Assert.Equal("light1", device.Id);
+        Assert.Equal("Küchenlicht", device.Name);
+        Assert.True(device.Online);
+        Assert.DoesNotContain("private-", JsonSerializer.Serialize(device));
+        Assert.Equal("/v1.0/iot-03/devices/gateway1/sub-devices", handler.Paths.Last());
+        Assert.All(handler.Methods, method => Assert.Equal(HttpMethod.Get, method));
+    }
+
+    [Fact]
     public async Task Geraeteinformation_GibtKeineSchluesselOderNetzwerkdatenWeiter()
     {
         var handler = new DiagnosticHandler
@@ -117,3 +134,4 @@ public class TuyaDiagnosticReadTests
         }
     }
 }
+

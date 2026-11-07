@@ -64,3 +64,21 @@ ergänzt oder bewertet. Die Oberfläche bleibt hinter der Home-Control-Anmeldung
 - [Gerätespezifikation](https://developer.tuya.com/en/docs/cloud/68c2e82f73?id=Kag2ybtxwlb9w)
 - [Letzte Eigenschaftswerte mit Zeitstempel](https://developer.tuya.com/en/docs/cloud/116cc8bf6f?id=Kcp2kwfrpe719)
 - [Lernunterlage](Lernunterlage-Tuya-Diagnose-und-Waage.pdf)
+
+
+## Vorhandenes Zigbee-Gateway prüfen
+
+Im vorhandenen Projektordner:
+
+```bash
+dotnet run --project tools/TuyaDiagnose -- --gateway
+```
+
+Die virtuelle Geräte-ID des **Gateways** aus Lidl Home am Terminal eingeben. Das Werkzeug
+fragt mit den bestehenden Projektzugängen den dokumentierten [Tuya-Endpunkt für Untergeräte](https://developer.tuya.com/en/docs/cloud/ac516a1e3a?id=Kag2y1eyp1xck)
+ab. Es zeigt Namen, Kategorie und Online-Status. Die ID erscheint nicht in der Ergebnisliste.
+
+Ein erfolgreicher Abruf zeigt, welche Untergeräte das Projekt über die Cloud sieht.
+Bei einer Ablehnung kommt nur der Tuya-Fehlercode. Aus einer Ablehnung lässt sich
+keine Aussage über das Zigbee-Funknetz ableiten. Es werden weder Geräte geschaltet
+noch Kopplungen oder die Home-Control-Datenbank geändert.
