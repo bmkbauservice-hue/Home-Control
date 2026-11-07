@@ -228,7 +228,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       <div className="tile sync-bar">
         <p className="sync-text">
           {syncMessage ??
-            'Sofort alle verknüpften Tuya-Geräte lesen (sonst automatisch im Hintergrund, Takt pro Gerät unter Einstellungen). Es wird nichts geschaltet.'}
+            'Sofort alle verknüpften Tuya-Geräte lesen (sonst automatisch im Hintergrund, Takt pro Gerät unter Einstellungen). Schaltbare Geräte lassen sich mit dem Ein-/Aus-Schalter steuern.'}
         </p>
         <button type="button" className="button" onClick={handleSync} disabled={syncing}>
           {syncing ? 'Gleiche ab …' : 'Mit Tuya abgleichen'}
@@ -374,6 +374,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
                 canEdit={isAdmin}
                 onSave={(input) => handleSave(device.id, input)}
                 onDelete={() => handleDelete(device.id)}
+                onSwitched={() => setReloadKey((key) => key + 1)}
               />
             ))}
           </div>

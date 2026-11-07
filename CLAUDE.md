@@ -2,9 +2,11 @@
 
 Home Control: Smart-Home-Übersicht (Umschulungsprojekt von Mario, wird in der Schule präsentiert).
 ASP.NET Core 10 Minimal API + EF Core/SQLite + Identity/JWT, React 19 + TypeScript + Vite.
-Tuya und Blink sind **nur lesend** angebunden, es wird nie etwas geschaltet. **Einzige bewusste Ausnahme:**
-Blink-Knopf „Neues Bild“ (nur Admin, höchstens 1× pro Minute und Kamera, kostet Akku, schaltet nichts),
-siehe `docs/BLINK.md`. Weitere Ausnahmen nur nach ausdrücklicher Zustimmung.
+Tuya und Blink waren ursprünglich **nur lesend** angebunden. Nach ausdrücklichem Nutzerauftrag vom 06.11.2026
+sind **Tuya-Schaltbefehle für verknüpfte Geräte mit booleschem `switch_1`** eine bewusste Ausnahme:
+nur Admin, vorher Online- und Code-Prüfung, danach Readback-Bestätigung; nie im Demo-Modus.
+Siehe `docs/WETTER_UND_SCHALTER.md`. Weitere Ausnahmen bleiben zustimmungspflichtig.
+Die bisherige Ausnahme Blink „Neues Bild“ (nur Admin, höchstens 1× pro Minute und Kamera) gilt weiter.
 
 **Zuerst lesen:** `docs/UEBERGABE.md` (Stand, offene Punkte, Regeln) und die passende Datei in `docs/`.
 Sicherheitsthemen: `REVIEW.md` (Abschnitt „Umsetzungsstand“).

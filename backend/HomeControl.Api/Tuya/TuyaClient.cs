@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
@@ -60,6 +61,17 @@ public class TuyaClient(
                 item.GetProperty("code").GetString() ?? string.Empty,
                 item.GetProperty("value").Clone()))
             .ToList();
+    }
+
+    // Nur ein ausdrücklich ermittelter Schaltcode wird an die Tuya-Cloud geschickt.
+    // Ein erfolgreiches Senden ist noch keine Bestätigung des tatsächlichen Zustands.
+    public async Task<bool> SendSwitchCommandAsync(
+        string deviceId, string code, bool on, CancellationToken cancellationToken)
+    {
+        var path = $"/v1.0/iot-03/devices/{Uri.EscapeDataString(deviceId)}/commands";
+        var body = JsonSerializer.Serialize(new { commands = new[] { new { code, value = on } } });
+        var result = await SendWithTokenAsync(path, cancellationToken, body);
+        return result.ValueKind == JsonValueKind.True;
     }
 
     // So viele Geräte holen wir pro Seite. Tuya liefert dann ggf. weitere Seiten.
@@ -133,14 +145,14 @@ public class TuyaClient(
 
     // Schickt eine GET-Anfrage mit Token aus dem Speicher. Lehnt Tuya das Token ab
     // (success=false mit Token-Fehlercode), wird genau einmal mit einem neuen Token wiederholt.
-    private async Task<JsonElement> SendWithTokenAsync(string pathAndQuery, CancellationToken cancellationToken)
+    private async Task<JsonElement> SendWithTokenAsync(string pathAndQuery, CancellationToken cancellationToken, string? jsonBody = null)
     {
         var clientId = options.CurrentValue.ClientId;
         var accessToken = await tokenStore.GetAccessTokenAsync(clientId, FetchTokenAsync, cancellationToken);
 
         try
         {
-            return await SendGetAsync(pathAndQuery, accessToken, cancellationToken);
+            return await SendGetAsync(pathAndQuery, accessToken, cancellationToken, jsonBody);
         }
         catch (TuyaApiException ex) when (TokenErrorCodes.Contains(ex.TuyaCode))
         {
@@ -148,7 +160,7 @@ public class TuyaClient(
                 clientId, FetchTokenAsync, cancellationToken, rejectedToken: accessToken);
 
             // Zweiter und letzter Versuch. Schlägt er fehl, geht der Fehler an den Aufrufer.
-            return await SendGetAsync(pathAndQuery, newToken, cancellationToken);
+            return await SendGetAsync(pathAndQuery, newToken, cancellationToken, jsonBody);
         }
     }
 
@@ -175,15 +187,21 @@ public class TuyaClient(
     }
 
     // Schickt eine signierte GET-Anfrage und gibt das Feld "result" der Antwort zurück.
-    private async Task<JsonElement> SendGetAsync(string pathAndQuery, string? accessToken, CancellationToken cancellationToken)
+    private async Task<JsonElement> SendGetAsync(string pathAndQuery, string? accessToken, CancellationToken cancellationToken, string? jsonBody = null)
     {
         var timestamp = timeProvider.GetUtcNow().ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
         var nonce = Guid.NewGuid().ToString("N");
         var settings = options.CurrentValue;
+        var method = jsonBody is null ? HttpMethod.Get : HttpMethod.Post;
         var sign = TuyaSignature.Sign(
-            settings.ClientId, settings.ClientSecret, accessToken, timestamp, nonce, "GET", pathAndQuery);
+            settings.ClientId, settings.ClientSecret, accessToken, timestamp, nonce,
+            method.Method, pathAndQuery, jsonBody ?? "");
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, pathAndQuery);
+        using var request = new HttpRequestMessage(method, pathAndQuery);
+        if (jsonBody is not null)
+        {
+            request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+        }
         request.Headers.Add("client_id", settings.ClientId);
         request.Headers.Add("sign", sign);
         request.Headers.Add("sign_method", "HMAC-SHA256");

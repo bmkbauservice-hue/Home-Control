@@ -16,6 +16,7 @@ public class FakeTuyaHandler : HttpMessageHandler
     private readonly List<string?> statusAccessTokens = [];
     private readonly List<string> statusPaths = [];
     private readonly List<string> deviceListPaths = [];
+    private readonly List<string> commandBodies = [];
 
     // Bekommt die laufende Nummer des Token-Abrufs (ab 1) und liefert den JSON-Body.
     public Func<int, string> TokenResponse { get; set; } = n => TuyaJson.Token($"token-{n}", 7200);
@@ -25,6 +26,13 @@ public class FakeTuyaHandler : HttpMessageHandler
 
     // Bekommt die laufende Nummer des Geräteliste-Abrufs (ab 1) und liefert den JSON-Body.
     public Func<int, string> DeviceListResponse { get; set; } = _ => TuyaJson.DeviceList(false, null);
+
+    public Func<int, string> CommandResponse { get; set; } = _ => "{ \"success\": true, \"result\": true }";
+
+    public IReadOnlyList<string> CommandBodies
+    {
+        get { lock (sync) return commandBodies.ToList(); }
+    }
 
     // Optional: Token-Antworten erst schicken, wenn dieser Task fertig ist (für parallele Abrufe).
     public Task? TokenGate { get; set; }
@@ -83,6 +91,20 @@ public class FakeTuyaHandler : HttpMessageHandler
             }
 
             return Json(DeviceListResponse(number));
+        }
+
+        // Schaltbefehle gesondert behandeln; sonst würde der Status-Fake versehentlich antworten.
+        if (path.StartsWith("/v1.0/iot-03/devices/", StringComparison.Ordinal)
+            && path.EndsWith("/commands", StringComparison.Ordinal) && request.Method == HttpMethod.Post)
+        {
+            var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+            int number;
+            lock (sync)
+            {
+                commandBodies.Add(body);
+                number = commandBodies.Count;
+            }
+            return Json(CommandResponse(number));
         }
 
         if (path.StartsWith("/v1.0/iot-03/devices/", StringComparison.Ordinal))

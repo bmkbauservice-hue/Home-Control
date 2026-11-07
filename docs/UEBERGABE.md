@@ -1,10 +1,15 @@
 # Übergabe: Stand von Home Control und wie es weitergeht
 
-**Stand: 03.11.2026, abends.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
+**Stand: 06.11.2026, Entwicklungsbranch für Wetter und Schalter.** Diese Datei ist der Einstieg für jede neue Arbeitssitzung, egal ob allein,
 mit ChatGPT/Codex oder einem anderen KI-Werkzeug. Sie beschreibt, was fertig ist, wie man prüft,
 was offen ist und welche Regeln gelten.
 
 **Zum Lernen:** [Lernunterlage-Uebergabe.pdf](Lernunterlage-Uebergabe.pdf)
+
+**Neuer Entwurf (PR #40, noch nicht auf `main` oder im Dauerdienst):** Live-Wetter/Open-Meteo,
+Uhr und Tuya-EIN/AUS für Admins mit Online-Prüfung und Readback, neue GitHub-CI.
+Build/Tests/Migrationen/Frontend/Lint wurden in CI grün geprüft. Hardwaretest steht noch aus.
+Beschreibung: [WETTER_UND_SCHALTER.md](WETTER_UND_SCHALTER.md).
 
 ## 1. Was fertig ist
 
@@ -99,8 +104,10 @@ Frontend `npm run dev` im Ordner `frontend` (Port 5173). Gegen den Dienst statt 
   (Skripte `*-einrichten.sh`). `homecontrol.db` und `*.bak` sind in `.gitignore`.
 - **Zu jedem Schritt eine Lern-PDF** in `docs/`, erzeugt mit `tools/lernpdf` (Beispiel unten), in der README verlinkt.
 - **Kommentare auf Deutsch, kurz, für Anfänger erklärbar.** Keine unnötig komplexe Architektur.
-- **Tuya und Blink bleiben nur lesend.** Es wird nichts geschaltet. Einzige bewusste Ausnahme: Blink „Neues Bild“
-  (nur Admin, 1× pro Minute und Kamera, siehe [BLINK.md](BLINK.md)). Weitere nur nach Zustimmung.
+- **Tuya bleibt für den automatischen Abgleich lesend.** Auf ausdrücklichen Auftrag gibt es neu
+  Admin-Schalter für bekannte Tuya-`switch_1`-Geräte mit Readback (Entwicklungs-PR #40, siehe
+  [WETTER_UND_SCHALTER.md](WETTER_UND_SCHALTER.md)). Blink „Neues Bild“ bleibt die weitere Ausnahme.
+  Für zusätzliche Schreibfunktionen ist weiterhin Zustimmung nötig.
 
 Lern-PDF erzeugen (Muster: `tools/lernpdf/lernunterlage_rate_limiting.py` kopieren und anpassen). Braucht `reportlab`
 (`pip install reportlab`, am besten in einer venv). Fehlt die Kursivschrift (`fonts-dejavu-extra`), nimmt
