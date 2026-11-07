@@ -54,6 +54,9 @@ namespace HomeControl.Api.Migrations
                     b.Property<int?>("BatteryPercent")
                         .HasColumnType("INTEGER");
 
+                    b.Property<double?>("EstimatedEnergyKwh")
+                        .HasColumnType("REAL");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -67,6 +70,9 @@ namespace HomeControl.Api.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("PowerMeasuredAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("PowerWatt")
@@ -473,3 +479,4 @@ namespace HomeControl.Api.Migrations
         }
     }
 }
+

@@ -20,4 +20,7 @@ public record DeviceResponse(
     double? VoltageVolt,
     int? BatteryPercent,
     DateTimeOffset? MeasuredAtUtc,
-    int? TuyaSyncSeconds);
+    int? TuyaSyncSeconds,
+    DateTimeOffset? PowerMeasuredAtUtc,
+    double? EstimatedEnergyKwh);
+

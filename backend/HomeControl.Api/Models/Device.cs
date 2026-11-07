@@ -18,8 +18,13 @@ public class Device
     public string? TuyaDeviceId { get; set; }
 
     // Letzte Messwerte von Tuya (null = Gerät liefert diesen Wert nicht oder noch nie abgefragt).
-    // Bewusst nur der letzte Stand, kein Verlauf: Für Diagramme käme später eine eigene Tabelle.
+    // Nur der letzte Messwert. Für den Verbrauch wird separat eine laufende Schätzung gespeichert.
     public double? PowerWatt { get; set; }
+
+    // Eigener Zeitpunkt, damit ein Spannungs- oder Akkumesswert die Wattprobe nicht verjüngt.
+    public DateTimeOffset? PowerMeasuredAtUtc { get; set; }
+
+    public double? EstimatedEnergyKwh { get; set; }
 
     public double? VoltageVolt { get; set; }
 
@@ -40,3 +45,4 @@ public class Device
 
     public List<DeviceEvent> Events { get; set; } = [];
 }
+

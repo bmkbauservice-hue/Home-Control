@@ -8,6 +8,7 @@ was offen ist und welche Regeln gelten.
 
 ## Aktueller verbindlicher Arbeitsstand
 
+- Die Energieübersicht zählt Licht, Steckdosen und Schalter. Wattwerte stammen aus bestätigten Online-Abfragen. Die kWh-Schätzung beginnt mit zwei Wattproben und überspringt bekannte Offline-Zeiten und Lücken über 35 Minuten. Im Test auf Port 5181 ist der automatische Tuya-Abgleich aus.
 - Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
 - Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
 - Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Alle vier vom Nutzer im USB-Test bestätigt; Android-Build und Installation erfolgreich. Flur und Küche aus der Klima-Ansicht ausblenden, die Räume selbst erhalten.

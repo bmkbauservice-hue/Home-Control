@@ -82,7 +82,8 @@ public static class DeviceEndpoints
             .ThenBy(d => d.Name)
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
-                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds))
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -143,6 +144,8 @@ public static class DeviceEndpoints
             device.IsActive = false;
             device.LastValue = null;
             device.PowerWatt = null;
+            device.PowerMeasuredAtUtc = null;
+            device.EstimatedEnergyKwh = null;
             device.VoltageVolt = null;
             device.BatteryPercent = null;
             device.MeasuredAtUtc = null;
@@ -190,7 +193,8 @@ public static class DeviceEndpoints
             .Where(d => d.Id == id)
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
-                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds))
+                d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh))
             .FirstOrDefaultAsync();
     }
 
@@ -268,3 +272,4 @@ public static class DeviceEndpoints
         return errors;
     }
 }
+

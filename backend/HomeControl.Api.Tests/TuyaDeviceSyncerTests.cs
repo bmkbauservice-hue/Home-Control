@@ -208,6 +208,51 @@ public class TuyaDeviceSyncerTests : IDisposable
     }
 
     [Fact]
+    public void Energie_SpeichertSchaetzungAusZweiOnlineWattwerten()
+    {
+        TuyaDeviceSyncer.Apply(db, socket, Status(("cur_power", "1000")), RetrievedAt, online: true);
+        Assert.Null(socket.EstimatedEnergyKwh);
+
+        TuyaDeviceSyncer.Apply(db, socket, Status(("cur_power", "3000")), RetrievedAt.AddMinutes(30), online: true);
+        db.SaveChanges();
+        db.ChangeTracker.Clear();
+
+        var saved = db.Devices.Single(d => d.Id == socket.Id);
+        Assert.Equal(0.1, saved.EstimatedEnergyKwh!.Value, precision: 6);
+        Assert.Equal(RetrievedAt.AddMinutes(30), saved.PowerMeasuredAtUtc);
+    }
+
+    [Fact]
+    public void Energie_UeberbruecktKeineOfflinePhasenOderLangenLuecken()
+    {
+        var watt = Status(("cur_power", "1000"));
+        TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt, online: true);
+        TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt.AddMinutes(5), online: false);
+        TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt.AddMinutes(10), online: true);
+        TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt.AddHours(1), online: true);
+
+        Assert.Null(socket.EstimatedEnergyKwh);
+
+        TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt.AddHours(1).AddMinutes(10), online: true);
+        Assert.NotNull(socket.EstimatedEnergyKwh);
+    }
+
+    [Fact]
+    public void Energie_BatteriesensorUndUnbestaetigtesGeraetZaehlenNicht()
+    {
+        var watt = Status(("cur_power", "1000"));
+        foreach (var minute in new[] { 0, 10 })
+        {
+            TuyaDeviceSyncer.Apply(db, door, watt, RetrievedAt.AddMinutes(minute), online: true);
+            TuyaDeviceSyncer.Apply(db, socket, watt, RetrievedAt.AddMinutes(minute), online: null);
+        }
+
+        Assert.Null(door.EstimatedEnergyKwh);
+        Assert.Null(socket.EstimatedEnergyKwh);
+        Assert.Null(socket.PowerMeasuredAtUtc);
+    }
+
+    [Fact]
     public void NurMesswerte_ErgebnisMeasured()
     {
         var result = Apply(door, Status(("battery_percentage", "12")));
@@ -257,3 +302,4 @@ public class TuyaDeviceSyncerTests : IDisposable
         Assert.Equal(TuyaSyncResults.UnknownValue, Apply(socket, []));
     }
 }
+

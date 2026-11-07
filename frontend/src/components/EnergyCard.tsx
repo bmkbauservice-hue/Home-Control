@@ -1,49 +1,52 @@
 import type { Device } from '../api/devices'
 import { useStatus } from '../status/statusContext'
 import { energyNow, lowestBattery, maxMeasurementAgeMinutes } from './energy'
-import { measuredAtText } from './measurements'
 
 // Deutsche Zahl mit einer Nachkommastelle: 42,5 W
 const wattFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+const kwhFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 
 type EnergyCardProps = {
   devices: Device[]
 }
 
-// Karte auf der Übersicht: oben "Energie jetzt" (Summe der aktuellen Leistung), darunter "Batterien"
-// (niedrigster Akkustand, gelb ab 20 %). Die Werte kommen aus der Geräteliste, die der Tuya-Abgleich füllt.
+// Leistung und Verbrauchsschätzung aus dem Tuya-Abgleich, Akkustände separat.
 export function EnergyCard({ devices }: EnergyCardProps) {
   const { stateOf } = useStatus()
   const energy = energyNow(devices, stateOf)
   const battery = lowestBattery(devices)
-  const energyTime = measuredAtText(energy.newestMeasuredAtUtc)
 
   return (
     <article className="energy-card" aria-label="Energie und Batterien">
       <div className="energy-block">
-        <h3 className="energy-label">Energie jetzt</h3>
-        {energy.watt === null ? (
-          <>
-            <p className="energy-value energy-value-empty">–</p>
-            {/* Ehrlich sagen, warum leer: Summe nur aus Geräten mit Strommessung, die gerade online sind. */}
-            <p className="energy-empty-reason">Kein Gerät mit Strommessung online</p>
-            <p className="energy-meta">
-              {energy.offlineNames.length > 0
-                ? `${energy.offlineNames.join(', ')} ${energy.offlineNames.length === 1 ? 'ist' : 'sind'} offline.`
-                : `Gezählt werden Steckdosen mit Strommessung, deren Messwert jünger als ${maxMeasurementAgeMinutes} Minuten ist.`}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="energy-value">
-              {wattFormat.format(energy.watt)}
-              <span className="energy-unit"> W</span>
-            </p>
-            <p className="energy-meta">
-              {energy.deviceCount === 1 ? 'aus 1 Gerät' : `aus ${energy.deviceCount} Geräten`}
-              {energyTime && ` · Stand ${energyTime}`}
-            </p>
-          </>
+        <h3 className="energy-label">Leistung jetzt</h3>
+        <p className="energy-value">
+          {energy.watt === null ? '–' : <>{wattFormat.format(energy.watt)}<span className="energy-unit"> W</span></>}
+        </p>
+        <p className="energy-meta">
+          {energy.deviceCount} von {energy.rows.length} Netzgeräten mit aktuellem Wattwert
+          {' · '}bis {maxMeasurementAgeMinutes} Minuten alt
+        </p>
+        <h3 className="energy-label energy-total-label">Verbrauch seit Erfassung (geschätzt)</h3>
+        <p className="energy-meta">
+          {energy.kwh === null ? 'Noch keine Verbrauchsschätzung' : <><strong>{kwhFormat.format(energy.kwh)} kWh</strong> · {energy.estimateCount} von {energy.rows.length} Geräten</>}
+        </p>
+        {energy.rows.length > 0 && (
+          <ul className="energy-devices">
+            {energy.rows.map(({ device, state, watt, kwh }) => (
+              <li key={device.id}>
+                <span><strong>{device.name}</strong><small>{device.roomName}</small></span>
+                <span>
+                  {watt !== null ? `${wattFormat.format(watt)} W`
+                    : state === 'offline' ? 'Offline'
+                    : device.powerWatt === null ? 'Kein Wattwert'
+                    : 'Kein aktueller Wattwert'}
+                  {kwh !== null && <small>{kwhFormat.format(kwh)} kWh geschätzt</small>}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
@@ -77,3 +80,4 @@ export function EnergyCard({ devices }: EnergyCardProps) {
     </article>
   )
 }
+
