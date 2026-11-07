@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import { getShellyMeters, type ShellyMeterReading } from '../api/localDevices'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import type { Device } from '../api/devices'
 import { useStatus } from '../status/statusContext'
 import { energyNow, lowestBattery, maxMeasurementAgeMinutes } from './energy'
@@ -50,6 +53,8 @@ export function EnergyCard({ devices }: EnergyCardProps) {
         )}
       </div>
 
+      <LocalMeters />
+
       <div className="energy-block energy-block-battery">
         <h3 className="energy-label">Batterien</h3>
         {battery === null ? (
@@ -81,3 +86,62 @@ export function EnergyCard({ devices }: EnergyCardProps) {
   )
 }
 
+
+
+const shellyStates = {
+  auth: 'Geräteanmeldung erforderlich',
+  configuration: 'Adresse, Kanal oder Doppelzuordnung prüfen',
+  unsupported: 'Shelly-Schaltkanal nicht gefunden',
+  unavailable: 'Gerät nicht erreichbar',
+}
+
+function LocalMeters() {
+  const [meters, setMeters] = useState<ShellyMeterReading[]>([])
+  const [failed, setFailed] = useState(false)
+  const active = useRef<AbortController | null>(null)
+
+  function reload() {
+    if (active.current) return
+    const request = new AbortController()
+    active.current = request
+    void getShellyMeters(request.signal)
+      .then((result) => {
+        if (request.signal.aborted) return
+        setMeters(result)
+        setFailed(false)
+      })
+      .catch(() => { if (!request.signal.aborted) setFailed(true) })
+      .finally(() => { if (active.current === request) active.current = null })
+  }
+
+  useEffect(() => {
+    reload()
+    return () => {
+      active.current?.abort()
+      active.current = null
+    }
+  }, [])
+  useAutoRefresh(reload)
+
+  if (meters.length === 0 && !failed) return null
+
+  return (
+    <div className="energy-block">
+      <h3 className="energy-label">Direkt verbundene WLAN-Zähler</h3>
+      {failed ? <p className="energy-meta" role="status">WLAN-Zähler konnten nicht geladen werden.</p> : (
+        <ul className="energy-devices">
+          {meters.map((meter) => (
+            <li key={meter.id}>
+              <strong>{meter.name}</strong>
+              <span>
+                {meter.state !== 'online' ? shellyStates[meter.state]
+                  : meter.watt === null ? 'Kein Wattwert' : `${wattFormat.format(meter.watt)} W`}
+                {meter.counterKwh !== null && <small>Zählerstand {kwhFormat.format(meter.counterKwh)} kWh</small>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

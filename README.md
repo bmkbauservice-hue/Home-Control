@@ -171,6 +171,11 @@ Datenmodell geändert? Neue Migration anlegen, alte nie ändern:
 dotnet ef migrations add <SprechenderName> --project backend/HomeControl.Api
 ```
 
+## Direkt verbundene Geräte
+
+Shelly-Schaltkanäle über WLAN liefern lokale Messwerte. Kompatible BLE-Klimasensoren
+lassen sich unter Linux direkt mit der Klimaansicht verbinden. [Anleitung](docs/DIREKTE_GERAETE.md)
+
 ## Sicherheit
 
 Ein eigenes Review mit Umsetzungsstand liegt in [REVIEW.md](REVIEW.md). Das Wichtigste:

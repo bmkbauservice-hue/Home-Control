@@ -86,7 +86,7 @@ export function ClimatePage() {
             <p className="climate-warning">Der Sensor-Bridge-Schlüssel ist noch nicht am Backend eingerichtet.</p>
           )}
           <p className="climate-note">
-            Die Sensor-Bridge in der Android-Test-App und der lokale Sensor-Gateway müssen laufen.
+            Google Home benötigt die Android-Test-App und den lokalen Gateway. Direkt angebundene Bluetooth-Sensoren benötigen die Bluetooth-Bridge auf dem Linux-PC.
             Alte Werte werden ausdrücklich als veraltet gekennzeichnet.
           </p>
           <button type="button" className="button" onClick={() => void reload()}>Aktualisieren</button>
@@ -120,7 +120,7 @@ export function ClimatePage() {
       </section>
 
       <section className="tile climate-sensors" aria-label="Sensoren zuordnen">
-        <h2>Google-Home-Sensoren</h2>
+        <h2>Verbundene Klimasensoren</h2>
         {sensors.length === 0 ? (
           <p>Noch keine Sensoren empfangen. Bitte zuerst den Sensor-Gateway und die Android-App prüfen.</p>
         ) : (
@@ -150,4 +150,5 @@ export function ClimatePage() {
     </section>
   )
 }
+
 

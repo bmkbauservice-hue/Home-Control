@@ -8,6 +8,7 @@ using HomeControl.Api.Demo;
 using HomeControl.Api.Endpoints;
 using HomeControl.Api.ErrorHandling;
 using HomeControl.Api.Models;
+using HomeControl.Api.LocalDevices;
 using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Realtime;
 using HomeControl.Api.Scale;
@@ -193,6 +194,7 @@ builder.Services.AddOpenApi();
 // Wetterdienst (Open-Meteo): fünf Minuten Zwischenspeicher, kurzer Timeout.
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<ScaleSettingsStore>();
+ShellyMeters.Register(builder.Services);
 builder.Services.AddSingleton<ScaleReadGate>();
 builder.Services.AddHttpClient("weather", client => client.Timeout = TimeSpan.FromSeconds(8));
 
@@ -322,6 +324,7 @@ app.MapTuyaEndpoints();
 app.MapWeatherEndpoints();
 app.MapClimateEndpoints();
 app.MapScaleEndpoints();
+ShellyMeters.Map(app);
 app.MapTuyaControlEndpoints();
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
