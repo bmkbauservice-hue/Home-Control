@@ -116,6 +116,35 @@ class LiveStartTests(unittest.TestCase):
         self.assertEqual(7, result)
         start.assert_not_called()
 
+    def test_ausgewaehltes_sicherungspaar_wiederherstellen(self):
+        self.set_db()
+        self.run_start()
+        manifest = self.snapshots / "session.json"
+        previous = manifest.read_bytes()
+        data = json.loads(previous)
+        house, climate = Path(data["house"]), Path(data["climate"])
+        with sqlite3.connect(house) as db:
+            db.execute("ALTER TABLE Rooms ADD COLUMN Id TEXT")
+            db.execute("UPDATE Rooms SET Id = 'bad' WHERE rowid = 1")
+        with sqlite3.connect(climate) as db:
+            db.execute("CREATE TABLE ClimateSensors (RoomId TEXT)")
+            db.execute("INSERT INTO ClimateSensors VALUES ('flur')")
+
+        with patch.object(module.socket, "create_connection", side_effect=ConnectionRefusedError):
+            result, _, start = self.run_start("--wiederherstellen", house.name)
+            self.assertEqual(7, result)
+            self.assertEqual(previous, manifest.read_bytes())
+            start.assert_not_called()
+            with sqlite3.connect(climate) as db:
+                db.execute("UPDATE ClimateSensors SET RoomId = 'BAD'")
+            result, output, start = self.run_start("--wiederherstellen", house.name)
+
+        self.assertEqual(0, result)
+        self.assertIn("3 Geräte, 1 Klimaräume", output)
+        self.assertEqual(str(climate), start.call_args.kwargs["env"]["Climate__DatabasePath"])
+        saved_manifest = next((self.snapshots / "sicherungen").glob("*/session-vor-wiederherstellung.json"))
+        self.assertEqual(previous, saved_manifest.read_bytes())
+
     def test_wal_inhalt_wird_mitgesichert(self):
         self.set_db()
         self.run_start()

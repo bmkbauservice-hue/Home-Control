@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sqlite3
 import subprocess
 from contextlib import closing
@@ -157,10 +158,47 @@ def climate_snapshot(label: str) -> Path:
     return target
 
 
+def restore_session(name: str) -> tuple[Path, Path]:
+    """Ein ausdrücklich ausgewähltes Sicherungspaar prüfen und wieder als Sitzung speichern."""
+    if Path(name).name != name or not name.startswith("homecontrol-test-") or not name.endswith(".db"):
+        raise ValueError("Bitte den Dateinamen einer Haus-Testkopie angeben.")
+
+    try:
+        with socket.create_connection(("127.0.0.1", 5181), timeout=2):
+            raise ValueError("Port 5181 läuft noch. Bitte zuerst dessen Startterminal beenden.")
+    except ConnectionRefusedError:
+        pass
+
+    house, climate = checked_session({
+        "version": 1,
+        "house": SNAPSHOTS / name,
+        "climate": SNAPSHOTS / f"homecontrol-climate-test-{name}",
+    })
+    with closing(sqlite3.connect(house.as_uri() + "?mode=ro", uri=True)) as db:
+        rooms = {str(row[0]).lower() for row in db.execute("SELECT Id FROM Rooms")}
+    with closing(sqlite3.connect(climate.as_uri() + "?mode=ro", uri=True)) as db:
+        assigned = {str(row[0]).lower() for row in db.execute(
+            "SELECT RoomId FROM ClimateSensors WHERE RoomId IS NOT NULL"
+        )}
+    if not assigned or not assigned <= rooms:
+        raise ValueError("Keine passenden Sensor-Raumzuordnungen in diesem Datenbankpaar.")
+
+    backup = backup_session(house, climate)
+    manifest = SNAPSHOTS / "session.json"
+    if manifest.is_file():
+        (backup / "session-vor-wiederherstellung.json").write_bytes(manifest.read_bytes())
+    save_session(house, climate)
+    room_count, device_count = counts(house)
+    print(f"Frühere Sitzung ausgewählt: {room_count} Räume, {device_count} Geräte, {len(assigned)} Klimaräume.")
+    return house, climate
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--nur-sichern", action="store_true", help="Aktuelle Testdaten sichern, keinen Dienst starten.")
-    parser.add_argument("--neu", action="store_true", help="Bewusst neue Kopien importieren; die bisherige Sitzung bleibt gesichert.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--wiederherstellen", metavar="HAUSDATEI", help="Ein vorhandenes Haus-/Klima-Testpaar wieder öffnen.")
+    mode.add_argument("--nur-sichern", action="store_true", help="Aktuelle Testdaten sichern, keinen Dienst starten.")
+    mode.add_argument("--neu", action="store_true", help="Bewusst neue Kopien importieren; die bisherige Sitzung bleibt gesichert.")
     args = parser.parse_args(argv or [])
     if not (BASE / "app-starten.sh").is_file():
         print("Fehler: App-Startskript im Projekt nicht gefunden.")
@@ -169,6 +207,10 @@ def main(argv: list[str] | None = None) -> int:
     os.umask(0o077)
     try:
         active = running_session()
+        if args.wiederherstellen:
+            if active:
+                raise ValueError("Port 5181 läuft noch. Bitte zuerst dessen Startterminal beenden.")
+            return launch(*restore_session(args.wiederherstellen))
         manifest = SNAPSHOTS / "session.json"
         session = active or (checked_session(json.loads(manifest.read_text())) if manifest.exists() else None)
         if session:
