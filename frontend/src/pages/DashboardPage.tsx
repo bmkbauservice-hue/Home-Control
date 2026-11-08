@@ -151,19 +151,18 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
                 `${climate.filter((reading) => !reading.stale).length} Räume mit aktuellen Klimawerten · ${climate.filter((reading) => reading.stale).length} mit älteren Daten`}
             </div>
           </section>
-
-          <section className="dashboard-section" aria-labelledby="blink-heading">
-            <div className="section-header">
-              <h2 id="blink-heading">Kameras</h2>
-              <button type="button" className="link-button" onClick={() => onNavigate('blink')}>
-                Alle
-              </button>
-            </div>
-            {/* Echte Kameras aus /api/blink/cameras mit letztem Vorschaubild (oder warum es keine gibt). */}
-            <BlinkCameras />
-          </section>
         </div>
       </div>
+
+      <section className="dashboard-section" aria-labelledby="blink-heading">
+        <div className="section-header">
+          <h2 id="blink-heading">Kameras</h2>
+          <button type="button" className="link-button" onClick={() => onNavigate('blink')}>
+            Zur Kameraansicht
+          </button>
+        </div>
+        <BlinkCameras />
+      </section>
 
       <section className="dashboard-section" aria-labelledby="active-devices-heading">
         <div className="section-header">
