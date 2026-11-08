@@ -254,6 +254,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Testdaten und Container (Sitzung fortsetzen, SQLite/WAL sichern, Docker-Sensorweg) | [Lernunterlage-Testdaten-und-Container.pdf](docs/Lernunterlage-Testdaten-und-Container.pdf) |
 | Waagenansicht (Cloud-Eigenschaften, Feldzeiten, Skalierung, private Zuordnung) | [Lernunterlage-Waagenansicht.pdf](docs/Lernunterlage-Waagenansicht.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
+| Blink-Token umziehen (Rotation, genau ein Halter, verschlüsselter Umzug) | [Lernunterlage-Blink-Uebernahme.pdf](docs/Lernunterlage-Blink-Uebernahme.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Demo-Modus (Fakes vs. echte Clients, Dependency Injection je nach Einstellung, keine echten Daten auf dem Beamer) | [Lernunterlage-Demo-Modus.pdf](docs/Lernunterlage-Demo-Modus.pdf) |

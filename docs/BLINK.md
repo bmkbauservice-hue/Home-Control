@@ -178,6 +178,28 @@ Bild Tage alt sein. Deshalb gibt es **eine** bewusste Ausnahme von „nur lesend
 Die Kamerakarte zeigt die **Aufnahmezeit groß** darunter, **gelb**, wenn das Bild älter als einen Tag ist. So
 hält niemand ein altes Bild für ein Livebild.
 
+## Testinstanz und Dauerdienst: genau ein Token-Halter
+
+**Zum Lernen:** [Lernunterlage-Blink-Uebernahme.pdf](Lernunterlage-Blink-Uebernahme.pdf)
+
+Die Testinstanz auf Port 5181 hat Blink standardmäßig aus. Das Werkzeug `tools/blink-token-umziehen.py` gibt das Token geprüft weiter und zeigt es nie an:
+
+```bash
+python3 tools/blink-token-umziehen.py status
+```
+
+```bash
+python3 tools/blink-token-umziehen.py zu-test
+```
+
+```bash
+python3 tools/live-mit-hausdaten-starten.py --mit-blink
+```
+
+`zu-test` setzt `Blink:Enabled=false` in den User Secrets. Der Dauerdienst übernimmt das ohne Neustart, die Testinstanz schaltet Blink per Umgebungsvariable wieder ein. Der Starter verweigert `--mit-blink`, solange Blink im Dienst an ist oder die Testdatenbank ein älteres Token hat. Zurück geht es mit beendeter Testinstanz über `zum-dienst`.
+
+Livebild und Clips sind nicht angebunden. Angezeigt wird das letzte vorhandene Vorschaubild mit Aufnahmezeit.
+
 ## 5. Bekannte Grenzen
 
 - **Ein Prozess pro Datenbank.** Dienst (Port 5200) und `./app-starten.sh` (Port 5111) benutzen dieselbe

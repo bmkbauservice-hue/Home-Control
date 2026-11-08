@@ -72,10 +72,17 @@ def plan_changes(root: Path, bridge: str) -> dict[Path, str]:
         vm = replace_once(vm, "        traits.emit(combinedTraits)",
                           "        traits.emit(combinedTraits)\n        " + TAG + "\n        " + hook,
                           "DeviceViewModel")
-    for symbol, anchor in (("RelativeHumidityMeasurement", "TemperatureMeasurement"),
-                           ("PowerSource", "TemperatureMeasurement"),
-                           ("HumiditySensorDevice", "TemperatureSensorDevice")):
-        line = f"import com.google.home.matter.standard.{symbol}\n"
+    # Nur angemeldete Fähigkeiten liefert das SDK überhaupt aus. Strom und Akku werden deshalb
+    # auch dann abgefragt, wenn sie bisher kein Gerät meldet. Die Inventur zeigt, was wirklich ankommt.
+    standard = "com.google.home.matter.standard"
+    for symbol, anchor, package in (("RelativeHumidityMeasurement", "TemperatureMeasurement", standard),
+                                    ("PowerSource", "TemperatureMeasurement", standard),
+                                    ("ElectricalPowerMeasurement", "TemperatureMeasurement", standard),
+                                    ("ElectricalEnergyMeasurement", "TemperatureMeasurement", standard),
+                                    ("ExtendedPowerSource", "TemperatureMeasurement", "com.google.home.google"),
+                                    ("MeterState", "TemperatureMeasurement", "com.google.home.google"),
+                                    ("HumiditySensorDevice", "TemperatureSensorDevice", standard)):
+        line = f"import {package}.{symbol}\n"
         if line not in module:
             module = replace_once(module, f"import com.google.home.matter.standard.{anchor}\n",
                                   f"import com.google.home.matter.standard.{anchor}\n" + line, "HomeModule-Import")
