@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using HomeControl.Api.Blink;
 using HomeControl.Api.Data;
 using HomeControl.Api.Tests.Fakes;
@@ -59,7 +60,76 @@ public class BlinkHttpCameraClientTests : IDisposable
         {
             // Im Test nicht wirklich eine Sekunde zwischen den Befehlsabfragen warten.
             CommandPollInterval = TimeSpan.Zero,
+            ClipPollInterval = TimeSpan.Zero,
         };
+    }
+
+    private void UseActiveLocalStorage(string status = "active") =>
+        blink.HomescreenResponse = _ => (HttpStatusCode.OK,
+            $$"""{ "networks": [], "cameras": [], "sync_modules": [ { "id": 5, "network_id": 1, "local_storage_enabled": {{(status == "active" ? "true" : "false")}}, "local_storage_status": "{{status}}" } ] }""");
+
+    [Fact]
+    public async Task Lokale_Clips_kommen_aus_dem_Manifest()
+    {
+        UseActiveLocalStorage();
+
+        var list = await client.GetClipsAsync(false, CancellationToken.None);
+
+        var clip = Assert.Single(list.Clips);
+        Assert.Equal("l11", clip.Key);
+        Assert.Equal("Flur", clip.CameraName);
+        Assert.Equal(new DateTimeOffset(2026, 11, 8, 22, 55, 13, TimeSpan.Zero), clip.CreatedAtUtc);
+        Assert.Null(list.Problem);
+    }
+
+    [Fact]
+    public async Task Clip_wird_als_MP4_geladen_und_nichts_wird_geloescht()
+    {
+        UseActiveLocalStorage();
+        await client.GetClipsAsync(false, CancellationToken.None);
+
+        var video = await client.GetClipVideoAsync("l11", CancellationToken.None);
+
+        Assert.NotNull(video);
+        Assert.True(BlinkHttpCameraClient.IsMp4(video.Content));
+        Assert.DoesNotContain(blink.LocalStorageCalls, call => call.Contains("delete", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(blink.LocalStorageCalls, call => call.StartsWith("POST", StringComparison.Ordinal) && call.EndsWith("/manifest/900/clip/request/11", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Ohne_MP4_gibt_es_keinen_Clip()
+    {
+        UseActiveLocalStorage();
+        blink.ClipResponse = () => (HttpStatusCode.OK, Encoding.UTF8.GetBytes("<html>keine Datei</html>"));
+        await client.GetClipsAsync(false, CancellationToken.None);
+
+        await Assert.ThrowsAsync<BlinkApiException>(() => client.GetClipVideoAsync("l11", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Ohne_aktiven_Speicher_wird_das_Problem_genannt()
+    {
+        UseActiveLocalStorage("inactive");
+
+        var list = await client.GetClipsAsync(false, CancellationToken.None);
+
+        Assert.Empty(list.Clips);
+        Assert.NotNull(list.Problem);
+        Assert.Empty(blink.LocalStorageCalls);
+    }
+
+    [Fact]
+    public async Task Clip_Liste_weckt_das_Sync_Module_nur_selten()
+    {
+        UseActiveLocalStorage();
+
+        await client.GetClipsAsync(false, CancellationToken.None);
+        var afterFirst = blink.LocalStorageCalls.Count;
+        await client.GetClipsAsync(false, CancellationToken.None);
+        Assert.Equal(afterFirst, blink.LocalStorageCalls.Count);
+
+        await client.GetClipsAsync(true, CancellationToken.None);
+        Assert.True(blink.LocalStorageCalls.Count > afterFirst);
     }
 
     public void Dispose()
