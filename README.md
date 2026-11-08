@@ -257,6 +257,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Blink-Token umziehen (Rotation, genau ein Halter, verschlüsselter Umzug) | [Lernunterlage-Blink-Uebernahme.pdf](docs/Lernunterlage-Blink-Uebernahme.pdf) |
 | Szenarien (Flanke statt Zustand, Warteschlange, bestätigtes Scharfschalten) | [Lernunterlage-Szenarien.pdf](docs/Lernunterlage-Szenarien.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
+| Blink-Clips erkunden (lokaler Speicher, Manifest, MP4 prüfen) | [Lernunterlage-Blink-Clips.pdf](docs/Lernunterlage-Blink-Clips.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Demo-Modus (Fakes vs. echte Clients, Dependency Injection je nach Einstellung, keine echten Daten auf dem Beamer) | [Lernunterlage-Demo-Modus.pdf](docs/Lernunterlage-Demo-Modus.pdf) |
 | Einstellungen (Benutzerverwaltung, letzter Admin, Passwort ändern, Sitzungen beenden ohne Reuse Detection, 409 Conflict) | [Lernunterlage-Einstellungen.pdf](docs/Lernunterlage-Einstellungen.pdf) |
