@@ -199,8 +199,15 @@ type RoomCardProps = {
 // LED · Name und Typ · Zustand rechts (groß) mit Messwerten darunter (klein).
 function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCardProps) {
   const { stateOf } = useStatus()
-  const shown = devices.slice(0, devicesPerCard)
-  const hidden = devices.length - shown.length
+  const hasClimate = climateReading !== null
+    && (climateReading.temperatureCelsius !== null || climateReading.humidityPercent !== null)
+  // Leere Sensorzeilen neben vorhandenen Raumwerten sparen.
+  const listed = hasClimate
+    ? devices.filter((device) =>
+        device.type !== 'TemperatureSensor' || device.lastValue || measurementsOf(device).length > 0)
+    : devices
+  const shown = listed.slice(0, devicesPerCard)
+  const hidden = listed.length - shown.length
   const switchedOn = devices.filter((d) => d.lastValue === 'EIN').length
   const summary = `${devices.length === 1 ? '1 Gerät' : `${devices.length} Geräte`}${switchedOn > 0 ? ` · ${switchedOn} an` : ''}`
 
@@ -218,39 +225,39 @@ function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCar
         <ChevronRightIcon size={20} />
       </button>
 
-      <p className={climateReading?.stale ? 'room-climate room-climate-stale' : 'room-climate'}>
-        {climateReading ? (
-          <>🌡 {climateReading.temperatureCelsius === null ? 'Keine Temperatur' : climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'}
-            {' · '}💧 {climateReading.humidityPercent === null ? 'Keine Feuchte' : climateReading.humidityPercent.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' % Luftfeuchte'}
-            {climateReading.stale ? ' · letzter Stand, veraltet' : ''}</>
-        ) : '🌡 Keine Raumklima-Daten'}
-      </p>
+      {hasClimate && (
+        <div className="room-climate">
+          {climateReading.temperatureCelsius !== null && (
+            <span className="room-climate-reading">
+              <strong>{climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C</strong>
+              <small>Temperatur</small>
+            </span>
+          )}
+          {climateReading.humidityPercent !== null && (
+            <span className="room-climate-reading">
+              <strong>{climateReading.humidityPercent.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %</strong>
+              <small>Luftfeuchte</small>
+            </span>
+          )}
+          {climateReading.stale && <small className="room-climate-stale">Letzter Messwert · veraltet</small>}
+        </div>
+      )}
 
       {devices.length === 0 ? (
         <p className="room-empty">Noch keine Geräte in diesem Raum.</p>
-      ) : (
+      ) : shown.length > 0 && (
         <ul className="room-devices">
           {shown.map((device) => {
             const measurements = measurementsOf(device)
             const warning = measurements.some((m) => m.warning)
-            const sensorReading = device.type === 'TemperatureSensor' ? climateReading : null
-            const temperature = sensorReading?.temperatureCelsius
-            const humidity = sensorReading?.humidityPercent
-            const hasClimate = temperature != null || humidity != null
-            const humidityText = humidity == null
-              ? 'Keine Luftfeuchte'
-              : humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' % Luftfeuchte'
-            const main = hasClimate
-              ? temperature == null ? 'Keine Temperatur' : temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'
-              : stateLabel(device.lastValue)
-            const sub = hasClimate
-              ? humidityText + (sensorReading?.stale ? ' · älterer Messwert' : '')
-              : measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
+            const sub = measurements.length > 0
+              ? measurements.map((measurement) => measurement.text).join(' · ')
+              : device.lastValue ? null : 'keine Daten'
             const valueClass = [
               'room-device-value',
               device.lastValue === 'EIN' ? 'is-on' : '',
               warning ? 'value-warning' : '',
-              !hasClimate && !device.lastValue && measurements.length === 0 ? 'no-data' : '',
+              !device.lastValue && measurements.length === 0 ? 'no-data' : '',
             ]
               .filter(Boolean)
               .join(' ')
@@ -262,7 +269,7 @@ function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCar
                   <span className="room-device-type">{getDeviceTypeLabel(device.type)}</span>
                 </span>
                 <span className={valueClass}>
-                  {main}
+                  {stateLabel(device.lastValue)}
                   {sub && <small>{sub}</small>}
                 </span>
                 <DeviceSwitch device={device} onlineState={stateOf(device.id)} onSwitched={onSwitched} compact />
