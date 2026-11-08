@@ -31,7 +31,10 @@ d.table([['Schutz', 'Wogegen'],
 d.h1("6  Zwei Anbindungen, eine Regel")
 d.p("Die Stehlampe hat noch eine alte Tuya-ID. Sobald eine Google-Home-Verknüpfung besteht, gilt nur noch diese. "
     "Der Tuya-Abgleich überspringt das Gerät, sonst würde ein alter Zustand den echten überschreiben.")
-d.h1("7  Für die Präsentation merken")
+d.h1("7  Letzter Stand ist nicht aktueller Stand")
+d.p("Tuya meldete beim Türsensor 90 % Akku, obwohl gerade neue Batterien eingesetzt wurden. Die Cloud liefert immer den letzten gemeldeten Wert. "
+    "Hier stammte er vom 02.11. Deshalb speichert Home Control zusätzlich die Meldezeit und markiert alte Werte. Für die Temperatursensoren liefert Google Home gar keinen Akkustand, also zeigt Home Control auch keinen an.")
+d.h1("8  Für die Präsentation merken")
 d.p("Software-Tests belegen die Logik mit einer gespielten App. Ob die echte Lampe reagiert, zeigt nur der Test am Gerät. "
     "Beides getrennt zu berichten, gehört zu sauberer Arbeit.")
 d.save("docs/Lernunterlage-Google-Home-Schalten.pdf")

@@ -51,6 +51,29 @@ Das Skript sichert den Android-Quellcode, ersetzt die Bridge durch die aktuelle 
 
 Danach unter **Geräte → Stehlampe → Bearbeiten → Google-Home-Gerät** den Sockel auswählen und speichern.
 
+## Nach einem Neustart oder USB-Abbruch
+
+Ein kurzer USB-Abbruch löscht die Weiterleitung, Muju Home ist dann still getrennt. Das Skript erneuert sie deshalb alle 5 Sekunden.
+Ohne Neubau der App reicht:
+
+```bash
+python3 tools/android-bridge-einrichten.py --nur-verbinden --device SERIENNUMMER
+```
+
+Welche Geräte gerade ankommen, zeigt dieses Werkzeug. Es liest nur:
+
+```bash
+python3 tools/geraete-daten-anzeigen.py
+```
+
+Fähigkeiten und Akku je Gerät stehen im Handy-Protokoll unter dem Tag `HomeControlBridge`.
+
+## Akkustände
+
+Die App fragt den Matter-Trait `PowerSource` ab. Die Inventur vom 08.11.2026 zeigt: Google Home liefert ihn für keinen Sensor. Temperatursensoren haben daher keine Akkuanzeige. Werte werden nicht erfunden.
+
+Beim Türsensor liefert Tuya immer den letzten gemeldeten Stand. Home Control speichert beim Abgleich mit Tuya, wann der Akku zuletzt gemeldet wurde, und markiert Meldungen ab 3 Tagen als alt.
+
 ## Grenzen
 
 Der Weg funktioniert nur, solange das Handy angeschlossen und Muju Home geöffnet ist. Für die Präsentation reicht das, ein Dauerbetrieb ist es nicht.
