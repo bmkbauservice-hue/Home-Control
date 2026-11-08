@@ -50,9 +50,15 @@ public static class TuyaControlEndpoints
         {
             // Erst prüfen: Das Gerät muss in der Cloud online sein und switch_1 als Boolean melden.
             var cloudDevices = await client.GetLinkedAppDevicesAsync(cancellationToken);
-            var online = cloudDevices.FirstOrDefault(d => d.Id == device.TuyaDeviceId)?.Online;
-            if (online != true)
-                return Results.Problem(statusCode: 409, title: "Gerät ist offline oder sein Online-Status ist unbekannt.");
+            // Fehlende Berechtigung, offline und unbekannt sind verschiedene Ursachen und brauchen eigene Hinweise.
+            var cloudDevice = cloudDevices.FirstOrDefault(d => d.Id == device.TuyaDeviceId);
+            if (cloudDevice is null)
+                return Results.Problem(statusCode: 409,
+                    title: "Keine Berechtigung: Dieses Gerät gehört nicht zum verknüpften Tuya-Projekt. Nichts wurde geschaltet.");
+            if (cloudDevice.Online is false)
+                return Results.Problem(statusCode: 409, title: "Gerät ist laut Tuya offline. Nichts wurde geschaltet.");
+            if (cloudDevice.Online is null)
+                return Results.Problem(statusCode: 409, title: "Tuya meldet keinen Online-Status für dieses Gerät. Nichts wurde geschaltet.");
 
             var before = await client.GetDeviceStatusAsync(device.TuyaDeviceId, cancellationToken);
             var oldValue = TuyaDeviceSyncer.GetBoolean(before, TuyaSwitchRecorder.SwitchCode);
@@ -79,6 +85,11 @@ public static class TuyaControlEndpoints
 
             return Results.Problem(statusCode: 409,
                 title: "Befehl gesendet, aber der neue Gerätezustand wurde noch nicht bestätigt.");
+        }
+        catch (TuyaApiException ex) when (ex.TuyaCode == "1106")
+        {
+            // 1106 heißt "keine Berechtigung", nicht "offline" oder "Cloud gestört".
+            return Results.Problem(statusCode: 409, title: "Tuya verweigert für dieses Gerät die Berechtigung (Code 1106).");
         }
         catch (Exception ex) when (ex is TuyaApiException or HttpRequestException or JsonException
                                      || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))

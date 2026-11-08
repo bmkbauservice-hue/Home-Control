@@ -249,6 +249,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Blink-Anbindung (Geheimnisse über stdin, Token-Rotation, eigener Client statt Blink.NET, kein Login-Kreisel) | [Lernunterlage-Blink-Anbindung.pdf](docs/Lernunterlage-Blink-Anbindung.pdf) |
 | Android-Sensor-Bridge (bestehende App ergänzen, USB-Test, Sicherung, Docker-Persistenz) | [Lernunterlage-Android-Sensor-Bridge.pdf](docs/Lernunterlage-Android-Sensor-Bridge.pdf) |
 | Tuya-Diagnose und Waage (Online-Abgleich, Datenpunkte, Einheiten, Meldezeit) | [Lernunterlage-Tuya-Diagnose-und-Waage.pdf](docs/Lernunterlage-Tuya-Diagnose-und-Waage.pdf) |
+| Geräte-Erreichbarkeit (Berechtigung, offline, Schaltfunktion, Messwert, passives Lauschen) | [Lernunterlage-Geraete-Erreichbarkeit.pdf](docs/Lernunterlage-Geraete-Erreichbarkeit.pdf) |
 | Testdaten und Container (Sitzung fortsetzen, SQLite/WAL sichern, Docker-Sensorweg) | [Lernunterlage-Testdaten-und-Container.pdf](docs/Lernunterlage-Testdaten-und-Container.pdf) |
 | Waagenansicht (Cloud-Eigenschaften, Feldzeiten, Skalierung, private Zuordnung) | [Lernunterlage-Waagenansicht.pdf](docs/Lernunterlage-Waagenansicht.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
