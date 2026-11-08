@@ -6,7 +6,7 @@ import { useAuth } from '../auth/authContext'
 import { BlinkCameras } from '../components/BlinkCameras'
 import { DeviceSwitch } from '../components/DeviceSwitch'
 import { WeatherCard } from '../components/WeatherCard'
-import { EnergyCard } from '../components/EnergyCard'
+import { BatteryCard, EnergyCard } from '../components/EnergyCard'
 import { ChevronRightIcon, PlusIcon, RoomsIcon } from '../components/Icons'
 import { measurementsOf, stateLabel } from '../components/measurements'
 import type { Page } from '../components/Navigation'
@@ -132,9 +132,13 @@ export function DashboardPage({ onNavigate, onOpenRoom }: DashboardPageProps) {
         <div className="dashboard-side">
           <section className="dashboard-section" aria-labelledby="energy-heading">
             <div className="section-header">
-              <h2 id="energy-heading">Auf einen Blick</h2>
+              <h2 id="energy-heading">Stromverbrauch</h2>
             </div>
             <EnergyCard devices={devices} />
+          </section>
+
+          <section className="dashboard-section" aria-label="Batteriestände">
+            <BatteryCard devices={devices} />
           </section>
 
           <section className="dashboard-section" aria-labelledby="climate-heading">
@@ -217,7 +221,7 @@ function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCar
       <p className={climateReading?.stale ? 'room-climate room-climate-stale' : 'room-climate'}>
         {climateReading ? (
           <>🌡 {climateReading.temperatureCelsius === null ? 'Keine Temperatur' : climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'}
-            {' · '}💧 {climateReading.humidityPercent === null ? 'Keine Feuchte' : climateReading.humidityPercent.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %'}
+            {' · '}💧 {climateReading.humidityPercent === null ? 'Keine Feuchte' : climateReading.humidityPercent.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' % Luftfeuchte'}
             {climateReading.stale ? ' · letzter Stand, veraltet' : ''}</>
         ) : '🌡 Keine Raumklima-Daten'}
       </p>
@@ -229,18 +233,24 @@ function RoomCard({ room, devices, onOpen, onSwitched, climateReading }: RoomCar
           {shown.map((device) => {
             const measurements = measurementsOf(device)
             const warning = measurements.some((m) => m.warning)
-            const tempFromBridge = device.type === 'TemperatureSensor' && climateReading?.temperatureCelsius != null
-              ? climateReading.temperatureCelsius.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'
-              : null
-            const main = tempFromBridge ?? stateLabel(device.lastValue)
-            const sub = tempFromBridge
-              ? climateReading?.stale ? 'älterer Messwert' : 'Sensor-Bridge'
+            const sensorReading = device.type === 'TemperatureSensor' ? climateReading : null
+            const temperature = sensorReading?.temperatureCelsius
+            const humidity = sensorReading?.humidityPercent
+            const hasClimate = temperature != null || humidity != null
+            const humidityText = humidity == null
+              ? 'Keine Luftfeuchte'
+              : humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' % Luftfeuchte'
+            const main = hasClimate
+              ? temperature == null ? 'Keine Temperatur' : temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' °C'
+              : stateLabel(device.lastValue)
+            const sub = hasClimate
+              ? humidityText + (sensorReading?.stale ? ' · älterer Messwert' : '')
               : measurements.length > 0 ? measurements.map((m) => m.text).join(' · ') : device.lastValue ? null : 'keine Daten'
             const valueClass = [
               'room-device-value',
               device.lastValue === 'EIN' ? 'is-on' : '',
               warning ? 'value-warning' : '',
-              !device.lastValue && measurements.length === 0 ? 'no-data' : '',
+              !hasClimate && !device.lastValue && measurements.length === 0 ? 'no-data' : '',
             ]
               .filter(Boolean)
               .join(' ')
@@ -355,3 +365,4 @@ function greeting(): string {
   if (hour < 18) return 'Hallo'
   return 'Guten Abend'
 }
+

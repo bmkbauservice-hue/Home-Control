@@ -8,6 +8,9 @@ was offen ist und welche Regeln gelten.
 
 ## Aktueller verbindlicher Arbeitsstand
 
+- In der Übersicht stehen Luftfeuchte und Temperatur auch direkt in der Sensorzeile. Der Stromverbrauch hat eine eigene Karte mit Watt, geschätzten kWh und Messabdeckung. Direkt gemessene Shelly-Zählerstände bleiben separat.
+- Stehlampe: Die Lidl-Geräte-ID lässt sich mit `dotnet run --project tools/TuyaDiagnose -- --device` lesend gegen das verknüpfte Tuya-Projekt prüfen. Die tatsächliche Schaltbarkeit ist erst nach einem Hardwaretest bestätigt.
+
 - Die Energieübersicht zählt Licht, Steckdosen und Schalter. Wattwerte stammen aus bestätigten Online-Abfragen. Die kWh-Schätzung beginnt mit zwei Wattproben und überspringt bekannte Offline-Zeiten und Lücken über 35 Minuten. Im Test auf Port 5181 ist der automatische Tuya-Abgleich aus.
 - Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
 - Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.

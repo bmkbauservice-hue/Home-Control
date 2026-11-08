@@ -14,14 +14,13 @@ type EnergyCardProps = {
   devices: Device[]
 }
 
-// Leistung und Verbrauchsschätzung aus dem Tuya-Abgleich, Akkustände separat.
+// Leistung und Verbrauchsschätzung aus dem Tuya-Abgleich.
 export function EnergyCard({ devices }: EnergyCardProps) {
   const { stateOf } = useStatus()
   const energy = energyNow(devices, stateOf)
-  const battery = lowestBattery(devices)
 
   return (
-    <article className="energy-card" aria-label="Energie und Batterien">
+    <article className="energy-card" aria-label="Stromverbrauch">
       <div className="energy-block">
         <h3 className="energy-label">Leistung jetzt</h3>
         <p className="energy-value">
@@ -31,9 +30,12 @@ export function EnergyCard({ devices }: EnergyCardProps) {
           {energy.deviceCount} von {energy.rows.length} Netzgeräten mit aktuellem Wattwert
           {' · '}bis {maxMeasurementAgeMinutes} Minuten alt
         </p>
-        <h3 className="energy-label energy-total-label">Verbrauch seit Erfassung (geschätzt)</h3>
+        <h3 className="energy-label energy-total-label">Verbrauch seit Erfassung</h3>
+        <p className={energy.kwh === null ? 'energy-value energy-value-empty' : 'energy-value'}>
+          {energy.kwh === null ? '–' : <>{kwhFormat.format(energy.kwh)}<span className="energy-unit"> kWh</span></>}
+        </p>
         <p className="energy-meta">
-          {energy.kwh === null ? 'Noch keine Verbrauchsschätzung' : <><strong>{kwhFormat.format(energy.kwh)} kWh</strong> · {energy.estimateCount} von {energy.rows.length} Geräten</>}
+          {energy.kwh === null ? 'Noch keine Verbrauchsschätzung' : `Geschätzt · ${energy.estimateCount} von ${energy.rows.length} Geräten`}
         </p>
         {energy.rows.length > 0 && (
           <ul className="energy-devices">
@@ -54,8 +56,16 @@ export function EnergyCard({ devices }: EnergyCardProps) {
       </div>
 
       <LocalMeters />
+    </article>
+  )
+}
 
-      <div className="energy-block energy-block-battery">
+export function BatteryCard({ devices }: EnergyCardProps) {
+  const battery = lowestBattery(devices)
+
+  return (
+    <article className="energy-card" aria-label="Batterien">
+      <div className="energy-block">
         <h3 className="energy-label">Batterien</h3>
         {battery === null ? (
           <p className="energy-meta">Kein Gerät meldet einen Akkustand.</p>
@@ -85,8 +95,6 @@ export function EnergyCard({ devices }: EnergyCardProps) {
     </article>
   )
 }
-
-
 
 const shellyStates = {
   auth: 'Geräteanmeldung erforderlich',
