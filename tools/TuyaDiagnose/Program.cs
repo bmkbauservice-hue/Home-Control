@@ -7,9 +7,10 @@ using Microsoft.Extensions.Options;
 
 // Eigenes, rein lesendes Werkzeug. Keine Web-App starten und keine Datenbank öffnen.
 var gatewayMode = args is ["--gateway"];
-if (args.Length != 0 && !gatewayMode)
+var deviceMode = args is ["--device"];
+if (args.Length != 0 && !gatewayMode && !deviceMode)
 {
-    Console.Error.WriteLine("Aufruf: TuyaDiagnose [--gateway]");
+    Console.Error.WriteLine("Aufruf: TuyaDiagnose [--gateway | --device]");
     return 1;
 }
 
@@ -51,22 +52,44 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
 var client = provider.GetRequiredService<TuyaClient>();
 try
 {
-    if (gatewayMode)
+    if (gatewayMode || deviceMode)
     {
-        Console.Write("Virtuelle Geräte-ID von Muju Gateway (leer = beenden): ");
-        var gatewayId = Console.ReadLine()?.Trim();
-        if (string.IsNullOrEmpty(gatewayId)) return 0;
-        if (gatewayId.Length > 128 || gatewayId.Any(character => !char.IsAsciiLetterOrDigit(character) &&
+        Console.Write(gatewayMode
+            ? "Virtuelle Geräte-ID von Muju Gateway (leer = beenden): "
+            : "Virtuelle Geräte-ID aus der App (leer = beenden): ");
+        var id = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(id)) return 0;
+        if (id.Length > 128 || id.Any(character => !char.IsAsciiLetterOrDigit(character) &&
             character is not ('-' or '_')))
         {
-            Console.Error.WriteLine("Bitte die virtuelle ID direkt aus den Geräteinformationen des Gateways kopieren.");
+            Console.Error.WriteLine("Bitte die virtuelle ID direkt aus den Geräteinformationen kopieren.");
             return 1;
         }
 
-        var children = await client.GetGatewayDevicesAsync(gatewayId, cancellation.Token);
-        Console.WriteLine($"Tuya meldet {children.Count} Geräte unter diesem Gateway.");
-        foreach (var child in children.OrderBy(device => device.Name, StringComparer.CurrentCultureIgnoreCase))
-            Console.WriteLine($"  {child.Name} | Kategorie {child.Category} | {Online(child.Online)}");
+        if (gatewayMode)
+        {
+            var children = await client.GetGatewayDevicesAsync(id, cancellation.Token);
+            Console.WriteLine($"Tuya meldet {children.Count} Geräte unter diesem Gateway.");
+            foreach (var child in children.OrderBy(device => device.Name, StringComparer.CurrentCultureIgnoreCase))
+                Console.WriteLine($"  {child.Name} | Kategorie {child.Category} | {Online(child.Online)}");
+            return 0;
+        }
+
+        var linked = (await client.GetLinkedAppDevicesAsync(cancellation.Token)).FirstOrDefault(device => device.Id == id);
+        Console.WriteLine(linked is null
+            ? "Geräte-ID in der verknüpften Tuya-Liste nicht vorhanden."
+            : $"App-Liste: {linked.Name} | {Online(linked.Online)}");
+        await ReadSection("Direkte Geräteinformation", async () =>
+        {
+            var info = await client.GetDeviceInformationAsync(id, cancellation.Token);
+            Console.WriteLine($"  {info.Name} | {info.ProductName} | {Online(info.Online)}");
+        });
+        await ReadSection("Schaltstatus", async () =>
+        {
+            var status = await client.GetDeviceStatusAsync(id, cancellation.Token);
+            var power = TuyaDeviceSyncer.GetBoolean(status, TuyaSwitchRecorder.SwitchCode);
+            Console.WriteLine(power switch { true => "  switch_1: EIN", false => "  switch_1: AUS", _ => "  Kein boolesches switch_1 gemeldet." });
+        });
         return 0;
     }
 
