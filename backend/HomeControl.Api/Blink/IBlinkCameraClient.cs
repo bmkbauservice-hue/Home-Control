@@ -52,6 +52,14 @@ public record BlinkArmResult(bool CommandCompleted, bool? Armed, bool AlreadyArm
 // Ergebnis der Livebild-Probe: Sind echte Videodaten angekommen?
 public record BlinkLiveProbeResult(bool VideoReceived, int VideoFrames, long VideoBytes, string? Problem);
 
+// Ein Clip vom USB-Stick am Sync Module. Key ist der kurze Schlüssel fürs Abspielen.
+public record BlinkClip(string Key, string CameraName, DateTimeOffset CreatedAtUtc);
+
+public record BlinkClipVideo(byte[] Content);
+
+// Problem: Warum die Liste leer oder unvollständig sein kann, sonst null.
+public record BlinkClipList(IReadOnlyList<BlinkClip> Clips, string? Problem);
+
 // Blink ist nicht eingerichtet: weder Datenbank noch Bootstrap-Wert haben ein Token.
 public class BlinkNotConfiguredException(string detail) : Exception(detail);
 
@@ -87,4 +95,10 @@ public interface IBlinkCameraClient
 
     // Fordert kurz ein Livebild an und zählt echte Videodaten. Weckt die Kamera. null: Kamera unbekannt.
     Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken);
+
+    // Clips vom USB-Stick. Löscht nie etwas. refresh = false nutzt die kurz zwischengespeicherte Liste.
+    Task<BlinkClipList> GetClipsAsync(bool refresh, CancellationToken cancellationToken);
+
+    // Lädt einen Clip als MP4. null: Schlüssel unbekannt.
+    Task<BlinkClipVideo?> GetClipVideoAsync(string key, CancellationToken cancellationToken);
 }

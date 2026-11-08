@@ -19,7 +19,8 @@ was offen ist und welche Regeln gelten.
 - Stehlampe: Die Lidl-Geräte-ID lässt sich mit `dotnet run --project tools/TuyaDiagnose -- --device` lesend gegen das verknüpfte Tuya-Projekt prüfen. Die tatsächliche Schaltbarkeit ist erst nach einem Hardwaretest bestätigt.
 
 - Die Energieübersicht zählt Licht, Steckdosen und Schalter. Wattwerte stammen aus bestätigten Online-Abfragen. Die kWh-Schätzung beginnt mit zwei Wattproben und überspringt bekannte Offline-Zeiten und Lücken über 35 Minuten. Im Test auf Port 5181 ist der automatische Tuya-Abgleich aus.
-- Blink-Clips erkundet (09.11.2026): Der lokale Abruf vom USB-Stick über das Sync Module funktioniert, Cloud-Clips gibt es am Konto keine. Befund: [BLINK_CLIPS.md](BLINK_CLIPS.md). Die Alarmseite ist noch nicht gebaut.
+- Blink-Clips erkundet (09.11.2026): Der lokale Abruf vom USB-Stick über das Sync Module funktioniert, Cloud-Clips gibt es am Konto keine. Befund: [BLINK_CLIPS.md](BLINK_CLIPS.md).
+- Alarmseite: [ALARM.md](ALARM.md). Verlauf und USB-Clips sind gebaut, ein echter Clip lief in Chrome bis zum Ende, Vorspulen geht, die Tonspur wird dekodiert. Die Wiedergabe braucht `ffmpeg` auf dem Rechner, das Docker-Image enthält es noch nicht.
 - Ein gemeinsamer lokaler Testordner: `Home-Control-Gemeinsam`, Port 5181. Keine weiteren Home-Control-Worktrees für Teilfunktionen anlegen.
 - Nutzer bestätigt: Wetter sichtbar und echte Heizdecke schaltbar. Das bestätigt noch keine anderen Geräte.
 - Vier Klimasensoren: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad. Alle vier vom Nutzer im USB-Test bestätigt; Android-Build und Installation erfolgreich. Flur und Küche aus der Klima-Ansicht ausblenden, die Räume selbst erhalten.

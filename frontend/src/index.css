@@ -2264,3 +2264,25 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 .scenario-outcome-bestaetigt { color: var(--online); }
 .scenario-outcome-nicht-bestaetigt, .scenario-outcome-laeuft { color: var(--warning); }
 .scenario-outcome-fehler { color: var(--danger); }
+
+/* Alarmseite: Verlauf der Türereignisse und Clips vom USB-Stick */
+.alarm-page, .alarm-section { display: grid; gap: 16px; }
+.alarm-section h2 { font-size: 1.15rem; }
+.alarm-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.alarm-event { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-small); background: var(--glass); }
+.alarm-event small { color: var(--text-muted); }
+.alarm-event-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; }
+.alarm-event-head time, .alarm-clip-text time { color: var(--text-muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.alarm-outcome { font-weight: 700; }
+.alarm-outcome-bestaetigt { color: var(--online); }
+.alarm-outcome-nicht-bestaetigt, .alarm-outcome-laeuft { color: var(--warning); }
+.alarm-outcome-fehler { color: var(--danger); }
+.alarm-matches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.alarm-match, .alarm-time-match { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: .8rem; }
+.alarm-clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.alarm-clip { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--glass-border); border-radius: var(--radius-small); background: var(--glass); scroll-margin-top: 16px; }
+.alarm-video, .alarm-placeholder { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-small); background: rgba(255, 255, 255, .05); }
+.alarm-placeholder { position: relative; display: grid; place-items: center; gap: 10px; align-content: center; overflow: hidden; color: var(--text-muted); }
+.alarm-placeholder img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.alarm-placeholder .button { position: relative; }
+.alarm-clip-text { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }

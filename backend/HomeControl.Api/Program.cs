@@ -331,6 +331,7 @@ ShellyMeters.Map(app);
 app.MapTuyaControlEndpoints();
 HomeControl.Api.GoogleHome.GoogleHomeEndpoints.MapGoogleHomeEndpoints(app);
 HomeControl.Api.Scenarios.ScenarioEndpoints.MapScenarioEndpoints(app);
+HomeControl.Api.Alarm.AlarmEndpoints.MapAlarmEndpoints(app);
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
