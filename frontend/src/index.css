@@ -801,13 +801,12 @@ select {
   margin: 6px 0;
 }
 
-/* Breiter Bildschirm: Räume links, Kameras rechts */
 .dashboard-columns {
   display: grid;
   gap: 24px;
 }
 
-/* Breiter Bildschirm: Räume links, Energie und Kameras rechts */
+/* Breiter Bildschirm: Räume links, Messwerte rechts */
 @media (min-width: 1100px) {
   .dashboard-columns {
     grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
@@ -1212,7 +1211,11 @@ select {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+}
+
+.camera-image {
+  object-fit: contain;
+  background: var(--surface);
 }
 
 .camera-preview {
@@ -1246,11 +1249,8 @@ select {
 }
 
 .camera-caption {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 12px;
+  display: grid;
+  gap: 4px;
   padding: 12px 16px 14px;
 }
 
@@ -1302,9 +1302,9 @@ select {
   color: var(--text-muted);
 }
 
-/* Blink-Seite: zwei Kameras nebeneinander, auf dem Handy untereinander */
+/* Übersicht und Blink-Seite: zwei Kameras nebeneinander, auf dem Handy untereinander */
 @media (min-width: 700px) {
-  .camera-panel-wide .camera-grid {
+  .camera-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
