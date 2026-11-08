@@ -22,36 +22,50 @@ export function EnergyCard({ devices }: EnergyCardProps) {
   return (
     <article className="energy-card" aria-label="Stromverbrauch">
       <div className="energy-block">
-        <h3 className="energy-label">Leistung jetzt</h3>
-        <p className="energy-value">
-          {energy.watt === null ? '–' : <>{wattFormat.format(energy.watt)}<span className="energy-unit"> W</span></>}
-        </p>
-        <p className="energy-meta">
-          {energy.deviceCount} von {energy.rows.length} Netzgeräten mit aktuellem Wattwert
-          {' · '}bis {maxMeasurementAgeMinutes} Minuten alt
-        </p>
-        <h3 className="energy-label energy-total-label">Verbrauch seit Erfassung</h3>
-        <p className={energy.kwh === null ? 'energy-value energy-value-empty' : 'energy-value'}>
-          {energy.kwh === null ? '–' : <>{kwhFormat.format(energy.kwh)}<span className="energy-unit"> kWh</span></>}
-        </p>
-        <p className="energy-meta">
-          {energy.kwh === null ? 'Noch keine Verbrauchsschätzung' : `Geschätzt · ${energy.estimateCount} von ${energy.rows.length} Geräten`}
-        </p>
+        {energy.watt === null && energy.kwh === null ? (
+          <p className="energy-meta">Noch keine Strommesswerte verfügbar.</p>
+        ) : (
+          <div className="energy-metrics">
+            <div>
+              <h3 className="energy-label">Leistung jetzt</h3>
+              {energy.watt === null ? <p className="energy-meta">Kein aktueller Wattwert</p> : (
+                <>
+                  <p className="energy-value">{wattFormat.format(energy.watt)}<span className="energy-unit"> W</span></p>
+                  <p className="energy-meta">
+                    {energy.deviceCount} von {energy.rows.length} Geräten · bis {maxMeasurementAgeMinutes} Minuten alt
+                  </p>
+                </>
+              )}
+            </div>
+            <div>
+              <h3 className="energy-label">Verbrauch seit Erfassung</h3>
+              {energy.kwh === null ? <p className="energy-meta">Noch keine Schätzung</p> : (
+                <>
+                  <p className="energy-value">{kwhFormat.format(energy.kwh)}<span className="energy-unit"> kWh</span></p>
+                  <p className="energy-meta">Geschätzt · {energy.estimateCount} von {energy.rows.length} Geräten</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {energy.rows.length > 0 && (
-          <ul className="energy-devices">
-            {energy.rows.map(({ device, state, watt, kwh }) => (
-              <li key={device.id}>
-                <span><strong>{device.name}</strong><small>{device.roomName}</small></span>
-                <span>
-                  {watt !== null ? `${wattFormat.format(watt)} W`
-                    : state === 'offline' ? 'Offline'
-                    : device.powerWatt === null ? 'Kein Wattwert'
-                    : 'Kein aktueller Wattwert'}
-                  {kwh !== null && <small>{kwhFormat.format(kwh)} kWh geschätzt</small>}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <details className="energy-details">
+            <summary>Geräte und Messstatus ({energy.rows.length})</summary>
+            <ul className="energy-devices">
+              {energy.rows.map(({ device, state, watt, kwh }) => (
+                <li key={device.id}>
+                  <span><strong>{device.name}</strong><small>{device.roomName}</small></span>
+                  <span>
+                    {watt !== null ? `${wattFormat.format(watt)} W`
+                      : state === 'offline' ? 'Offline'
+                      : device.powerWatt === null ? 'Kein Wattwert'
+                      : 'Kein aktueller Wattwert'}
+                    {kwh !== null && <small>{kwhFormat.format(kwh)} kWh geschätzt</small>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
 

@@ -861,7 +861,7 @@ select {
 
 .room-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 16px;
 }
 
@@ -940,10 +940,10 @@ select {
   list-style: none;
 }
 
-/* Eine Zeile: LED · Name und Typ · Wert rechts. Die Mitte darf schrumpfen, der Wert nicht. */
+/* Gerätenamen und Messwerte teilen sich den Platz neben LED und Schalter. */
 .room-device {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) fit-content(36%) auto;
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
@@ -975,7 +975,7 @@ select {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .room-device-value small {
@@ -1027,8 +1027,28 @@ select {
 
 /* ---- Energie jetzt und Batterien ---- */
 
-.energy-total-label {
-  margin-top: 1rem;
+.energy-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 135px), 1fr));
+  gap: 12px;
+}
+
+.energy-metrics > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.energy-details {
+  margin-top: 10px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.energy-details summary {
+  padding-block: 10px 2px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .energy-devices {
@@ -1070,19 +1090,12 @@ select {
 .energy-value {
   margin-top: 2px;
   color: var(--warm);
-  font-size: 2.6rem;
+  font-size: 1.7rem;
+  overflow-wrap: anywhere;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-}
-
-.energy-value-empty {
-  color: var(--text-muted);
-}
-
-.energy-empty-reason {
-  font-weight: 700;
 }
 
 .energy-unit {
@@ -2079,9 +2092,6 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   color: var(--text-muted);
   font-size: 0.8rem;
 }
-.room-device {
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-}
 .device-switch-wrap {
   display: inline-flex;
   flex-direction: column;
@@ -2125,6 +2135,15 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   justify-content: center;
   padding: 4px;
 }
+.room-device .device-switch-compact {
+  display: contents;
+}
+
+.room-device .device-switch-error {
+  grid-column: 2 / -1;
+  max-width: none;
+}
+
 .device-switch-error {
   max-width: 220px;
   color: var(--danger);
@@ -2151,7 +2170,6 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 @media (max-width: 640px) {
   .weather-card { grid-template-columns: 1fr; }
   .room-device { gap: 6px; padding: 10px 8px; }
-  .room-device-value { max-width: 80px; white-space: normal; }
 }
 
 
@@ -2171,9 +2189,23 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
 .climate-sensor p { margin: 6px 0; }
 .climate-sensor .input { min-width: 180px; }
 .climate-dashboard-note { color: var(--text-muted); line-height: 1.5; }
-.room-climate { margin: 0 14px 8px; padding: 6px 9px; border-radius: 9px; background: rgba(124,196,255,.08);
-  color: var(--accent); font-size: .78rem; font-weight: 600; }
-.room-climate-stale { color: var(--warning); }
+.room-climate {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+}
+
+.room-climate-reading {
+  display: grid;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-climate-reading strong { font-size: 1.15rem; }
+.room-climate-reading small { color: var(--text-muted); font-size: .75rem; }
+.room-climate-stale { grid-column: 1 / -1; color: var(--warning); font-size: .72rem; }
 
 /* Persönliche Waagendaten: große Gewichtsanzeige und lesbare Feldliste. */
 .scale-page, .scale-card { display: grid; gap: 18px; }
