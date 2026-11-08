@@ -8,9 +8,10 @@ using Microsoft.Extensions.Options;
 // Eigenes, rein lesendes Werkzeug. Keine Web-App starten und keine Datenbank öffnen.
 var gatewayMode = args is ["--gateway"];
 var deviceMode = args is ["--device"];
-if (args.Length != 0 && !gatewayMode && !deviceMode)
+var matchMode = args is ["--abgleich"];
+if (args.Length != 0 && !gatewayMode && !deviceMode && !matchMode)
 {
-    Console.Error.WriteLine("Aufruf: TuyaDiagnose [--gateway | --device]");
+    Console.Error.WriteLine("Aufruf: TuyaDiagnose [--gateway | --device | --abgleich]");
     return 1;
 }
 
@@ -52,6 +53,30 @@ Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
 var client = provider.GetRequiredService<TuyaClient>();
 try
 {
+    if (matchMode)
+    {
+        // Eingabe je Zeile "Name|Tuya-ID" von tuya-lan-lauschen.py. Die IDs werden nur verglichen.
+        var linkedDevices = await client.GetLinkedAppDevicesAsync(cancellation.Token);
+        while (Console.ReadLine() is { } line)
+        {
+            var parts = line.Split('|', 2);
+            if (parts.Length != 2) continue;
+            var match = linkedDevices.FirstOrDefault(device => device.Id == parts[1]);
+            if (match is not null)
+            {
+                Console.WriteLine($"{parts[0]}: in der App-Liste als \"{match.Name}\" | {Online(match.Online)}");
+                continue;
+            }
+            Console.WriteLine($"{parts[0]}: gespeicherte ID fehlt in der App-Liste");
+            await ReadSection("  Direktabruf", async () =>
+            {
+                var info = await client.GetDeviceInformationAsync(parts[1], cancellation.Token);
+                Console.WriteLine($"  {info.Name} | {info.ProductName} | {Online(info.Online)}");
+            });
+        }
+        return 0;
+    }
+
     if (gatewayMode || deviceMode)
     {
         Console.Write(gatewayMode

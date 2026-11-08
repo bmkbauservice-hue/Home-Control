@@ -8,6 +8,9 @@ was offen ist und welche Regeln gelten.
 
 ## Aktueller verbindlicher Arbeitsstand
 
+- Geräte-Erreichbarkeit lesend geprüft (08.11.2026), Ergebnis je Gerät: [GERAETE_ERREICHBARKEIT.md](GERAETE_ERREICHBARKEIT.md). Beim Schalten nennt Home Control jetzt getrennt: fehlende Berechtigung, offline, kein Online-Status und fehlende Schaltfunktion.
+- Stehlampe: In Tuya nicht abrufbar (1106), im WLAN unter der Lidl-ID aktiv, `local_key` fehlt. Als Nächstes am Handy prüfen, ob Muju Home sie mit Ein/Aus anbietet. Ein Google-Home-Schaltweg wird erst danach gebaut. Geräte weder neu koppeln noch aus Hersteller-Apps entfernen.
+- PC-Steckdose: nur lesen, nie schalten. Bisher kein lesender Zugriff vorhanden.
 - In der Übersicht stehen Temperatur und Luftfeuchte einmal pro Raum. Ältere Werte sind gekennzeichnet. Die Stromkarte zeigt Watt und geschätzte kWh. Die Liste „Geräte und Messstatus“ lässt sich aufklappen. Direkt gemessene Shelly-Zählerstände bleiben separat.
 - Stehlampe: Die Lidl-Geräte-ID lässt sich mit `dotnet run --project tools/TuyaDiagnose -- --device` lesend gegen das verknüpfte Tuya-Projekt prüfen. Die tatsächliche Schaltbarkeit ist erst nach einem Hardwaretest bestätigt.
 
