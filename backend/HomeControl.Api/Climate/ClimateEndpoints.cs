@@ -1,6 +1,3 @@
-using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 using HomeControl.Api.Auth;
 using HomeControl.Api.Data;
 using HomeControl.Api.Demo;
@@ -79,19 +76,8 @@ public static class ClimateEndpoints
         if (DemoMode.IsEnabled(config))
             return Results.Problem(statusCode: 409, title: "In der Demo werden keine echten Sensorwerte angenommen.");
 
-        // Das Backend lauscht nur auf Loopback. Für WLAN-Sensoren gibt es den eigenen Gateway.
-        var remote = context.Connection.RemoteIpAddress;
-        if (remote is null || !IPAddress.IsLoopback(remote))
-            return Results.StatusCode(StatusCodes.Status403Forbidden);
-
-        var key = config["SensorBridge:Key"];
-        if (string.IsNullOrEmpty(key) || key.Length < 32)
-            return Results.Problem(statusCode: 503, title: "Sensor-Bridge ist noch nicht eingerichtet.");
-
-        var actual = Encoding.UTF8.GetBytes(context.Request.Headers["X-Sensor-Key"].ToString());
-        var expected = Encoding.UTF8.GetBytes(key);
-        if (actual.Length != expected.Length || !CryptographicOperations.FixedTimeEquals(actual, expected))
-            return Results.Unauthorized();
+        if (SensorBridgeGuard.Reject(context, config) is { } rejected)
+            return rejected;
 
         if (context.Request.ContentLength is > 4096)
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);

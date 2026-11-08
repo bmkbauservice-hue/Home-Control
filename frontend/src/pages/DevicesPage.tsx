@@ -11,6 +11,7 @@ import {
   type DeviceInput,
 } from '../api/devices'
 import { getRooms, type Room } from '../api/rooms'
+import { getGoogleHomeDevices, type GoogleHomeDevices } from '../api/googleHome'
 import { getTuyaDevices, syncLinkedDevices, type TuyaCloudDevice } from '../api/tuya'
 import { useAuth } from '../auth/authContext'
 import { DeviceFields } from '../components/DeviceFields'
@@ -37,11 +38,14 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
     type: 'Light',
     roomId: '',
     tuyaDeviceId: '',
+    googleHomeDeviceId: '',
     tuyaSyncSeconds: null,
   })
   // Geräte aus der Tuya-Cloud für die Auswahl. null = (noch) nicht verfügbar.
   const [tuyaDevices, setTuyaDevices] = useState<TuyaCloudDevice[] | null>(null)
   const [tuyaError, setTuyaError] = useState<string | null>(null)
+  // Von Muju Home gemeldete Geräte. Nur für Admins sichtbar, ein Fehler blockiert die Seite nicht.
+  const [googleHome, setGoogleHome] = useState<GoogleHomeDevices | null>(null)
   const [roomsLoading, setRoomsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -76,6 +80,22 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
   // Einmal beim ersten Anzeigen.
   useEffect(() => {
     loadRooms()
+  }, [])
+
+  // Muju Home kann jederzeit verbunden werden, deshalb die Liste regelmäßig neu lesen.
+  useEffect(() => {
+    let ignore = false
+    function load() {
+      getGoogleHomeDevices()
+        .then((loaded) => { if (!ignore) setGoogleHome(loaded) })
+        .catch(() => { if (!ignore) setGoogleHome(null) })
+    }
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => {
+      ignore = true
+      window.clearInterval(timer)
+    }
   }, [])
 
   // Tuya-Geräte einmal laden. Tuya ist optional: Ein Fehler hier blockiert die Seite nicht,
@@ -172,7 +192,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
       setDevices((current) => sortByName([...current, device]))
       // Typ und Raum bleiben stehen, so lassen sich mehrere Geräte schnell nacheinander anlegen.
       // Die Tuya-Verknüpfung wird geleert, denn jedes Tuya-Gerät gehört nur zu einem Gerät.
-      setNewDevice((current) => ({ ...current, name: '', tuyaDeviceId: '', tuyaSyncSeconds: null }))
+      setNewDevice((current) => ({ ...current, name: '', tuyaDeviceId: '', googleHomeDeviceId: '', tuyaSyncSeconds: null }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -267,6 +287,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
               rooms={rooms}
               onChange={setNewDevice}
               tuyaDevices={tuyaDevices}
+              googleHome={googleHome}
               devices={devices}
             />
             <button
@@ -370,6 +391,7 @@ export function DevicesPage({ onNavigate, initialRoomId = '' }: DevicesPageProps
                 device={device}
                 rooms={rooms}
                 tuyaDevices={tuyaDevices}
+                googleHome={googleHome}
                 devices={devices}
                 canEdit={isAdmin}
                 onSave={(input) => handleSave(device.id, input)}

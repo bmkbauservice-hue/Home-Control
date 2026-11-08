@@ -12,6 +12,17 @@ export function stateLabel(lastValue: string | null): string {
 // Türsensor ausfällt und keine Ereignisse mehr meldet.
 export const lowBatteryPercent = 20
 
+// Meldet ein Sensor so lange nichts, ist sein Akkustand nur noch ein alter Stand (z. B. nach Batteriewechsel).
+const oldBatteryReportDays = 3
+
+// Datum der letzten Akku-Meldung, wenn sie alt ist. Sonst null.
+export function oldBatteryReport(reportedAtUtc: string | null | undefined, now: Date = new Date()): string | null {
+  if (!reportedAtUtc) return null
+  const reported = new Date(reportedAtUtc)
+  if (now.getTime() - reported.getTime() < oldBatteryReportDays * 86_400_000) return null
+  return reported.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
+
 export type Measurement = {
   text: string
   // true = Hinweis (gelb), z. B. fast leerer Akku
@@ -33,9 +44,10 @@ export function measurementsOf(device: Device): Measurement[] {
     result.push({ text: `${voltFormat.format(device.voltageVolt)} V`, warning: false })
   }
   if (device.batteryPercent !== null) {
+    const oldReport = oldBatteryReport(device.batteryReportedAtUtc)
     result.push({
-      text: `Akku ${device.batteryPercent} %`,
-      warning: device.batteryPercent <= lowBatteryPercent,
+      text: `Akku ${device.batteryPercent} %` + (oldReport ? ` · Stand ${oldReport}` : ''),
+      warning: device.batteryPercent <= lowBatteryPercent || oldReport !== null,
     })
   }
   return result

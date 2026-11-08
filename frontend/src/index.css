@@ -2252,3 +2252,15 @@ input[type='date'].input::-webkit-calendar-picker-indicator {
   .scale-table td, .scale-table th { padding: 8px; }
 }
 
+
+/* Szenarien: Regelkarten mit Schalter und Verlauf */
+.scenarios-page { display: grid; gap: 18px; }
+.scenario-form, .scenario-card { display: grid; gap: 12px; }
+.scenario-form h2, .scenario-card h2 { font-size: 1.15rem; }
+.scenario-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.scenario-runs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.scenario-runs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; font-size: .88rem; }
+.scenario-runs small { grid-column: 1 / -1; color: var(--text-muted); }
+.scenario-outcome-bestaetigt { color: var(--online); }
+.scenario-outcome-nicht-bestaetigt, .scenario-outcome-laeuft { color: var(--warning); }
+.scenario-outcome-fehler { color: var(--danger); }

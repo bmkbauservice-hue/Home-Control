@@ -78,7 +78,9 @@ Der Test prüft Oberfläche, Anmeldung, falschen/richtigen Sensor-Schlüssel, Ra
 Klima-Daten nach Container-Neuerstellung. Danach entfernt er ausschließlich das eigene Testprojekt.
 Das ist kein Hardwaretest und kein Nachweis, dass Host-Daten bereits nach Docker übertragen wurden.
 
-## Blink: vorbereitete Übernahme, noch nicht aktiviert
+## Blink: vorbereitete Übernahme
+
+Für die lokale Testinstanz gibt es jetzt ein geprüftes Werkzeug, siehe [BLINK.md](BLINK.md). Die folgenden Schritte gelten für den späteren Umzug nach Docker.
 
 Kameraseite und Bild-Proxy sind im gemeinsamen Quellcode enthalten. Im Test bleibt Blink aus.
 Vor einer Übernahme muss lokal festgestellt werden, welche Instanz aktuell das rotierende Refresh-Token hält.

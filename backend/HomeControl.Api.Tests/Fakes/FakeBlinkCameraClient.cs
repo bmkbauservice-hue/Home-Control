@@ -27,6 +27,25 @@ public class FakeBlinkCameraClient : IBlinkCameraClient
         return Task.FromResult(Snapshot(cameraId));
     }
 
+    public List<BlinkSystemInfo> Systems { get; set; } = [new BlinkSystemInfo("77", "Haus", false)];
+
+    // Scharfschalten: Standard ist ein vom Gerät bestätigter Erfolg. Test kann es ändern.
+    public Func<string, BlinkArmResult?> Arm { get; set; } = _ => new BlinkArmResult(true, true, false);
+
+    public List<string> ArmRequests { get; } = [];
+
+    public Task<IReadOnlyList<BlinkSystemInfo>> GetSystemsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BlinkSystemInfo>>(Systems);
+
+    public Task<BlinkArmResult?> ArmSystemAsync(string systemId, CancellationToken cancellationToken)
+    {
+        lock (ArmRequests) ArmRequests.Add(systemId);
+        return Task.FromResult(Arm(systemId));
+    }
+
+    public Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken) =>
+        Task.FromResult<BlinkLiveProbeResult?>(new BlinkLiveProbeResult(true, 5, 900, null));
+
     public Task<BlinkThumbnail?> GetThumbnailAsync(string cameraId, CancellationToken cancellationToken)
     {
         RequestedThumbnails.Add(cameraId);

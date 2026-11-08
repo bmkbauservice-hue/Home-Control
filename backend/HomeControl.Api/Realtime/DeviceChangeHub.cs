@@ -11,6 +11,7 @@ public record DeviceChangeEvent(IReadOnlyList<Guid> DeviceIds, string Source, Da
 public static class DeviceChangeSources
 {
     public const string TuyaSync = "tuya-abgleich";
+    public const string GoogleHome = "google-home";
 }
 
 // Verteilt Änderungen an alle offenen Browser-Verbindungen (Publish/Subscribe im Arbeitsspeicher).

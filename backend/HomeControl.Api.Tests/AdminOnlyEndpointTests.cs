@@ -24,6 +24,10 @@ public class AdminOnlyEndpointTests(HomeControlApiFactory factory) : IClassFixtu
         { "DELETE", $"/api/devices/{SomeId}" },
         { "POST", $"/api/devices/{SomeId}/events" },
         { "POST", $"/api/tuya/devices/{SomeId}/switch" },
+        { "POST", "/api/blink/cameras/1/live-probe" },
+        { "GET", "/api/scenarios" },
+        { "POST", "/api/scenarios" },
+        { "POST", $"/api/scenarios/{SomeId}/run" },
     };
 
     [Theory]

@@ -4,6 +4,7 @@ import {
   formatTakenAt,
   getBlinkThumbnail,
   isOldThumbnail,
+  probeLiveView,
   requestNewThumbnail,
   type BlinkCamera,
 } from '../api/blink'
@@ -27,6 +28,8 @@ export function BlinkCameraCard({ camera, refreshKey, canRequestNewImage = false
   const [snapshotCount, setSnapshotCount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [snapshotMessage, setSnapshotMessage] = useState<string | null>(null)
+  const [probing, setProbing] = useState(false)
+  const [probeMessage, setProbeMessage] = useState<string | null>(null)
 
   async function handleNewImage() {
     setBusy(true)
@@ -42,6 +45,22 @@ export function BlinkCameraCard({ camera, refreshKey, canRequestNewImage = false
       setSnapshotMessage((err as Error).message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Bewusst kein "Live"-Etikett: Die Probe zählt nur Videodaten, es läuft kein Videobild.
+  async function handleLiveProbe() {
+    setProbing(true)
+    setProbeMessage(null)
+    try {
+      const result = await probeLiveView(camera.id)
+      setProbeMessage(result.videoReceived
+        ? `Probe erfolgreich: ${result.videoFrames} Videopakete empfangen. Die Wiedergabe ist noch nicht eingebaut.`
+        : `Kein Video empfangen: ${result.problem ?? 'unbekannter Grund'}`)
+    } catch (err) {
+      setProbeMessage((err as Error).message)
+    } finally {
+      setProbing(false)
     }
   }
 
@@ -107,7 +126,15 @@ export function BlinkCameraCard({ camera, refreshKey, canRequestNewImage = false
           <button type="button" className="button" onClick={handleNewImage} disabled={busy}>
             {busy ? 'Kamera nimmt auf …' : 'Neues Bild'}
           </button>
+          <button type="button" className="button" onClick={handleLiveProbe} disabled={probing}>
+            {probing ? 'Prüfe …' : 'Livebild prüfen'}
+          </button>
           <span className="camera-hint">kostet Akku, höchstens 1× pro Minute</span>
+          {probeMessage !== null && (
+            <p className="camera-snapshot-message" role="status">
+              {probeMessage}
+            </p>
+          )}
           {snapshotMessage !== null && (
             <p className="camera-snapshot-message" role="status">
               {snapshotMessage}

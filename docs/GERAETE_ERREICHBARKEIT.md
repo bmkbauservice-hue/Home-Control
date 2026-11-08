@@ -1,6 +1,7 @@
 # Welche Geräte Home Control wirklich erreicht
 
 Stand: 08.11.2026. Alle Angaben stammen aus lesenden Prüfungen. Es wurde dabei kein Gerät geschaltet.
+Google-Home-Spalte: Inventur von Muju Home vom selben Tag.
 Geräte-IDs, IP-Adressen und lokale Schlüssel stehen bewusst nicht in dieser Datei.
 
 **Zum Lernen:** [Lernunterlage-Geraete-Erreichbarkeit.pdf](Lernunterlage-Geraete-Erreichbarkeit.pdf)
@@ -21,15 +22,15 @@ Home Control nennt beim Schalten jetzt genau die zutreffende Ursache und sendet 
 | Gerät | Tuya-Projekt | Im WLAN gehört | Google Home / Muju Home | Schalten | Strommessung | Woran es liegt |
 |---|---|---|---|---|---|---|
 | Heizdecke | online | ja, Protokoll 3.3 | nicht nötig | **am Gerät bestätigt** | nein, meldet nur `switch_1` und Countdown | nichts offen |
-| Stehlampe | gespeicherte ID und Lidl-ID fehlen, jeweils 1106 | ja, unter der Lidl-ID, Protokoll 3.4 | am Handy noch nicht geprüft | nein | unbekannt | fehlende Berechtigung und fehlender `local_key` |
-| Bad Steckdose | „Bad Licht“, offline, letzte Meldung 06.11. | keinem gehörten Gerät zugeordnet | am Handy noch nicht geprüft | offline | nein, kein `cur_power` | offline. Ob der Tuya-Eintrag noch das aktuelle Lidl-Gerät ist, ist unbestätigt |
-| Barlicht | offline, letzte Meldung 08.11. | nein | am Handy noch nicht geprüft | nicht getestet, `switch_1` vorhanden | `cur_power` vorhanden, kein aktueller Wert | offline. Der gespeicherte 0-Watt-Wert belegt keine aktuelle Messung |
-| Küche Licht | nicht im Projekt, keine Zuordnung | unbestätigt | am Handy noch nicht geprüft | nein | unbekannt | Funkweg in Lidl Home noch unbestätigt |
-| PC Moonlight | nicht im Projekt, keine Zuordnung | unbestätigt | am Handy noch nicht geprüft | nein | unbekannt | Funkweg in Lidl Home noch unbestätigt |
-| PC-Steckdose (LSC „Schlafzimmer“) | fehlt, Direktabruf 40001900 | unbestätigt | **nicht ansteuern** | **bewusst nie** | gewünscht, nur lesend | fehlende Berechtigung und fehlender `local_key` |
+| Stehlampe | gespeicherte ID und Lidl-ID fehlen, jeweils 1106 | ja, unter der Lidl-ID, Protokoll 3.4 | online, Ein/Aus, verknüpft | Weg gebaut, am Gerät noch nicht bestätigt | nein, nur `OnOff` | Tuya: fehlende Berechtigung. Weiter über Google Home: [GOOGLE_HOME_SCHALTEN.md](GOOGLE_HOME_SCHALTEN.md) |
+| Bad Licht (Eintrag „Bad Steckdose“ am 08.11. gelöscht) | „Bad Licht“, offline, letzte Meldung 06.11. | keinem gehörten Gerät zugeordnet | offline, Ein/Aus | offline | nein, kein `cur_power` | offline in Tuya und Google Home |
+| Barlicht | offline, letzte Meldung 08.11. | nein | offline, Ein/Aus | nicht getestet, `switch_1` vorhanden | `cur_power` vorhanden, kein aktueller Wert | offline in Tuya und Google Home. Der gespeicherte 0-Watt-Wert belegt keine aktuelle Messung |
+| Küche Licht | nicht im Projekt | unbestätigt | online, Ein/Aus, Helligkeit, Farbe, verknüpft | Weg gebaut, am Gerät noch nicht bestätigt | nein | nichts offen außer dem Test am Gerät |
+| PC Moonlight (Eintrag am 08.11. gelöscht) | nicht im Projekt | unbestätigt | zwei Einträge „LSC Moodlight“, einer online, einer offline | nicht zugeordnet | nein | welcher Eintrag welches Licht ist, ist unbestätigt |
+| PC-Steckdose (LSC „Schlafzimmer“) | fehlt, Direktabruf 40001900 | unbestätigt | „Schlafzimmer“, offline, nur `OnOff`, **gesperrt** | **bewusst nie** | gewünscht, Google Home liefert aber keine Energiewerte | fehlende Berechtigung und fehlender `local_key` |
 | Muju Gateway | Untergeräte-Abruf 1106 | unbestätigt | nicht zutreffend | nicht zutreffend | nicht zutreffend | fehlende Berechtigung, Gatewaymodell ungeklärt |
-| Türsensor | online | nein | nicht nötig | keine Schaltfunktion | nein, batteriebetrieben | nichts offen |
-| Vier Klimasensoren | nicht im Projekt | nein | angebunden, frische Werte nur mit laufender App | nicht zutreffend | nein, batteriebetrieben | Handy und Gateway müssen laufen |
+| Türsensor | online gemeldet, letzte Meldung 02.11. | nein | online, Kontakt ohne Akku | keine Schaltfunktion | nein, batteriebetrieben | Tuya hat seit dem 02.11. keine neue Meldung. Die 90 % sind dieser alte Stand |
+| Vier Klimasensoren | nicht im Projekt | nein | online, Temperatur und Luftfeuchte, **kein Akku** | nicht zutreffend | nein, batteriebetrieben | Google Home liefert keinen Akkustand, und in Tuya liegen sie nicht |
 
 „Im WLAN gehört“ belegt nur, dass das Gerät im Heimnetz aktiv ist. Lesen oder Schalten ist damit noch nicht möglich.
 
@@ -48,8 +49,7 @@ aus Lidl Home verschwinden. Das ist derzeit ausdrücklich nicht gewünscht. Eine
 mit einem eigenen Tuya-Projekt wurde nicht gefunden.
 
 **Google Home:** Die Android-Test-App enthält den Ein/Aus-Trait `OnOff`: Sie liest `onOff` und ruft `on()` oder `off()` auf.
-Die Home-Control-Bridge überträgt bisher nur Klimawerte. Ein Rückweg für Schaltbefehle fehlt noch und wird erst gebaut,
-wenn die Stehlampe in Muju Home nachweislich mit Ein/Aus erscheint und reagiert.
+Der Rückweg für Schaltbefehle ist gebaut. Ob Muju Home die Steckdose mit Ein/Aus anbietet, zeigt erst der Test am Handy.
 
 ## Strommessung
 

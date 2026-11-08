@@ -1,7 +1,7 @@
 # Blink-Anbindung
 
 Home Control liest (nur lesend) Status und Kameras eines Blink-Systems. Wie bei Tuya wird
-nie geschaltet – hier zusätzlich: nie scharf-/unscharfgeschaltet und nie ein Clip gelöscht.
+nie geschaltet – hier zusätzlich: nie unscharfgeschaltet und nie ein Clip gelöscht. Scharfschalten nur über eine Regel, siehe [SZENARIEN.md](SZENARIEN.md).
 **Einzige bewusste Ausnahme:** der Knopf „Neues Bild“ (siehe unten). Er lässt eine Kamera ein neues
 Vorschaubild aufnehmen, kostet Akku, schaltet aber nichts.
 
@@ -177,6 +177,28 @@ Bild Tage alt sein. Deshalb gibt es **eine** bewusste Ausnahme von „nur lesend
 
 Die Kamerakarte zeigt die **Aufnahmezeit groß** darunter, **gelb**, wenn das Bild älter als einen Tag ist. So
 hält niemand ein altes Bild für ein Livebild.
+
+## Testinstanz und Dauerdienst: genau ein Token-Halter
+
+**Zum Lernen:** [Lernunterlage-Blink-Uebernahme.pdf](Lernunterlage-Blink-Uebernahme.pdf)
+
+Die Testinstanz auf Port 5181 hat Blink standardmäßig aus. Das Werkzeug `tools/blink-token-umziehen.py` gibt das Token geprüft weiter und zeigt es nie an:
+
+```bash
+python3 tools/blink-token-umziehen.py status
+```
+
+```bash
+python3 tools/blink-token-umziehen.py zu-test
+```
+
+```bash
+python3 tools/live-mit-hausdaten-starten.py --mit-blink
+```
+
+`zu-test` setzt `Blink:Enabled=false` in den User Secrets. Der Dauerdienst übernimmt das ohne Neustart, die Testinstanz schaltet Blink per Umgebungsvariable wieder ein. Der Starter verweigert `--mit-blink`, solange Blink im Dienst an ist oder die Testdatenbank ein älteres Token hat. Zurück geht es mit beendeter Testinstanz über `zum-dienst`.
+
+Livebild und Clips sind nicht angebunden. Angezeigt wird das letzte vorhandene Vorschaubild mit Aufnahmezeit.
 
 ## 5. Bekannte Grenzen
 

@@ -54,8 +54,15 @@ namespace HomeControl.Api.Migrations
                     b.Property<int?>("BatteryPercent")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("BatteryReportedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("EstimatedEnergyKwh")
                         .HasColumnType("REAL");
+
+                    b.Property<string>("GoogleHomeDeviceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
@@ -97,6 +104,9 @@ namespace HomeControl.Api.Migrations
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GoogleHomeDeviceId")
+                        .IsUnique();
 
                     b.HasIndex("RoomId");
 
@@ -181,6 +191,80 @@ namespace HomeControl.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Rooms");
+                });
+
+            modelBuilder.Entity("HomeControl.Api.Models.Scenario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BlinkSystemId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BlinkSystemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TriggerDeviceId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TriggerDeviceId");
+
+                    b.ToTable("Scenarios");
+                });
+
+            modelBuilder.Entity("HomeControl.Api.Models.ScenarioRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("FinishedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ScenarioId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScenarioId");
+
+                    b.ToTable("ScenarioRuns");
                 });
 
             modelBuilder.Entity("HomeControl.Api.Models.User", b =>
@@ -410,6 +494,28 @@ namespace HomeControl.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HomeControl.Api.Models.Scenario", b =>
+                {
+                    b.HasOne("HomeControl.Api.Models.Device", "TriggerDevice")
+                        .WithMany()
+                        .HasForeignKey("TriggerDeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TriggerDevice");
+                });
+
+            modelBuilder.Entity("HomeControl.Api.Models.ScenarioRun", b =>
+                {
+                    b.HasOne("HomeControl.Api.Models.Scenario", "Scenario")
+                        .WithMany("Runs")
+                        .HasForeignKey("ScenarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Scenario");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
@@ -471,6 +577,11 @@ namespace HomeControl.Api.Migrations
                     b.Navigation("Devices");
                 });
 
+            modelBuilder.Entity("HomeControl.Api.Models.Scenario", b =>
+                {
+                    b.Navigation("Runs");
+                });
+
             modelBuilder.Entity("HomeControl.Api.Models.User", b =>
                 {
                     b.Navigation("RefreshTokens");
@@ -479,4 +590,3 @@ namespace HomeControl.Api.Migrations
         }
     }
 }
-

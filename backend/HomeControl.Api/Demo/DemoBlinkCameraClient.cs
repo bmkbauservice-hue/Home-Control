@@ -25,6 +25,23 @@ public class DemoBlinkCameraClient : IBlinkCameraClient
     private readonly Lock sync = new();
     private readonly List<DemoCamera> cameras;
 
+    private bool demoSystemArmed;
+
+    // Ein erfundenes System: Im Demo geht nie ein Befehl an Blink.
+    public Task<IReadOnlyList<BlinkSystemInfo>> GetSystemsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BlinkSystemInfo>>([new BlinkSystemInfo("9100", "Demo-Haus", demoSystemArmed)]);
+
+    public Task<BlinkArmResult?> ArmSystemAsync(string systemId, CancellationToken cancellationToken)
+    {
+        if (systemId != "9100") return Task.FromResult<BlinkArmResult?>(null);
+        var already = demoSystemArmed;
+        demoSystemArmed = true;
+        return Task.FromResult<BlinkArmResult?>(new BlinkArmResult(true, true, already));
+    }
+
+    public Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken) =>
+        Task.FromResult<BlinkLiveProbeResult?>(new BlinkLiveProbeResult(false, 0, 0, "Im Demo-Modus gibt es kein Livebild."));
+
     public DemoBlinkCameraClient(TimeProvider timeProvider)
     {
         this.timeProvider = timeProvider;

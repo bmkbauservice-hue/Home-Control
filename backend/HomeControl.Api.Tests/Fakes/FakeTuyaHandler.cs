@@ -29,6 +29,9 @@ public class FakeTuyaHandler : HttpMessageHandler
 
     public Func<int, string> CommandResponse { get; set; } = _ => "{ \"success\": true, \"result\": true }";
 
+    // Antwort auf die zuletzt gemeldeten Eigenschaften. null = wie bisher nicht vorhanden (404).
+    public string? PropertiesResponse { get; set; }
+
     public IReadOnlyList<string> CommandBodies
     {
         get { lock (sync) return commandBodies.ToList(); }
@@ -105,6 +108,11 @@ public class FakeTuyaHandler : HttpMessageHandler
                 number = commandBodies.Count;
             }
             return Json(CommandResponse(number));
+        }
+
+        if (path.StartsWith("/v2.0/cloud/thing/", StringComparison.Ordinal) && PropertiesResponse is not null)
+        {
+            return Json(PropertiesResponse);
         }
 
         if (path.StartsWith("/v1.0/iot-03/devices/", StringComparison.Ordinal))

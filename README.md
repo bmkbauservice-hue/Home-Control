@@ -250,9 +250,12 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Android-Sensor-Bridge (bestehende App ergänzen, USB-Test, Sicherung, Docker-Persistenz) | [Lernunterlage-Android-Sensor-Bridge.pdf](docs/Lernunterlage-Android-Sensor-Bridge.pdf) |
 | Tuya-Diagnose und Waage (Online-Abgleich, Datenpunkte, Einheiten, Meldezeit) | [Lernunterlage-Tuya-Diagnose-und-Waage.pdf](docs/Lernunterlage-Tuya-Diagnose-und-Waage.pdf) |
 | Geräte-Erreichbarkeit (Berechtigung, offline, Schaltfunktion, Messwert, passives Lauschen) | [Lernunterlage-Geraete-Erreichbarkeit.pdf](docs/Lernunterlage-Geraete-Erreichbarkeit.pdf) |
+| Schalten über Google Home (Polling, Bestätigung, Abholfrist, Bridge-Absicherung) | [Lernunterlage-Google-Home-Schalten.pdf](docs/Lernunterlage-Google-Home-Schalten.pdf) |
 | Testdaten und Container (Sitzung fortsetzen, SQLite/WAL sichern, Docker-Sensorweg) | [Lernunterlage-Testdaten-und-Container.pdf](docs/Lernunterlage-Testdaten-und-Container.pdf) |
 | Waagenansicht (Cloud-Eigenschaften, Feldzeiten, Skalierung, private Zuordnung) | [Lernunterlage-Waagenansicht.pdf](docs/Lernunterlage-Waagenansicht.pdf) |
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
+| Blink-Token umziehen (Rotation, genau ein Halter, verschlüsselter Umzug) | [Lernunterlage-Blink-Uebernahme.pdf](docs/Lernunterlage-Blink-Uebernahme.pdf) |
+| Szenarien (Flanke statt Zustand, Warteschlange, bestätigtes Scharfschalten) | [Lernunterlage-Szenarien.pdf](docs/Lernunterlage-Szenarien.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Alarm mit Blink und Türsensor (Türregel, Scharfschalten, Standbilder und USB-Clips) | [Lernunterlage-Alarm-Blink-und-Tuersensor.pdf](docs/Lernunterlage-Alarm-Blink-und-Tuersensor.pdf) |
 | Blink-Clips erkunden (lokaler Speicher, Manifest, MP4 prüfen) | [Lernunterlage-Blink-Clips.pdf](docs/Lernunterlage-Blink-Clips.pdf) |

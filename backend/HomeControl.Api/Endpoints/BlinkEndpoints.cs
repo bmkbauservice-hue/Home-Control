@@ -40,6 +40,32 @@ public static class BlinkEndpoints
             .RequireAuthorization(AuthPolicies.AdminOnly)
             .RequireRateLimiting(RateLimitPolicies.BlinkSnapshot)
             .WithSummary("Neues Vorschaubild aufnehmen lassen (nur Admin, 1× pro Minute und Kamera, kostet Akku)");
+
+        // Prüft, ob wirklich Video ankommt. Weckt die Kamera, deshalb nur Admin und höchstens einmal pro Minute.
+        blink.MapPost("/cameras/{id:long}/live-probe", ProbeLive)
+            .RequireAuthorization(AuthPolicies.AdminOnly)
+            .RequireRateLimiting(RateLimitPolicies.BlinkSnapshot)
+            .WithSummary("Kurze Livebild-Probe: kommen echte Videodaten an? (nur Admin)");
+    }
+
+    private static async Task<IResult> ProbeLive(
+        long id, IBlinkCameraClient client, ILogger<IBlinkCameraClient> logger, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await client.ProbeLiveViewAsync(id.ToString(CultureInfo.InvariantCulture), cancellationToken);
+            return result is null
+                ? Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Diese Kamera gibt es nicht.")
+                : Results.Ok(result);
+        }
+        catch (Exception ex) when (ex is BlinkDisabledException or BlinkNotConfiguredException or BlinkLoginRequiredException)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "Blink ist nicht verbunden.", detail: ex.Message);
+        }
+        catch (Exception ex) when (TryMapTransportError(ex, logger, cancellationToken, out var problem))
+        {
+            return problem!;
+        }
     }
 
     private static async Task<IResult> GetStatus(

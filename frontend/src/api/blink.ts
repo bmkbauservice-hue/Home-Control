@@ -45,6 +45,14 @@ export async function requestNewThumbnail(cameraId: string): Promise<BlinkSnapsh
 }
 
 // Älter als einen Tag? Dann zeigt die Karte die Aufnahmezeit gelb, damit niemand ein altes Bild für live hält.
+// Antwort der Livebild-Probe. Sie zeigt nur, ob Videodaten ankamen, und spielt nichts ab.
+export type BlinkLiveProbe = { videoReceived: boolean; videoFrames: number; videoBytes: number; problem: string | null }
+
+export async function probeLiveView(cameraId: string): Promise<BlinkLiveProbe> {
+  const response = await send(`/api/blink/cameras/${encodeURIComponent(cameraId)}/live-probe`, { method: 'POST' })
+  return (await response.json()) as BlinkLiveProbe
+}
+
 export function isOldThumbnail(timestamp: string, now: Date = new Date()): boolean {
   const date = new Date(timestamp)
   return !Number.isNaN(date.getTime()) && now.getTime() - date.getTime() > 24 * 60 * 60 * 1000

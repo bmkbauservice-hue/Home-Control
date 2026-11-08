@@ -9,6 +9,7 @@ import { ReportsPage } from './pages/ReportsPage'
 import { RoomsPage } from './pages/RoomsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ScalePage } from './pages/ScalePage'
+import { ScenariosPage } from './pages/ScenariosPage'
 import { LoginPage } from './pages/LoginPage'
 import { useAuth } from './auth/authContext'
 import { StatusProvider } from './status/StatusProvider'
@@ -60,6 +61,7 @@ function AppShell() {
           {page === 'devices' && <DevicesPage onNavigate={navigate} initialRoomId={devicesRoomId} />}
           {page === 'climate' && <ClimatePage />}
           {page === 'scale' && isAdmin && <ScalePage />}
+          {page === 'scenarios' && isAdmin && <ScenariosPage />}
           {page === 'reports' && <ReportsPage />}
           {page === 'blink' && <BlinkPage />}
           {page === 'settings' && isAdmin && <SettingsPage />}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import runpy
 import socket
 import sqlite3
 import subprocess
@@ -199,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--wiederherstellen", metavar="HAUSDATEI", help="Ein vorhandenes Haus-/Klima-Testpaar wieder öffnen.")
     mode.add_argument("--nur-sichern", action="store_true", help="Aktuelle Testdaten sichern, keinen Dienst starten.")
     mode.add_argument("--neu", action="store_true", help="Bewusst neue Kopien importieren; die bisherige Sitzung bleibt gesichert.")
+    parser.add_argument("--mit-blink", action="store_true",
+                        help="Blink einschalten. Nur nach: python3 tools/blink-token-umziehen.py zu-test")
     args = parser.parse_args(argv or [])
     if not (BASE / "app-starten.sh").is_file():
         print("Fehler: App-Startskript im Projekt nicht gefunden.")
@@ -226,7 +229,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if session and not args.neu:
             print("Gespeicherte Test-Sitzung wird mit denselben Zuordnungen und Geräten fortgesetzt.")
-            return launch(*session)
+            if args.mit_blink:
+                # Blink tauscht sein Token bei jeder Erneuerung aus: Nur eine Instanz darf es benutzen.
+                blocked = runpy.run_path(str(BASE / "tools/blink-token-umziehen.py"))["ready_for_test"](session[0])
+                if blocked:
+                    print(blocked)
+                    return 8
+            return launch(*session, blink=args.mit_blink)
         if not session and not args.neu and SNAPSHOTS.exists() and any(SNAPSHOTS.glob("*.db")):
             raise ValueError("Ältere Testkopien ohne Sitzung gefunden. Zuerst die bisherige Test-API sichern; --neu importiert bewusst neu.")
     except (OSError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
@@ -290,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     return launch(target, climate_db)
 
 
-def launch(target: Path, climate_db: Path) -> int:
+def launch(target: Path, climate_db: Path, blink: bool = False) -> int:
     environment = os.environ.copy()
     environment["ASPNETCORE_ENVIRONMENT"] = "Development"
     environment["ASPNETCORE_URLS"] = "http://127.0.0.1:5181"
@@ -303,7 +312,7 @@ def launch(target: Path, climate_db: Path) -> int:
         if len(key) >= 32:
             environment["SensorBridge__Key"] = key
             print("Vorhandener Sensor-Bridge-Schlüssel für die Testinstanz eingebunden.")
-    environment["Blink__Enabled"] = "false"
+    environment["Blink__Enabled"] = "true" if blink else "false"
     environment["Tuya__AutoSyncSeconds"] = "0"
     try:
         return subprocess.call(["bash", "./app-starten.sh"], cwd=BASE, env=environment)

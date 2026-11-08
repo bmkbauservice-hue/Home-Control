@@ -6,10 +6,21 @@ from urllib.error import HTTPError, URLError
 import ipaddress
 import json
 import os
+import re
 
 BACKEND = os.environ.get("HOME_CONTROL_SENSOR_BACKEND", "http://127.0.0.1:5181").rstrip("/")
 PORT = int(os.environ.get("HOME_CONTROL_SENSOR_PORT", "5390"))
 BIND = os.environ.get("HOME_CONTROL_SENSOR_BIND", "0.0.0.0")
+MAX_BYTES = 64 * 1024
+
+# Nur diese Bridge-Adressen werden weitergeleitet, nie die übrige API.
+BRIDGE_PATHS = re.compile(
+    r"/api/(climate/bridge/readings|google-home/bridge/poll|"
+    r"google-home/bridge/commands/[0-9a-fA-F-]{36}/result)")
+
+
+def is_bridge_path(path: str) -> bool:
+    return BRIDGE_PATHS.fullmatch(path) is not None
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -25,11 +36,11 @@ class Handler(BaseHTTPRequestHandler):
             peer = ipaddress.ip_address(self.client_address[0])
             if not (peer.is_private or peer.is_loopback):
                 return self.send_error(403)
-            if self.path != "/api/climate/bridge/readings":
+            if not is_bridge_path(self.path):
                 return self.send_error(404)
 
             size = int(self.headers.get("Content-Length", "0"))
-            if size < 1 or size > 4096:
+            if size < 1 or size > MAX_BYTES:
                 return self.send_error(413)
             key = self.headers.get("X-Sensor-Key")
             if not key:
@@ -39,16 +50,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_error(400)
 
             req = Request(
-                BACKEND + "/api/climate/bridge/readings",
+                BACKEND + self.path,
                 data=body,
                 headers={"Content-Type": "application/json", "X-Sensor-Key": key},
                 method="POST",
             )
             try:
                 with urlopen(req, timeout=9) as response:
-                    data, code = response.read(4096), response.status
+                    data, code = response.read(MAX_BYTES), response.status
             except HTTPError as exc:
-                data, code = exc.read(4096), exc.code
+                data, code = exc.read(MAX_BYTES), exc.code
 
             self.send_response(code)
             self.send_header("Content-Type", "application/json")

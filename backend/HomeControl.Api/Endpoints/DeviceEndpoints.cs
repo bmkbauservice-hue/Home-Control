@@ -1,7 +1,9 @@
 using HomeControl.Api.Auth;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
+using HomeControl.Api.GoogleHome;
 using HomeControl.Api.Models;
+using HomeControl.Api.Tuya;
 using Microsoft.EntityFrameworkCore;
 
 namespace HomeControl.Api.Endpoints;
@@ -83,7 +85,7 @@ public static class DeviceEndpoints
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
                 d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
-                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh))
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId, d.BatteryReportedAtUtc))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -97,9 +99,9 @@ public static class DeviceEndpoints
     }
 
     // POST /api/devices – neues Gerät in einem Raum anlegen
-    private static async Task<IResult> CreateDevice(DeviceRequest request, ApplicationDbContext db)
+    private static async Task<IResult> CreateDevice(DeviceRequest request, ApplicationDbContext db, GoogleHomeBridge bridge)
     {
-        var errors = await Validate(request, null, null, db);
+        var errors = await Validate(request, null, null, null, db, bridge);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -113,6 +115,7 @@ public static class DeviceEndpoints
             TuyaDeviceId = NormalizeTuyaDeviceId(request.TuyaDeviceId),
             TuyaSyncSeconds = NormalizeTuyaSyncSeconds(request)
         };
+        ApplyGoogleHomeLink(device, request, bridge);
 
         db.Devices.Add(device);
         await db.SaveChangesAsync();
@@ -121,7 +124,7 @@ public static class DeviceEndpoints
     }
 
     // PUT /api/devices/{id} – Name, Typ, Raum oder Tuya-Verknüpfung eines Geräts ändern
-    private static async Task<IResult> UpdateDevice(Guid id, DeviceRequest request, ApplicationDbContext db)
+    private static async Task<IResult> UpdateDevice(Guid id, DeviceRequest request, ApplicationDbContext db, GoogleHomeBridge bridge)
     {
         var device = await db.Devices.FindAsync(id);
         if (device is null)
@@ -130,7 +133,7 @@ public static class DeviceEndpoints
         }
 
         // Der bisher gespeicherte Typ bleibt erlaubt, auch wenn er nicht mehr in der Liste steht.
-        var errors = await Validate(request, device.Type, id, db);
+        var errors = await Validate(request, device.Type, id, device.GoogleHomeDeviceId, db, bridge);
         if (errors.Count > 0)
         {
             return Results.ValidationProblem(errors);
@@ -148,6 +151,7 @@ public static class DeviceEndpoints
             device.EstimatedEnergyKwh = null;
             device.VoltageVolt = null;
             device.BatteryPercent = null;
+            device.BatteryReportedAtUtc = null;
             device.MeasuredAtUtc = null;
         }
 
@@ -156,6 +160,7 @@ public static class DeviceEndpoints
         device.RoomId = request.RoomId;
         device.TuyaDeviceId = tuyaDeviceId;
         device.TuyaSyncSeconds = NormalizeTuyaSyncSeconds(request);
+        ApplyGoogleHomeLink(device, request, bridge);
         await db.SaveChangesAsync();
 
         return Results.Ok(await FindDevice(id, db));
@@ -194,12 +199,35 @@ public static class DeviceEndpoints
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
                 d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
-                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh))
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId, d.BatteryReportedAtUtc))
             .FirstOrDefaultAsync();
     }
 
     // Gleiche Grenze wie im ApplicationDbContext (TuyaDeviceId: HasMaxLength(64)).
     private const int MaxTuyaDeviceIdLength = 64;
+
+    // Leer heißt: keine Google-Home-Verknüpfung.
+    private static string? NormalizeGoogleHomeDeviceId(string? id) => string.IsNullOrWhiteSpace(id) ? null : id.Trim();
+
+    // Bei einer neuen Verknüpfung gilt sofort der von Muju Home gemeldete Zustand, nicht der alte Tuya-Stand.
+    private static void ApplyGoogleHomeLink(Device device, DeviceRequest request, GoogleHomeBridge bridge)
+    {
+        var googleId = NormalizeGoogleHomeDeviceId(request.GoogleHomeDeviceId);
+        if (googleId != device.GoogleHomeDeviceId)
+        {
+            var reported = googleId is null ? null : bridge.Find(googleId);
+            if (device.Type == "DoorSensor" || request.Type == "DoorSensor")
+            {
+                device.LastValue = reported?.Open is { } open ? (open ? TuyaDeviceSyncer.OpenText : TuyaDeviceSyncer.ClosedText) : null;
+            }
+            else
+            {
+                device.LastValue = reported?.On is { } on ? (on ? TuyaSwitchRecorder.OnText : TuyaSwitchRecorder.OffText) : null;
+                device.IsActive = reported?.On == true;
+            }
+        }
+        device.GoogleHomeDeviceId = googleId;
+    }
 
     // Erlaubte eigene Abgleich-Takte (Sekunden): 3, 5 oder 15 Minuten. null = Standard (30 Minuten).
     // Bewusst eine feste Auswahl statt jeder Zahl: Jeder Takt kostet Tuya-Kontingent (Rechnung in docs/TUYA.md).
@@ -219,7 +247,8 @@ public static class DeviceEndpoints
     // currentType ist beim Bearbeiten der gespeicherte Typ, beim Anlegen null.
     // currentDeviceId ist beim Bearbeiten die Id des Geräts selbst, beim Anlegen null.
     private static async Task<Dictionary<string, string[]>> Validate(
-        DeviceRequest request, string? currentType, Guid? currentDeviceId, ApplicationDbContext db)
+        DeviceRequest request, string? currentType, Guid? currentDeviceId, string? currentGoogleId,
+        ApplicationDbContext db, GoogleHomeBridge bridge)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -260,6 +289,42 @@ public static class DeviceEndpoints
                 if (linkedName is not null)
                 {
                     errors["tuyaDeviceId"] = [$"Dieses Tuya-Gerät ist schon mit „{linkedName}“ verknüpft."];
+                }
+            }
+        }
+
+        var googleId = NormalizeGoogleHomeDeviceId(request.GoogleHomeDeviceId);
+        if (googleId is not null)
+        {
+            if (request.Type is not ("Light" or "Socket" or "Switch" or "DoorSensor"))
+            {
+                errors["googleHomeDeviceId"] = ["Nur Licht, Steckdosen, Schalter und Türsensoren lassen sich mit Google Home verknüpfen."];
+            }
+            else if (googleId.Length > GoogleHomeEndpoints.MaxDeviceIdLength)
+            {
+                errors["googleHomeDeviceId"] = ["Das ist keine gültige Google-Home-Geräte-Id."];
+            }
+            else
+            {
+                var linkedName = await db.Devices
+                    .Where(d => d.GoogleHomeDeviceId == googleId && d.Id != currentDeviceId)
+                    .Select(d => d.Name)
+                    .FirstOrDefaultAsync();
+                var reported = bridge.Find(googleId);
+                if (linkedName is not null)
+                {
+                    errors["googleHomeDeviceId"] = [$"Dieses Google-Home-Gerät ist schon mit „{linkedName}“ verknüpft."];
+                }
+                else if (googleId != currentGoogleId && (request.Type == "DoorSensor" ? reported?.Open is null : reported?.On is null))
+                {
+                    // Neu verknüpft wird nur, was Muju Home gerade wirklich mit passendem Zustand meldet.
+                    errors["googleHomeDeviceId"] = [request.Type == "DoorSensor"
+                        ? "Muju Home meldet dieses Gerät gerade nicht als Türsensor."
+                        : "Muju Home meldet dieses Gerät gerade nicht mit Ein/Aus."];
+                }
+                else if (reported is not null && GoogleHomeBridge.IsProtectedName(reported.Name))
+                {
+                    errors["googleHomeDeviceId"] = ["Dieses Gerät ist ein reiner Messpunkt und wird nie geschaltet."];
                 }
             }
         }

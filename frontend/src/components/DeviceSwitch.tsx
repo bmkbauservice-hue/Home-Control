@@ -19,7 +19,7 @@ export function DeviceSwitch({ device, onlineState, onSwitched, compact = false 
 
   // Sensoren, Kameras und unverknüpfte Geräte dürfen keine Schaltknöpfe bekommen.
   const switchable = ['Light', 'Socket', 'Switch'].includes(device.type)
-    && Boolean(device.tuyaDeviceId)
+    && Boolean(device.tuyaDeviceId || device.googleHomeDeviceId)
     && ['EIN', 'AUS'].includes(device.lastValue ?? '')
   if (!switchable || !isAdmin) return null
 
@@ -31,7 +31,7 @@ export function DeviceSwitch({ device, onlineState, onSwitched, compact = false 
     setBusy(true)
     setError(null)
     try {
-      await setDevicePower(device.id, !isOn)
+      await setDevicePower(device, !isOn)
       onSwitched()
     } catch (err) {
       setError((err as Error).message)
