@@ -141,7 +141,7 @@ public class TuyaSyncBackgroundService(
             var defaultInterval = options.CurrentValue.GetAutoSyncInterval() ?? Tick;
             var now = timeProvider.GetUtcNow();
             var linked = await db.Devices
-                .Where(d => d.TuyaDeviceId != null)
+                .Where(d => d.TuyaDeviceId != null && d.GoogleHomeDeviceId == null)
                 .Select(d => new { d.Id, d.TuyaSyncSeconds })
                 .ToListAsync(cancellationToken);
             var due = linked

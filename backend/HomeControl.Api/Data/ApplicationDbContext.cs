@@ -67,6 +67,12 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
             entity.HasIndex(d => d.TuyaDeviceId)
                 .IsUnique();
 
+            entity.Property(d => d.GoogleHomeDeviceId)
+                .HasMaxLength(256);
+
+            entity.HasIndex(d => d.GoogleHomeDeviceId)
+                .IsUnique();
+
             entity.HasMany(d => d.Events)
                 .WithOne(e => e.Device)
                 .HasForeignKey(e => e.DeviceId)

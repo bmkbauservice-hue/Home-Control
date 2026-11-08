@@ -22,6 +22,8 @@ BASE = Path(__file__).resolve().parents[1]
 PACKAGE = Path("app/src/main/java/com/example/googlehomeapisampleapp")
 ANDROID = "http://schemas.android.com/apk/res/android"
 TAG = "// Home Control: Sensor-Bridge"
+# Woran eine frühere Fassung unserer eigenen Bridge zu erkennen ist. Sie darf ersetzt werden.
+OWN_BRIDGE = "object HomeControlBridge"
 
 
 def select_device(output: str, requested: str | None = None) -> str:
@@ -49,7 +51,7 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 def plan_changes(root: Path, bridge: str) -> dict[Path, str]:
     """Erst alle Anker prüfen, dann schreiben. Keine OAuth-Einstellung verändern."""
     bridge_file = root / PACKAGE / "bridge/HomeControlBridge.kt"
-    if bridge_file.exists() and bridge_file.read_text() != bridge:
+    if bridge_file.exists() and bridge_file.read_text() != bridge and OWN_BRIDGE not in bridge_file.read_text():
         raise ValueError("Andere Bridge-Datei vorhanden; keine Änderung.")
     vm_path = PACKAGE / "viewmodel/devices/DeviceViewModel.kt"
     module_path = PACKAGE / "HomeModule.kt"

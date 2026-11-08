@@ -91,6 +91,12 @@ class AndroidBridgeSetupTests(unittest.TestCase):
             setup.plan_changes(self.root, "bridge")
         self.assertEqual("custom", path.read_text())
 
+    def test_older_own_bridge_may_be_updated(self):
+        path = self.root / setup.PACKAGE / "bridge/HomeControlBridge.kt"
+        path.parent.mkdir()
+        path.write_text("object HomeControlBridge { }")
+        self.assertEqual("bridge", setup.plan_changes(self.root, "bridge")[setup.PACKAGE / "bridge/HomeControlBridge.kt"])
+
     def test_changes_are_backed_up_and_idempotent(self):
         planned = setup.plan_changes(self.root, "bridge")
         backup = setup.apply_changes(self.root, planned, Path(self.temp.name) / "backups")

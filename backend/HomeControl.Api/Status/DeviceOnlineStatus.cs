@@ -18,7 +18,7 @@ public static class OnlineStates
 }
 
 // So viel brauchen wir von einem Gerät aus unserer Datenbank für die Auswertung.
-public record DeviceLink(Guid Id, string Name, string? TuyaDeviceId);
+public record DeviceLink(Guid Id, string Name, string? TuyaDeviceId, string? GoogleHomeDeviceId = null);
 
 // Ergebnis pro Gerät: Id, Name und einer der Zustände aus OnlineStates.
 public record DeviceOnlineState(Guid Id, string Name, string State);
@@ -31,9 +31,13 @@ public static class DeviceOnlineEvaluator
     // null für die ganze Liste heißt: Tuya ist nicht eingerichtet oder gerade nicht erreichbar.
     public static List<DeviceOnlineState> Evaluate(
         IEnumerable<DeviceLink> devices,
-        IReadOnlyDictionary<string, bool?>? cloudOnline) =>
+        IReadOnlyDictionary<string, bool?>? cloudOnline,
+        IReadOnlyDictionary<string, bool?>? googleHomeOnline = null) =>
         devices
-            .Select(d => new DeviceOnlineState(d.Id, d.Name, StateOf(d.TuyaDeviceId, cloudOnline)))
+            // Ist ein Gerät mit Google Home verknüpft, zählt nur dessen Stand, nie ein alter Tuya-Status.
+            .Select(d => new DeviceOnlineState(d.Id, d.Name, d.GoogleHomeDeviceId is { } googleId
+                ? StateOf(googleId, googleHomeOnline)
+                : StateOf(d.TuyaDeviceId, cloudOnline)))
             .ToList();
 
     private static string StateOf(string? tuyaDeviceId, IReadOnlyDictionary<string, bool?>? cloudOnline)

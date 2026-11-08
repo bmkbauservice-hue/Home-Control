@@ -6,6 +6,9 @@ Tuya und Blink waren ursprünglich **nur lesend** angebunden. Nach ausdrücklich
 sind **Tuya-Schaltbefehle für verknüpfte Geräte mit booleschem `switch_1`** eine bewusste Ausnahme:
 nur Admin, vorher Online- und Code-Prüfung, danach Readback-Bestätigung; nie im Demo-Modus.
 Siehe `docs/WETTER_UND_SCHALTER.md`. Weitere Ausnahmen bleiben zustimmungspflichtig.
+Nach ausdrücklichem Nutzerauftrag vom 08.11.2026 dürfen ausdrücklich verknüpfte Geräte über Muju Home und Google Home
+geschaltet werden (nur Admin, mit Bestätigung des Gerätezustands, siehe `docs/GOOGLE_HOME_SCHALTEN.md`).
+Die PC-Steckdose wird nie geschaltet.
 Die bisherige Ausnahme Blink „Neues Bild“ (nur Admin, höchstens 1× pro Minute und Kamera) gilt weiter.
 
 **Zuerst lesen:** `docs/UEBERGABE.md` (Stand, offene Punkte, Regeln) und die passende Datei in `docs/`.

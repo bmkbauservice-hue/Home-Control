@@ -1,8 +1,11 @@
 import { send } from './http'
+import type { Device } from './devices'
 
-// Der Server sendet den Tuya-Befehl und bestätigt anschließend den gelesenen Zustand.
-export async function setDevicePower(deviceId: string, on: boolean): Promise<boolean> {
-  const response = await send('/api/tuya/devices/' + encodeURIComponent(deviceId) + '/switch', {
+// Der Server sendet den Befehl und antwortet erst, wenn das Gerät den Zustand bestätigt hat.
+// Eine Google-Home-Verknüpfung hat Vorrang vor einem Tuya-Eintrag.
+export async function setDevicePower(device: Pick<Device, 'id' | 'googleHomeDeviceId'>, on: boolean): Promise<boolean> {
+  const route = device.googleHomeDeviceId ? '/api/google-home/devices/' : '/api/tuya/devices/'
+  const response = await send(route + encodeURIComponent(device.id) + '/switch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ on }),

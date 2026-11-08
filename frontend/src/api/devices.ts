@@ -13,6 +13,8 @@ export type Device = {
   lastValue: string | null
   // Id des verknüpften Geräts in der Tuya-Cloud, null = nicht verknüpft
   tuyaDeviceId: string | null
+  // Id in Google Home. Ist sie gesetzt, kommen Zustand und Schaltweg allein von dort.
+  googleHomeDeviceId?: string | null
   // Letzte Messwerte von Tuya, null = das Gerät liefert diesen Wert nicht (siehe measurements.ts)
   powerWatt: number | null
   powerMeasuredAtUtc?: string | null
@@ -32,6 +34,8 @@ export type DeviceInput = {
   roomId: string
   // Leerer Text = keine Tuya-Verknüpfung
   tuyaDeviceId: string
+  // Leerer Text = keine Google-Home-Verknüpfung
+  googleHomeDeviceId: string
   // Eigener Abgleich-Takt in Sekunden (180, 300, 900), null = Standard (30 Minuten)
   tuyaSyncSeconds: number | null
 }
@@ -43,6 +47,7 @@ export function deviceToInput(device: Device): DeviceInput {
     type: device.type,
     roomId: device.roomId,
     tuyaDeviceId: device.tuyaDeviceId ?? '',
+    googleHomeDeviceId: device.googleHomeDeviceId ?? '',
     tuyaSyncSeconds: device.tuyaSyncSeconds,
   }
 }

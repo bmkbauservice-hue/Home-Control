@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HomeControl.Api.Contracts;
 using HomeControl.Api.Data;
+using HomeControl.Api.GoogleHome;
 using HomeControl.Api.Status;
 using HomeControl.Api.Tuya;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ public static class StatusEndpoints
         ApplicationDbContext db,
         TuyaClient client,
         TuyaOnlineCache cache,
+        GoogleHomeBridge googleHome,
         IOptionsMonitor<TuyaOptions> options,
         TimeProvider timeProvider,
         ILogger<TuyaOnlineCache> logger,
@@ -32,7 +34,7 @@ public static class StatusEndpoints
     {
         var devices = await db.Devices
             .OrderBy(d => d.Name)
-            .Select(d => new DeviceLink(d.Id, d.Name, d.TuyaDeviceId))
+            .Select(d => new DeviceLink(d.Id, d.Name, d.TuyaDeviceId, d.GoogleHomeDeviceId))
             .ToListAsync(cancellationToken);
 
         string tuya;
@@ -83,7 +85,7 @@ public static class StatusEndpoints
             }
         }
 
-        var states = DeviceOnlineEvaluator.Evaluate(devices, cloudOnline);
+        var states = DeviceOnlineEvaluator.Evaluate(devices, cloudOnline, googleHome.OnlineSnapshot());
 
         return Results.Ok(new StatusResponse(
             timeProvider.GetUtcNow(),

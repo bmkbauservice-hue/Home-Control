@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { deviceToInput, getDeviceTypeLabel, type Device, type DeviceInput } from '../api/devices'
 import type { Room } from '../api/rooms'
+import type { GoogleHomeDevices } from '../api/googleHome'
 import type { TuyaCloudDevice } from '../api/tuya'
 import { DeviceEvents } from './DeviceEvents'
 import { DeviceSwitch } from './DeviceSwitch'
@@ -16,6 +17,7 @@ type DeviceTileProps = {
   rooms: Room[]
   // Für die Auswahl des Tuya-Geräts beim Bearbeiten (siehe DeviceFields)
   tuyaDevices: TuyaCloudDevice[] | null
+  googleHome: GoogleHomeDevices | null
   devices: Device[]
   // Bearbeiten, Löschen und manuelle Testeinträge nur für Admins.
   canEdit: boolean
@@ -28,7 +30,7 @@ type DeviceTileProps = {
 // Wie bei RoomTile: anzeigen, bearbeiten oder Löschen bestätigen – zusätzlich den Verlauf zeigen.
 type Mode = 'view' | 'edit' | 'confirmDelete' | 'events'
 
-export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSave, onDelete, onSwitched }: DeviceTileProps) {
+export function DeviceTile({ device, rooms, tuyaDevices, googleHome, devices, canEdit, onSave, onDelete, onSwitched }: DeviceTileProps) {
   const [mode, setMode] = useState<Mode>('view')
   const [input, setInput] = useState<DeviceInput>(deviceToInput(device))
   const [busy, setBusy] = useState(false)
@@ -70,6 +72,7 @@ export function DeviceTile({ device, rooms, tuyaDevices, devices, canEdit, onSav
           rooms={rooms}
           onChange={setInput}
           tuyaDevices={tuyaDevices}
+          googleHome={googleHome}
           devices={devices}
           currentDeviceId={device.id}
         />

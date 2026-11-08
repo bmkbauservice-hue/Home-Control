@@ -75,7 +75,8 @@ public class TuyaDeviceSyncer(
         await SyncLock.WaitAsync(cancellationToken);
         try
         {
-            var query = db.Devices.Where(d => d.TuyaDeviceId != null);
+            // Über Google Home verknüpfte Geräte bekommen ihren Zustand allein von dort.
+            var query = db.Devices.Where(d => d.TuyaDeviceId != null && d.GoogleHomeDeviceId == null);
             if (onlyDeviceIds is not null)
             {
                 query = query.Where(d => onlyDeviceIds.Contains(d.Id));

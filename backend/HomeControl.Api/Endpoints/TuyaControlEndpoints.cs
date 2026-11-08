@@ -40,6 +40,10 @@ public static class TuyaControlEndpoints
         if (device is null)
             return DeviceEndpoints.DeviceNotFound(id);
 
+        // Ein über Google Home verknüpftes Gerät darf nicht zusätzlich über einen alten Tuya-Eintrag laufen.
+        if (device.GoogleHomeDeviceId is not null)
+            return Results.Problem(statusCode: 409, title: "Dieses Gerät wird über Google Home geschaltet.");
+
         if (device.Type is not ("Light" or "Socket" or "Switch") || device.TuyaDeviceId is null)
             return Results.Problem(statusCode: 422, title: "Dieses Gerät lässt sich nicht über Tuya schalten.");
 

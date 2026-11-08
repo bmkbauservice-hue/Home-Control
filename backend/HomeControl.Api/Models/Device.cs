@@ -17,6 +17,10 @@ public class Device
     // Jedes Tuya-Gerät kann höchstens mit einem Gerät verknüpft sein (eindeutiger Index).
     public string? TuyaDeviceId { get; set; }
 
+    // Id des Geräts in Google Home, gemeldet von Muju Home. Ist sie gesetzt, kommen Zustand und
+    // Schaltweg allein von dort. Eine zusätzliche Tuya-Id bleibt gespeichert, wird aber nicht genutzt.
+    public string? GoogleHomeDeviceId { get; set; }
+
     // Letzte Messwerte von Tuya (null = Gerät liefert diesen Wert nicht oder noch nie abgefragt).
     // Nur der letzte Messwert. Für den Verbrauch wird separat eine laufende Schätzung gespeichert.
     public double? PowerWatt { get; set; }

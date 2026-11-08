@@ -21,7 +21,7 @@ Home Control nennt beim Schalten jetzt genau die zutreffende Ursache und sendet 
 | Gerät | Tuya-Projekt | Im WLAN gehört | Google Home / Muju Home | Schalten | Strommessung | Woran es liegt |
 |---|---|---|---|---|---|---|
 | Heizdecke | online | ja, Protokoll 3.3 | nicht nötig | **am Gerät bestätigt** | nein, meldet nur `switch_1` und Countdown | nichts offen |
-| Stehlampe | gespeicherte ID und Lidl-ID fehlen, jeweils 1106 | ja, unter der Lidl-ID, Protokoll 3.4 | am Handy noch nicht geprüft | nein | unbekannt | fehlende Berechtigung und fehlender `local_key` |
+| Stehlampe | gespeicherte ID und Lidl-ID fehlen, jeweils 1106 | ja, unter der Lidl-ID, Protokoll 3.4 | offizielle Google Home-App schaltet sie, Muju Home noch nicht geprüft | Weg über Muju Home gebaut, am Gerät noch nicht bestätigt | unbekannt | Tuya: fehlende Berechtigung und fehlender `local_key`. Weiter über Google Home: [GOOGLE_HOME_SCHALTEN.md](GOOGLE_HOME_SCHALTEN.md) |
 | Bad Steckdose | „Bad Licht“, offline, letzte Meldung 06.11. | keinem gehörten Gerät zugeordnet | am Handy noch nicht geprüft | offline | nein, kein `cur_power` | offline. Ob der Tuya-Eintrag noch das aktuelle Lidl-Gerät ist, ist unbestätigt |
 | Barlicht | offline, letzte Meldung 08.11. | nein | am Handy noch nicht geprüft | nicht getestet, `switch_1` vorhanden | `cur_power` vorhanden, kein aktueller Wert | offline. Der gespeicherte 0-Watt-Wert belegt keine aktuelle Messung |
 | Küche Licht | nicht im Projekt, keine Zuordnung | unbestätigt | am Handy noch nicht geprüft | nein | unbekannt | Funkweg in Lidl Home noch unbestätigt |
@@ -48,8 +48,7 @@ aus Lidl Home verschwinden. Das ist derzeit ausdrücklich nicht gewünscht. Eine
 mit einem eigenen Tuya-Projekt wurde nicht gefunden.
 
 **Google Home:** Die Android-Test-App enthält den Ein/Aus-Trait `OnOff`: Sie liest `onOff` und ruft `on()` oder `off()` auf.
-Die Home-Control-Bridge überträgt bisher nur Klimawerte. Ein Rückweg für Schaltbefehle fehlt noch und wird erst gebaut,
-wenn die Stehlampe in Muju Home nachweislich mit Ein/Aus erscheint und reagiert.
+Der Rückweg für Schaltbefehle ist gebaut. Ob Muju Home die Steckdose mit Ein/Aus anbietet, zeigt erst der Test am Handy.
 
 ## Strommessung
 

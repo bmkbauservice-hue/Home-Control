@@ -8,6 +8,7 @@ was offen ist und welche Regeln gelten.
 
 ## Aktueller verbindlicher Arbeitsstand
 
+- Schalten über Google Home ist für die Stehlampe gebaut: [GOOGLE_HOME_SCHALTEN.md](GOOGLE_HOME_SCHALTEN.md). Mit gespielter App getestet. Der Test mit Muju Home und der echten Lampe steht noch aus. Nutzer bestätigt: In der offiziellen Google Home-App lässt sich die Stehlampe schalten.
 - Geräte-Erreichbarkeit lesend geprüft (08.11.2026), Ergebnis je Gerät: [GERAETE_ERREICHBARKEIT.md](GERAETE_ERREICHBARKEIT.md). Beim Schalten nennt Home Control jetzt getrennt: fehlende Berechtigung, offline, kein Online-Status und fehlende Schaltfunktion.
 - Stehlampe: In Tuya nicht abrufbar (1106), im WLAN unter der Lidl-ID aktiv, `local_key` fehlt. Als Nächstes am Handy prüfen, ob Muju Home sie mit Ein/Aus anbietet. Ein Google-Home-Schaltweg wird erst danach gebaut. Geräte weder neu koppeln noch aus Hersteller-Apps entfernen.
 - PC-Steckdose: nur lesen, nie schalten. Bisher kein lesender Zugriff vorhanden.

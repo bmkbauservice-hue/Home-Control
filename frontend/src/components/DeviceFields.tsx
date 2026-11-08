@@ -1,4 +1,5 @@
 import { deviceTypes, isKnownDeviceType, tuyaSyncOptions, type Device, type DeviceInput } from '../api/devices'
+import type { GoogleHomeDevices } from '../api/googleHome'
 import type { Room } from '../api/rooms'
 import type { TuyaCloudDevice } from '../api/tuya'
 
@@ -10,6 +11,8 @@ type DeviceFieldsProps = {
   onChange: (value: DeviceInput) => void
   // Geräte aus der Tuya-Cloud. null = Liste nicht verfügbar (Tuya nicht eingerichtet oder Fehler).
   tuyaDevices: TuyaCloudDevice[] | null
+  // Von Muju Home gemeldete Geräte. null = Liste nicht verfügbar.
+  googleHome: GoogleHomeDevices | null
   // Alle unsere Geräte, um zu zeigen, welches Tuya-Gerät schon vergeben ist.
   devices: Device[]
   // Beim Bearbeiten das Gerät selbst. Seine eigene Verknüpfung zählt nicht als "vergeben".
@@ -23,6 +26,7 @@ export function DeviceFields({
   rooms,
   onChange,
   tuyaDevices,
+  googleHome,
   devices,
   currentDeviceId,
 }: DeviceFieldsProps) {
@@ -34,6 +38,14 @@ export function DeviceFields({
   // Die gespeicherte Verknüpfung bleibt sichtbar, auch wenn die Tuya-Liste sie nicht (mehr) enthält.
   const savedIdMissing =
     value.tuyaDeviceId !== '' && !(tuyaDevices ?? []).some((d) => d.tuyaId === value.tuyaDeviceId)
+
+  const googleList = googleHome?.devices ?? []
+  const googleSavedMissing =
+    value.googleHomeDeviceId !== '' && !googleList.some((d) => d.id === value.googleHomeDeviceId)
+
+  function linkedToGoogleElsewhere(googleId: string): Device | undefined {
+    return devices.find((d) => d.googleHomeDeviceId === googleId && d.id !== currentDeviceId)
+  }
 
   return (
     <>
@@ -139,6 +151,38 @@ export function DeviceFields({
           </select>
         </div>
       )}
+
+      <div className="field">
+        <label className="field-label" htmlFor={`${idPrefix}-google`}>
+          Google-Home-Gerät
+        </label>
+        <select
+          id={`${idPrefix}-google`}
+          className="input"
+          value={value.googleHomeDeviceId}
+          onChange={(event) => onChange({ ...value, googleHomeDeviceId: event.target.value })}
+        >
+          <option value="">Keine Verknüpfung</option>
+          {googleSavedMissing && <option value={value.googleHomeDeviceId}>Gespeichertes Google-Home-Gerät</option>}
+          {googleList.map((google) => {
+            const linked = linkedToGoogleElsewhere(google.id)
+            // Messpunkte und Geräte ohne Ein/Aus-Zustand lassen sich nicht auswählen.
+            const blocked = linked !== undefined || google.protected || google.on === null
+            return (
+              <option key={google.id} value={google.id} disabled={blocked}>
+                {google.name} · ID …{google.id.slice(-4)}
+                {google.online ? '' : ' · offline'}
+                {google.on === null ? ' · ohne Ein/Aus' : ''}
+                {google.protected ? ' · Messpunkt, nie schalten' : ''}
+                {linked ? ` · schon mit „${linked.name}“ verknüpft` : ''}
+              </option>
+            )
+          })}
+        </select>
+        {googleHome?.connected === false && (
+          <p className="field-note">Muju Home ist nicht verbunden, daher ist die Liste leer.</p>
+        )}
+      </div>
     </>
   )
 }

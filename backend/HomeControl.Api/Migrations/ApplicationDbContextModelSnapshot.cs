@@ -57,6 +57,10 @@ namespace HomeControl.Api.Migrations
                     b.Property<double?>("EstimatedEnergyKwh")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("GoogleHomeDeviceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
@@ -97,6 +101,9 @@ namespace HomeControl.Api.Migrations
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GoogleHomeDeviceId")
+                        .IsUnique();
 
                     b.HasIndex("RoomId");
 
@@ -479,4 +486,3 @@ namespace HomeControl.Api.Migrations
         }
     }
 }
-
