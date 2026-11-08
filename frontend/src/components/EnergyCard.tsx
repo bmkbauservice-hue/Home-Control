@@ -3,7 +3,8 @@ import { getShellyMeters, type ShellyMeterReading } from '../api/localDevices'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import type { Device } from '../api/devices'
 import { useStatus } from '../status/statusContext'
-import { energyNow, lowestBattery, maxMeasurementAgeMinutes } from './energy'
+import { batteryDevices, energyNow, maxMeasurementAgeMinutes } from './energy'
+import { lowBatteryPercent } from './measurements'
 
 // Deutsche Zahl mit einer Nachkommastelle: 42,5 W
 const wattFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -75,34 +76,40 @@ export function EnergyCard({ devices }: EnergyCardProps) {
 }
 
 export function BatteryCard({ devices }: EnergyCardProps) {
-  const battery = lowestBattery(devices)
+  const batteries = batteryDevices(devices)
 
   return (
     <article className="energy-card" aria-label="Batterien">
       <div className="energy-block">
         <h3 className="energy-label">Batterien</h3>
-        {battery === null ? (
-          <p className="energy-meta">Kein Gerät meldet einen Akkustand.</p>
+        {batteries.length === 0 ? (
+          <p className="energy-meta">Keine Sensoren oder Geräte mit Akkustand vorhanden.</p>
         ) : (
           <>
-            <p className={battery.low ? 'battery-line battery-low' : 'battery-line'}>
-              <span className="battery-name">{battery.device.name}</span>
-              <span className="battery-percent">{battery.percent} %</span>
-            </p>
-            {/* Balken als <meter>: Screenreader lesen den Wert vor, die Farbe allein trägt keine Information. */}
-            <meter
-              className="battery-meter"
-              min={0}
-              max={100}
-              low={21}
-              optimum={100}
-              value={battery.percent}
-              aria-label={`Akku ${battery.device.name}`}
-            />
-            <p className="energy-meta">
-              {battery.low ? 'Bald Batterie tauschen · ' : 'Niedrigster Stand · '}
-              {battery.deviceCount === 1 ? '1 Gerät mit Akku' : `${battery.deviceCount} Geräte mit Akku`}
-            </p>
+            <p className="energy-meta">Zuletzt gespeicherte Akkustände</p>
+            <ul className="battery-list">
+              {batteries.map(({ id, name, roomName, batteryPercent }) => (
+                <li key={id}>
+                  <p className={batteryPercent !== null && batteryPercent <= lowBatteryPercent ? 'battery-line battery-low' : 'battery-line'}>
+                    <span>{name} <small>{roomName}</small></span>
+                    {batteryPercent !== null && <span className="battery-percent">{batteryPercent} %</span>}
+                  </p>
+                  {batteryPercent === null ? (
+                    <p className="energy-meta">Kein Akkustand empfangen</p>
+                  ) : (
+                    <meter
+                      className="battery-meter"
+                      min={0}
+                      max={100}
+                      low={lowBatteryPercent + 1}
+                      optimum={100}
+                      value={batteryPercent}
+                      aria-label={`Akku ${name} · ${roomName}`}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
           </>
         )}
       </div>
