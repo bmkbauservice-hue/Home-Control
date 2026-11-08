@@ -1108,6 +1108,26 @@ select {
   font-size: 0.85rem;
 }
 
+.battery-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.battery-list li {
+  padding-block: 6px;
+}
+
+.battery-list li + li {
+  border-top: 1px solid var(--glass-border);
+}
+
+.battery-line small {
+  display: block;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 .battery-line {
   display: flex;
   justify-content: space-between;
@@ -1117,6 +1137,7 @@ select {
 }
 
 .battery-percent {
+  flex: none;
   font-variant-numeric: tabular-nums;
 }
 

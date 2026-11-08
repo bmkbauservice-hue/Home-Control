@@ -1,6 +1,5 @@
 import type { Device } from '../api/devices'
 import type { OnlineState } from '../api/status'
-import { lowBatteryPercent } from './measurements'
 
 export const maxMeasurementAgeMinutes = 30
 
@@ -32,19 +31,10 @@ export function energyNow(devices: Device[], stateOf: (id: string) => OnlineStat
   }
 }
 
-export type LowestBattery = {
-  device: Device
-  percent: number
-  low: boolean
-  deviceCount: number
-}
-
-// "Batterien": das Gerät mit dem niedrigsten Akkustand.
-export function lowestBattery(devices: Device[]): LowestBattery | null {
-  const withBattery = devices.filter((d) => d.batteryPercent !== null)
-  if (withBattery.length === 0) return null
-
-  const lowest = withBattery.reduce((min, d) => ((d.batteryPercent ?? 101) < (min.batteryPercent ?? 101) ? d : min))
-  const percent = lowest.batteryPercent ?? 0
-  return { device: lowest, percent, low: percent <= lowBatteryPercent, deviceCount: withBattery.length }
+// Für Sensoren bleibt auch ein fehlender Akkustand sichtbar.
+export function batteryDevices(devices: Device[]): Device[] {
+  return devices
+    .filter((device) => device.batteryPercent !== null
+      || device.type === 'TemperatureSensor' || device.type === 'DoorSensor')
+    .sort((left, right) => (left.batteryPercent ?? 101) - (right.batteryPercent ?? 101))
 }
