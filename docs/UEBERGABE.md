@@ -8,6 +8,7 @@ was offen ist und welche Regeln gelten.
 
 ## Aktueller verbindlicher Arbeitsstand
 
+- Szenarien: Regel „Tür geht auf → Blink scharf“ ist gebaut, siehe [SZENARIEN.md](SZENARIEN.md). Mit gespielter Tür und gespieltem Blink getestet. Echter Scharfschalt-Test, echter Türtest und die Livebild-Probe stehen noch aus.
 - Blink: Seit dem 08.11.2026 führt die Testinstanz auf 5181 das rotierende Token, im Dauerdienst 5200 ist Blink aus. Testinstanz nur mit `python3 tools/live-mit-hausdaten-starten.py --mit-blink` neu starten, siehe [BLINK.md](BLINK.md). Der echte Homescreen-Abruf klappte am 08.11.2026.
 - Geplant nach Blink: Stromkarte und Übersicht, Szenarien, Wecker, Server. Google Home meldet laut Inventur vom 08.11.2026 für kein Gerät Akku- oder Stromwerte.
 - Schalten über Google Home ist für die Stehlampe gebaut: [GOOGLE_HOME_SCHALTEN.md](GOOGLE_HOME_SCHALTEN.md). Inventur am echten Handy gelesen: Muju Home meldet die Stehlampe online mit Ein/Aus. Mit gespielter App getestet, der Ein/Aus-Test an der echten Lampe steht noch aus. Google Home liefert für keinen Sensor einen Akkustand. Der Türsensor hat bei Tuya seit dem 02.11. keine neue Meldung. Nutzer bestätigt: In der offiziellen Google Home-App lässt sich die Stehlampe schalten.

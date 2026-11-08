@@ -215,9 +215,16 @@ public static class DeviceEndpoints
         var googleId = NormalizeGoogleHomeDeviceId(request.GoogleHomeDeviceId);
         if (googleId != device.GoogleHomeDeviceId)
         {
-            var isOn = googleId is null ? null : bridge.Find(googleId)?.On;
-            device.LastValue = isOn is null ? null : isOn.Value ? TuyaSwitchRecorder.OnText : TuyaSwitchRecorder.OffText;
-            device.IsActive = isOn == true;
+            var reported = googleId is null ? null : bridge.Find(googleId);
+            if (device.Type == "DoorSensor" || request.Type == "DoorSensor")
+            {
+                device.LastValue = reported?.Open is { } open ? (open ? TuyaDeviceSyncer.OpenText : TuyaDeviceSyncer.ClosedText) : null;
+            }
+            else
+            {
+                device.LastValue = reported?.On is { } on ? (on ? TuyaSwitchRecorder.OnText : TuyaSwitchRecorder.OffText) : null;
+                device.IsActive = reported?.On == true;
+            }
         }
         device.GoogleHomeDeviceId = googleId;
     }
@@ -289,9 +296,9 @@ public static class DeviceEndpoints
         var googleId = NormalizeGoogleHomeDeviceId(request.GoogleHomeDeviceId);
         if (googleId is not null)
         {
-            if (request.Type is not ("Light" or "Socket" or "Switch"))
+            if (request.Type is not ("Light" or "Socket" or "Switch" or "DoorSensor"))
             {
-                errors["googleHomeDeviceId"] = ["Nur Licht, Steckdosen und Schalter lassen sich mit Google Home verknüpfen."];
+                errors["googleHomeDeviceId"] = ["Nur Licht, Steckdosen, Schalter und Türsensoren lassen sich mit Google Home verknüpfen."];
             }
             else if (googleId.Length > GoogleHomeEndpoints.MaxDeviceIdLength)
             {
@@ -308,10 +315,12 @@ public static class DeviceEndpoints
                 {
                     errors["googleHomeDeviceId"] = [$"Dieses Google-Home-Gerät ist schon mit „{linkedName}“ verknüpft."];
                 }
-                else if (googleId != currentGoogleId && reported?.On is null)
+                else if (googleId != currentGoogleId && (request.Type == "DoorSensor" ? reported?.Open is null : reported?.On is null))
                 {
-                    // Neu verknüpft wird nur, was Muju Home gerade wirklich mit Ein/Aus meldet.
-                    errors["googleHomeDeviceId"] = ["Muju Home meldet dieses Gerät gerade nicht mit Ein/Aus."];
+                    // Neu verknüpft wird nur, was Muju Home gerade wirklich mit passendem Zustand meldet.
+                    errors["googleHomeDeviceId"] = [request.Type == "DoorSensor"
+                        ? "Muju Home meldet dieses Gerät gerade nicht als Türsensor."
+                        : "Muju Home meldet dieses Gerät gerade nicht mit Ein/Aus."];
                 }
                 else if (reported is not null && GoogleHomeBridge.IsProtectedName(reported.Name))
                 {

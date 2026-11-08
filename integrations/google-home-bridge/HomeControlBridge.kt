@@ -5,6 +5,7 @@ import com.example.googlehomeapisampleapp.BuildConfig
 import com.google.home.ConnectivityState
 import com.google.home.DeviceType
 import com.google.home.matter.standard.BooleanState
+import com.google.home.matter.standard.ContactSensorDevice
 import com.google.home.matter.standard.HumiditySensorDevice
 import com.google.home.matter.standard.OnOff
 import com.google.home.matter.standard.PowerSource
@@ -38,6 +39,10 @@ object HomeControlBridge {
 
     private val switches = ConcurrentHashMap<String, SwitchDevice>()
     private val inventory = ConcurrentHashMap<String, String>()
+
+    private class ContactDevice(val name: String, val online: Boolean, val closed: Boolean)
+
+    private val contacts = ConcurrentHashMap<String, ContactDevice>()
     private val polling = AtomicBoolean(false)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -46,6 +51,7 @@ object HomeControlBridge {
 
     suspend fun publishDevice(id: String, name: String, types: Set<DeviceType>) {
         rememberSwitch(id, name, types)
+        rememberContact(id, name, types)
         logInventory(id, name, types)
 
         val traits = types.filter { type ->
@@ -100,6 +106,22 @@ object HomeControlBridge {
             return
         }
         switches[id] = SwitchDevice(name, isOnline(type), type.traits().filterIsInstance<OnOff>().first())
+        startPolling()
+    }
+
+    /** Matter: stateValue true heißt beim Kontaktsensor "geschlossen". */
+    private fun rememberContact(id: String, name: String, types: Set<DeviceType>) {
+        val type = types.firstOrNull { it.factory == ContactSensorDevice }
+        val closed = type?.traits()?.filterIsInstance<BooleanState>()?.firstOrNull()?.stateValue
+        if (type == null || closed == null) {
+            contacts.remove(id)
+            return
+        }
+        contacts[id] = ContactDevice(name, isOnline(type), closed)
+        startPolling()
+    }
+
+    private fun startPolling() {
         if (configured && polling.compareAndSet(false, true)) scope.launch { pollLoop() }
     }
 
@@ -114,6 +136,16 @@ object HomeControlBridge {
                             .put("name", device.name)
                             .put("online", device.online)
                             .put("on", device.trait.onOff ?: JSONObject.NULL),
+                    )
+                }
+                contacts.forEach { (id, contact) ->
+                    devices.put(
+                        JSONObject()
+                            .put("id", id)
+                            .put("name", contact.name)
+                            .put("online", contact.online)
+                            .put("on", JSONObject.NULL)
+                            .put("open", !contact.closed),
                     )
                 }
                 val answer = post("/api/google-home/bridge/poll", JSONObject().put("devices", devices))

@@ -167,12 +167,13 @@ export function DeviceFields({
           {googleList.map((google) => {
             const linked = linkedToGoogleElsewhere(google.id)
             // Messpunkte und Geräte ohne Ein/Aus-Zustand lassen sich nicht auswählen.
-            const blocked = linked !== undefined || google.protected || google.on === null
+            const usable = value.type === 'DoorSensor' ? google.open != null : google.on !== null
+            const blocked = linked !== undefined || google.protected || !usable
             return (
               <option key={google.id} value={google.id} disabled={blocked}>
                 {google.name} · ID …{google.id.slice(-4)}
                 {google.online ? '' : ' · offline'}
-                {google.on === null ? ' · ohne Ein/Aus' : ''}
+                {google.open != null ? ` · Tür ${google.open ? 'auf' : 'zu'}` : google.on === null ? ' · ohne Ein/Aus' : ''}
                 {google.protected ? ' · Messpunkt, nie schalten' : ''}
                 {linked ? ` · schon mit „${linked.name}“ verknüpft` : ''}
               </option>

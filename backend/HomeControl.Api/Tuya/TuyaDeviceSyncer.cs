@@ -76,7 +76,8 @@ public class TuyaDeviceSyncer(
         try
         {
             // Über Google Home verknüpfte Geräte bekommen ihren Zustand allein von dort.
-            var query = db.Devices.Where(d => d.TuyaDeviceId != null && d.GoogleHomeDeviceId == null);
+            // Türsensoren bleiben dabei: Tuya liefert weiter den Akkustand, den Türzustand aber nicht mehr (Apply).
+            var query = db.Devices.Where(d => d.TuyaDeviceId != null && (d.GoogleHomeDeviceId == null || d.Type == "DoorSensor"));
             if (onlyDeviceIds is not null)
             {
                 query = query.Where(d => onlyDeviceIds.Contains(d.Id));
@@ -108,11 +109,13 @@ public class TuyaDeviceSyncer(
                 try
                 {
                     var status = await client.GetDeviceStatusAsync(device.TuyaDeviceId!, cancellationToken);
+                    var batteryBefore = device.BatteryPercent;
                     var syncResult = apply
                         ? Apply(db, device, status, DateTimeOffset.UtcNow, IsOnline(online, device.TuyaDeviceId!))
                         : null;
-                    // Nur beim vollständigen Abgleich: Jeder Abruf kostet Tuya-Kontingent.
-                    if (apply && refreshOnline && device.BatteryPercent is not null)
+                    // Sonst nur beim vollständigen Abgleich: Jeder Abruf kostet Tuya-Kontingent.
+                    // Hat sich der Akkustand geändert, wird auch im kleinen Lauf die Meldezeit nachgezogen.
+                    if (apply && device.BatteryPercent is not null && (refreshOnline || device.BatteryPercent != batteryBefore))
                         await UpdateBatteryReportTimeAsync(device, cancellationToken);
                     results.Add(new TuyaLinkedDeviceResult(device.Id, device.Name, device.Type, status, syncResult, null));
                 }
@@ -274,7 +277,8 @@ public class TuyaDeviceSyncer(
             return TuyaSyncResults.Changed;
         }
 
-        if (GetBoolean(status, DoorCode) is { } isOpen)
+        // Mit Google-Home-Verknüpfung kommt das frische Türsignal von dort. Ein Tuya-Stand darf es nicht überschreiben.
+        if (device.GoogleHomeDeviceId is null && GetBoolean(status, DoorCode) is { } isOpen)
         {
             var newValue = isOpen ? OpenText : ClosedText;
             if (device.LastValue == newValue)

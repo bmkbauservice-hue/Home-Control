@@ -6,6 +6,7 @@ using HomeControl.Api.Endpoints;
 using HomeControl.Api.Models;
 using HomeControl.Api.RateLimiting;
 using HomeControl.Api.Realtime;
+using HomeControl.Api.Scenarios;
 using HomeControl.Api.Tuya;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -16,12 +17,12 @@ namespace HomeControl.Api.GoogleHome;
 // und "Ein" oder "Aus" erst, wenn das Gerät den Zustand bestätigt hat. Siehe docs/GOOGLE_HOME_SCHALTEN.md.
 public static class GoogleHomeEndpoints
 {
-    public record BridgeDeviceInput(string Id, string Name, bool Online, bool? On);
+    public record BridgeDeviceInput(string Id, string Name, bool Online, bool? On, bool? Open = null);
     public record PollInput(List<BridgeDeviceInput>? Devices);
     public record CommandResultInput(bool? On, string? Error);
     public record SwitchRequest(bool? On);
     public record SwitchResponse(Guid DeviceId, bool On, string Message);
-    public record ReportedDevice(string Id, string Name, bool Online, bool? On, bool Protected);
+    public record ReportedDevice(string Id, string Name, bool Online, bool? On, bool Protected, bool? Open);
     public record DevicesResponse(bool Connected, List<ReportedDevice> Devices);
 
     private const long MaxBodyBytes = 64 * 1024;
@@ -46,7 +47,7 @@ public static class GoogleHomeEndpoints
 
     private static IResult GetDevices(GoogleHomeBridge bridge) =>
         Results.Ok(new DevicesResponse(bridge.IsConnected, bridge.Devices
-            .Select(d => new ReportedDevice(d.Id, d.Name, d.Online, d.On, GoogleHomeBridge.IsProtectedName(d.Name)))
+            .Select(d => new ReportedDevice(d.Id, d.Name, d.Online, d.On, GoogleHomeBridge.IsProtectedName(d.Name), d.Open))
             .ToList()));
 
     private static IResult GetDevicesForTool(HttpContext context, GoogleHomeBridge bridge, IConfiguration config) =>
@@ -54,7 +55,7 @@ public static class GoogleHomeEndpoints
 
     private static async Task<IResult> Poll(
         HttpContext context, PollInput input, GoogleHomeBridge bridge, ApplicationDbContext db,
-        IConfiguration config, DeviceChangeHub changeHub, CancellationToken cancellationToken)
+        IConfiguration config, DeviceChangeHub changeHub, ScenarioQueue scenarios, CancellationToken cancellationToken)
     {
         if (RejectBridgeCall(context, config) is { } rejected) return rejected;
 
@@ -66,9 +67,9 @@ public static class GoogleHomeEndpoints
                 ["devices"] = ["Geräteliste ist ungültig."]
             });
 
-        var commands = bridge.Poll(reported.Select(d => new BridgeDevice(d.Id.Trim(), d.Name.Trim(), d.Online, d.On)));
-        await ApplyReportedStates(bridge, db, changeHub, cancellationToken);
-        return Results.Ok(new { commands });
+        var result = bridge.Poll(reported.Select(d => new BridgeDevice(d.Id.Trim(), d.Name.Trim(), d.Online, d.On, d.Open)));
+        await ApplyReportedStates(bridge, db, changeHub, scenarios, result.OpenedDoors, cancellationToken);
+        return Results.Ok(new { commands = result.Commands });
     }
 
     private static bool IsInvalid(BridgeDeviceInput device) =>
@@ -99,13 +100,23 @@ public static class GoogleHomeEndpoints
 
     // Änderungen, die nicht aus Home Control kommen (z. B. über die Google Home-App), sichtbar machen.
     private static async Task ApplyReportedStates(
-        GoogleHomeBridge bridge, ApplicationDbContext db, DeviceChangeHub changeHub, CancellationToken cancellationToken)
+        GoogleHomeBridge bridge, ApplicationDbContext db, DeviceChangeHub changeHub, ScenarioQueue scenarios,
+        List<string> openedDoors, CancellationToken cancellationToken)
     {
         var linked = await db.Devices.Where(d => d.GoogleHomeDeviceId != null).ToListAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
         var changed = new List<Guid>();
         foreach (var device in linked)
         {
+            if (device.Type == "DoorSensor")
+            {
+                if (bridge.Find(device.GoogleHomeDeviceId!) is { Online: true, Open: { } isOpen } && SetDoorState(db, device, isOpen, now))
+                    changed.Add(device.Id);
+                if (openedDoors.Contains(device.GoogleHomeDeviceId!))
+                    scenarios.Enqueue(new ScenarioTrigger(device.Id, null, now));
+                continue;
+            }
+
             // Solange ein Befehl läuft, entscheidet allein dessen Bestätigung.
             if (bridge.HasPending(device.GoogleHomeDeviceId!)) continue;
             if (bridge.Find(device.GoogleHomeDeviceId!) is { Online: true, On: { } isOn } && SetState(db, device, isOn, now))
@@ -115,6 +126,21 @@ public static class GoogleHomeEndpoints
         if (changed.Count == 0) return;
         await db.SaveChangesAsync(cancellationToken);
         changeHub.Publish(new DeviceChangeEvent(changed, DeviceChangeSources.GoogleHome, now));
+    }
+
+    private static bool SetDoorState(ApplicationDbContext db, Device device, bool isOpen, DateTimeOffset now)
+    {
+        var value = isOpen ? TuyaDeviceSyncer.OpenText : TuyaDeviceSyncer.ClosedText;
+        if (device.LastValue == value) return false;
+
+        device.LastValue = value;
+        db.DeviceEvents.Add(new DeviceEvent
+        {
+            DeviceId = device.Id,
+            Action = isOpen ? "door_opened" : "door_closed",
+            Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(now.ToUnixTimeMilliseconds()),
+        });
+        return true;
     }
 
     private static bool SetState(ApplicationDbContext db, Device device, bool isOn, DateTimeOffset now)

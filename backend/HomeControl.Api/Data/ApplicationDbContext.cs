@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceEvent> DeviceEvents => Set<DeviceEvent>();
+    public DbSet<Scenario> Scenarios => Set<Scenario>();
+    public DbSet<ScenarioRun> ScenarioRuns => Set<ScenarioRun>();
     public DbSet<BlinkCredential> BlinkCredentials => Set<BlinkCredential>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
@@ -33,6 +35,22 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<Guid>, 
     {
         // Zuerst die Identity-Tabellen aufbauen lassen, dann unsere eigenen Einstellungen.
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Scenario>(entity =>
+        {
+            entity.Property(s => s.Name).HasMaxLength(100);
+            entity.Property(s => s.BlinkSystemId).HasMaxLength(32);
+            entity.Property(s => s.BlinkSystemName).HasMaxLength(200);
+            entity.HasOne(s => s.TriggerDevice).WithMany().HasForeignKey(s => s.TriggerDeviceId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(s => s.Runs).WithOne(r => r.Scenario).HasForeignKey(r => r.ScenarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ScenarioRun>(entity =>
+        {
+            entity.Property(r => r.Trigger).HasMaxLength(16);
+            entity.Property(r => r.Outcome).HasMaxLength(32);
+            entity.Property(r => r.Message).HasMaxLength(400);
+        });
 
         modelBuilder.Entity<Room>(entity =>
         {

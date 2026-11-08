@@ -7,6 +7,8 @@ export type GoogleHomeDevice = {
   online: boolean
   // null = kein lesbarer Ein/Aus-Zustand
   on: boolean | null
+  // Türsensor: true = offen, null = kein Türsensor
+  open?: boolean | null
   // Reiner Messpunkt, der nie geschaltet werden darf
   protected: boolean
 }

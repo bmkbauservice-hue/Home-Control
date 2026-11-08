@@ -1,7 +1,7 @@
 # Blink-Anbindung
 
 Home Control liest (nur lesend) Status und Kameras eines Blink-Systems. Wie bei Tuya wird
-nie geschaltet – hier zusätzlich: nie scharf-/unscharfgeschaltet und nie ein Clip gelöscht.
+nie geschaltet – hier zusätzlich: nie unscharfgeschaltet und nie ein Clip gelöscht. Scharfschalten nur über eine Regel, siehe [SZENARIEN.md](SZENARIEN.md).
 **Einzige bewusste Ausnahme:** der Knopf „Neues Bild“ (siehe unten). Er lässt eine Kamera ein neues
 Vorschaubild aufnehmen, kostet Akku, schaltet aber nichts.
 

@@ -43,6 +43,15 @@ public record BlinkThumbnail(byte[] Content, string ContentType, DateTimeOffset?
 // ThumbnailTakenAtUtc = Aufnahmezeit des Vorschaubilds danach (null, wenn Blink sie nicht nennt).
 public record BlinkSnapshotResult(bool Completed, DateTimeOffset? ThumbnailTakenAtUtc);
 
+// Ein Blink-System (bei Blink "network"). Armed = null: Blink nennt den Zustand nicht.
+public record BlinkSystemInfo(string Id, string Name, bool? Armed);
+
+// Ergebnis des Scharfschaltens. Armed ist der NACH dem Befehl neu gelesene Zustand.
+public record BlinkArmResult(bool CommandCompleted, bool? Armed, bool AlreadyArmed);
+
+// Ergebnis der Livebild-Probe: Sind echte Videodaten angekommen?
+public record BlinkLiveProbeResult(bool VideoReceived, int VideoFrames, long VideoBytes, string? Problem);
+
 // Blink ist nicht eingerichtet: weder Datenbank noch Bootstrap-Wert haben ein Token.
 public class BlinkNotConfiguredException(string detail) : Exception(detail);
 
@@ -69,4 +78,13 @@ public interface IBlinkCameraClient
     // Weckt Akku-Kameras auf und kostet Batterie, schaltet aber nichts (nicht scharf/unscharf, keine Aufnahme).
     // Nur für Admins, höchstens 1× pro Minute und Kamera (Endpunkt). null: Kamera unbekannt.
     Task<BlinkSnapshotResult?> RequestNewThumbnailAsync(string cameraId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<BlinkSystemInfo>> GetSystemsAsync(CancellationToken cancellationToken);
+
+    // Schaltet ein System scharf und liest den Zustand danach neu. Ausdrücklicher Nutzerauftrag vom 08.11.2026,
+    // nur über Regeln eines Admins. null: System unbekannt.
+    Task<BlinkArmResult?> ArmSystemAsync(string systemId, CancellationToken cancellationToken);
+
+    // Fordert kurz ein Livebild an und zählt echte Videodaten. Weckt die Kamera. null: Kamera unbekannt.
+    Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken);
 }

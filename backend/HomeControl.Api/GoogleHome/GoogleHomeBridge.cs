@@ -1,7 +1,10 @@
 namespace HomeControl.Api.GoogleHome;
 
 // Ein Gerät, wie Muju Home es gerade aus Google Home meldet. On = null: kein lesbarer Ein/Aus-Zustand.
-public record BridgeDevice(string Id, string Name, bool Online, bool? On);
+public record BridgeDevice(string Id, string Name, bool Online, bool? On, bool? Open = null);
+
+// Antwort auf eine Nachfrage: offene Befehle und Türen, die gerade von Zu auf Auf gewechselt sind.
+public record BridgePollResult(List<BridgeCommand> Commands, List<string> OpenedDoors);
 
 // Ein Schaltbefehl, den Muju Home abholt.
 public record BridgeCommand(Guid Id, string DeviceId, bool On);
@@ -87,13 +90,21 @@ public class GoogleHomeBridge(TimeProvider timeProvider, IConfiguration config)
 
     // Die App meldet ihre Geräte und bekommt dafür die offenen Befehle.
     // Jeder Befehl wird genau einmal ausgeliefert und nur innerhalb seiner Frist.
-    public List<BridgeCommand> Poll(IEnumerable<BridgeDevice> reported)
+    public BridgePollResult Poll(IEnumerable<BridgeDevice> reported)
     {
         var now = timeProvider.GetUtcNow();
         lock (sync)
         {
+            // Eine Tür gilt nur dann als frisch geöffnet, wenn die App sie eben noch als geschlossen gemeldet hat.
+            // Der erste Stand nach dem Start oder einer Trennung ist deshalb nie ein Auslöser.
+            var wasConnected = IsConnectedLocked();
+            var previous = devices;
             devices = reported.ToDictionary(d => d.Id);
             lastPollUtc = now;
+            var openedDoors = !wasConnected ? [] : devices.Values
+                .Where(d => d is { Online: true, Open: true }
+                            && previous.TryGetValue(d.Id, out var before) && before is { Online: true, Open: false })
+                .Select(d => d.Id).ToList();
 
             var commands = new List<BridgeCommand>();
             foreach (var command in pending.Where(p => !p.Delivered))
@@ -106,7 +117,7 @@ public class GoogleHomeBridge(TimeProvider timeProvider, IConfiguration config)
                 command.Delivered = true;
                 commands.Add(new BridgeCommand(command.Id, command.DeviceId, command.Desired));
             }
-            return commands;
+            return new BridgePollResult(commands, openedDoors);
         }
     }
 

@@ -17,6 +17,8 @@ KEY_FILE = Path.home() / ".config/home-control/sensor-bridge.key"
 
 def describe(device: dict) -> str:
     state = {True: "Ein", False: "Aus", None: "kein Ein/Aus"}[device.get("on")]
+    if device.get("open") is not None:
+        state = "Tür auf" if device["open"] else "Tür zu"
     online = "online" if device.get("online") else "offline"
     return f"{device.get('name')} | ID ...{str(device.get('id'))[-4:]} | {online} | {state}"
 

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -74,7 +75,9 @@ public class BlinkHttpCameraClient(
     // Art (cameras/owls/doorbells) und Netzwerk je Kamera-Id: nötig, um für "Neues Bild" die richtige Adresse zu bauen.
     private IReadOnlyDictionary<string, CameraTarget> cameraTargets = new Dictionary<string, CameraTarget>();
 
-    private sealed record CameraTarget(string Kind, long NetworkId);
+    private sealed record CameraTarget(string Kind, long NetworkId, string Serial);
+
+    private IReadOnlyList<BlinkSystemInfo> lastSystems = [];
 
     // "Neues Bild": so lange und so oft fragen wir nach, ob Blink den Befehl erledigt hat (wie blinkpy: jede Sekunde).
     public TimeSpan CommandPollInterval { get; init; } = TimeSpan.FromSeconds(1);
@@ -159,6 +162,7 @@ public class BlinkHttpCameraClient(
             using var homescreen = await GetHomescreenAsync(cancellationToken);
             var accountId = session?.AccountId ?? 0;
             (lastCameras, thumbnailPaths, cameraTargets) = MapCameras(homescreen.RootElement, accountId);
+            lastSystems = MapSystems(homescreen.RootElement);
             lastFetchAtUtc = timeProvider.GetUtcNow();
         }
         finally
@@ -277,6 +281,160 @@ public class BlinkHttpCameraClient(
         await EnsureFreshAsync(cancellationToken);
         var camera = lastCameras.FirstOrDefault(c => c.Id == cameraId);
         return new BlinkSnapshotResult(completed, camera?.ThumbnailTakenAtUtc);
+    }
+
+    public async Task<IReadOnlyList<BlinkSystemInfo>> GetSystemsAsync(CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
+        await EnsureFreshAsync(cancellationToken);
+        return lastSystems;
+    }
+
+    private Task RefreshNowAsync(CancellationToken cancellationToken)
+    {
+        lastFetchAtUtc = DateTimeOffset.MinValue;
+        return EnsureFreshAsync(cancellationToken);
+    }
+
+    public async Task<BlinkArmResult?> ArmSystemAsync(string systemId, CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
+        // Immer frisch lesen: Der Zustand kann in der Blink-App geändert worden sein.
+        await RefreshNowAsync(cancellationToken);
+        var system = lastSystems.FirstOrDefault(s => s.Id == systemId);
+        if (system is null || !long.TryParse(systemId, out var networkId))
+        {
+            return null;
+        }
+
+        if (system.Armed == true)
+        {
+            return new BlinkArmResult(true, true, AlreadyArmed: true);
+        }
+
+        var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+        logger.LogInformation("Blink: System {SystemId} wird scharfgeschaltet (Regel).", systemId);
+        using var answer = await PostJsonAsync(
+            $"/api/v1/accounts/{current.AccountId}/networks/{networkId}/state/arm", null, cancellationToken);
+        var completed = ReadCommandId(answer.RootElement) is { } command
+            && await WaitForCommandAsync(networkId, command, cancellationToken);
+
+        // Nur der neu gelesene Zustand zählt als Bestätigung.
+        await RefreshNowAsync(cancellationToken);
+        return new BlinkArmResult(completed, lastSystems.FirstOrDefault(s => s.Id == systemId)?.Armed, AlreadyArmed: false);
+    }
+
+    private static long? ReadCommandId(JsonElement root)
+    {
+        foreach (var name in new[] { "id", "command_id" })
+        {
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var value) && value.TryGetInt64(out var id))
+            {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    public async Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new BlinkDisabledException();
+        }
+
+        await EnsureFreshAsync(cancellationToken);
+        if (!cameraTargets.TryGetValue(cameraId, out var target))
+        {
+            return null;
+        }
+        if (target.Kind != "cameras")
+        {
+            return new BlinkLiveProbeResult(false, 0, 0, "Die Probe unterstützt bisher nur normale Blink-Kameras.");
+        }
+
+        var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+        logger.LogInformation("Blink: Livebild-Probe für Kamera {CameraId}.", cameraId);
+        using var answer = await PostJsonAsync(
+            $"/api/v6/accounts/{current.AccountId}/networks/{target.NetworkId}/cameras/{cameraId}/liveview",
+            """{"intent":"liveview","motion_event_start_time":null}""", cancellationToken);
+        var root = answer.RootElement;
+        var commandId = ReadCommandId(root);
+        var serverText = root.ValueKind == JsonValueKind.Object ? GetString(root, "server") : null;
+        var server = BlinkLiveProbe.ParseServer(serverText);
+        try
+        {
+            if (server is null)
+            {
+                // Nur das Schema nennen: Die vollständige Adresse enthält eine Sitzungskennung.
+                var scheme = serverText?.Split(':')[0] ?? "keine";
+                return new BlinkLiveProbeResult(false, 0, 0, $"Blink nennt keinen unterstützten Videoserver (Art: {scheme}).");
+            }
+
+            var (frames, bytes) = await BlinkLiveProbe.ReadVideoAsync(server, target.Serial, TimeSpan.FromSeconds(10), cancellationToken);
+            return new BlinkLiveProbeResult(frames > 0, frames, bytes, frames > 0 ? null : "Verbindung aufgebaut, aber keine Videodaten empfangen.");
+        }
+        catch (Exception ex) when (ex is SocketException or IOException or System.Security.Authentication.AuthenticationException)
+        {
+            return new BlinkLiveProbeResult(false, 0, 0, "Der Videoserver von Blink war nicht erreichbar.");
+        }
+        finally
+        {
+            // Der Kamera sagen, dass wir fertig sind, damit sie wieder schlafen geht.
+            if (commandId is { } command)
+            {
+                using var done = await SendAsync(HttpMethod.Post, current, $"/network/{target.NetworkId}/command/{command}/done/", CancellationToken.None);
+            }
+        }
+    }
+
+    // POST mit einmaliger Token-Erneuerung bei 401, wie beim Homescreen.
+    private async Task<JsonDocument> PostJsonAsync(string path, string? body, CancellationToken cancellationToken)
+    {
+        var current = await GetSessionAsync(forceRenew: false, cancellationToken);
+        using var first = await SendJsonAsync(current, path, body, cancellationToken);
+        if (first.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            return await ReadJsonAsync(first, cancellationToken);
+        }
+
+        var renewed = await GetSessionAsync(forceRenew: true, cancellationToken);
+        using var second = await SendJsonAsync(renewed, path, body, cancellationToken);
+        if (second.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            MarkLoginRequired(renewed.RefreshToken);
+            throw new BlinkLoginRequiredException("Blink hat die Anmeldung abgelehnt. Bitte tools/BlinkSpike erneut ausführen.");
+        }
+        return await ReadJsonAsync(second, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendJsonAsync(Session current, string path, string? body, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"https://rest-{current.Tier}.immedia-semi.com{path}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", current.AccessToken);
+        if (body is not null)
+        {
+            request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        }
+        return await httpClientFactory.CreateClient(HttpClientName).SendAsync(request, cancellationToken);
+    }
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new BlinkApiException($"Blink hat den Befehl abgelehnt (HTTP {(int)response.StatusCode}).");
+        }
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
     }
 
     // Fragt jede Sekunde nach, ob Blink den Befehl erledigt hat (wie blinkpy wait_for_command).
@@ -652,7 +810,7 @@ public class BlinkHttpCameraClient(
 
                 if (item.TryGetProperty("network_id", out var networkElement) && networkElement.TryGetInt64(out var networkId) && networkId > 0)
                 {
-                    targets[id] = new CameraTarget(listName, networkId);
+                    targets[id] = new CameraTarget(listName, networkId, GetString(item, "serial") ?? "");
                 }
 
                 var path = BuildThumbnailPath(item, id, accountId);
@@ -679,6 +837,26 @@ public class BlinkHttpCameraClient(
         }
 
         return (cameras, paths, targets);
+    }
+
+    // "networks" im Homescreen: Jedes System meldet seinen Scharf-Zustand im Feld "armed".
+    private static List<BlinkSystemInfo> MapSystems(JsonElement homescreen)
+    {
+        var systems = new List<BlinkSystemInfo>();
+        if (!homescreen.TryGetProperty("networks", out var networks) || networks.ValueKind != JsonValueKind.Array)
+        {
+            return systems;
+        }
+
+        foreach (var item in networks.EnumerateArray())
+        {
+            if (GetIdText(item) is not { } id) continue;
+            bool? armed = item.TryGetProperty("armed", out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? value.GetBoolean()
+                : null;
+            systems.Add(new BlinkSystemInfo(id, GetString(item, "name") ?? "Unbenanntes System", armed));
+        }
+        return systems;
     }
 
     // Bildpfad wie im aktuellen blinkpy. Zwei Formate:

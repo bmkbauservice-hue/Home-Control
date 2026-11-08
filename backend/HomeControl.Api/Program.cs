@@ -90,6 +90,8 @@ builder.Services.AddScoped<TuyaDeviceSyncer>();
 // Gleicht im Hintergrund regelmäßig ab (Tuya:AutoSyncSeconds, Standard 15 Minuten, 0 = aus).
 // AddHostedService: startet mit der App und wird beim Beenden sauber gestoppt.
 builder.Services.AddHostedService<TuyaSyncBackgroundService>();
+builder.Services.AddSingleton<HomeControl.Api.Scenarios.ScenarioQueue>();
+builder.Services.AddHostedService<HomeControl.Api.Scenarios.ScenarioRunner>();
 // Merkt sich, welche Tuya-Geräte online sind (Status-LEDs, GET /api/status). Gefüllt vom Abgleich,
 // ohne Hintergrund-Abgleich höchstens alle 5 Minuten neu geladen (siehe Status/TuyaOnlineCache.cs).
 builder.Services.AddSingleton<TuyaOnlineCache>();
@@ -328,6 +330,7 @@ app.MapScaleEndpoints();
 ShellyMeters.Map(app);
 app.MapTuyaControlEndpoints();
 HomeControl.Api.GoogleHome.GoogleHomeEndpoints.MapGoogleHomeEndpoints(app);
+HomeControl.Api.Scenarios.ScenarioEndpoints.MapScenarioEndpoints(app);
 app.MapBlinkEndpoints();
 app.MapAuthEndpoints();
 app.MapStatusEndpoints();
