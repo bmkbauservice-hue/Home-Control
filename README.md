@@ -255,6 +255,7 @@ Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 | Blink-Kamerabilder (Proxy statt Direktlink, kein Token im Browser, Object-URLs, Datenschutz, SSRF) | [Lernunterlage-Blink-Kamerabilder.pdf](docs/Lernunterlage-Blink-Kamerabilder.pdf) |
 | Blink „Neues Bild“ (bewusste Ausnahme, Rate Limit pro Kamera, Befehl abfragen statt warten, Admin-Knopf) | [Lernunterlage-Blink-Neues-Bild.pdf](docs/Lernunterlage-Blink-Neues-Bild.pdf) |
 | Alarm mit Blink und Türsensor (Türregel, Scharfschalten, Standbilder und USB-Clips) | [Lernunterlage-Alarm-Blink-und-Tuersensor.pdf](docs/Lernunterlage-Alarm-Blink-und-Tuersensor.pdf) |
+| Blink-Clips erkunden (lokaler Speicher, Manifest, MP4 prüfen) | [Lernunterlage-Blink-Clips.pdf](docs/Lernunterlage-Blink-Clips.pdf) |
 | Design-System (CSS-Variablen, Design-Tokens, Schrift lokal, responsives Layout, Barrierefreiheit) | [Lernunterlage-Design-System.pdf](docs/Lernunterlage-Design-System.pdf) |
 | Demo-Modus (Fakes vs. echte Clients, Dependency Injection je nach Einstellung, keine echten Daten auf dem Beamer) | [Lernunterlage-Demo-Modus.pdf](docs/Lernunterlage-Demo-Modus.pdf) |
 | Einstellungen (Benutzerverwaltung, letzter Admin, Passwort ändern, Sitzungen beenden ohne Reuse Detection, 409 Conflict) | [Lernunterlage-Einstellungen.pdf](docs/Lernunterlage-Einstellungen.pdf) |
@@ -284,5 +285,4 @@ Dockerfile, docker-compose.yml  Container für Betrieb und Demo
 
 Entwickelt von **Mario Kujoth** als Solo-Projekt während der Umschulung zum Software-Ingenieur (2026/27),
 mit KI-Assistenten als Werkzeug.
-
 
