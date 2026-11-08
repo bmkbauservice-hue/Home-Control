@@ -6,6 +6,8 @@ Stand: 08.11.2026. Erste Regel: „Wenn die Flurtür von Zu auf Auf wechselt, sc
 
 Scharfschalten ist auf ausdrücklichen Nutzerauftrag vom 08.11.2026 eine weitere Ausnahme vom früheren „nur lesend“.
 
+**Am echten Gerät bestätigt (08.11.2026):** Zwei Türöffnungen haben die Regel ausgelöst, und Blink hat das Scharfschalten nach erneutem Lesen beide Male bestätigt.
+
 ## Regeln
 
 - Nur Admins sehen und ändern Regeln. Neue Regeln starten immer ausgeschaltet.
