@@ -54,6 +54,9 @@ namespace HomeControl.Api.Migrations
                     b.Property<int?>("BatteryPercent")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("BatteryReportedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("EstimatedEnergyKwh")
                         .HasColumnType("REAL");
 

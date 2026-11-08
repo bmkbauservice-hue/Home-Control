@@ -299,6 +299,37 @@ public class GoogleHomeEndpointTests
         Assert.Single(factory.Tuya.CommandBodies);
     }
 
+    [Fact]
+    public async Task Diagnose_Liste_braucht_den_Bridge_Schluessel()
+    {
+        using var factory = new Factory();
+        var (_, bridge, _) = await PrepareAsync(factory);
+        await PollAsync(bridge, Socket(false));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await bridge.GetAsync("/api/google-home/bridge/devices")).StatusCode);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/google-home/bridge/devices");
+        request.Headers.Add("X-Sensor-Key", BridgeKey);
+        var answer = await (await bridge.SendAsync(request)).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(GoogleId, answer.GetProperty("devices")[0].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task Tuya_Abgleich_speichert_wann_der_Akku_zuletzt_gemeldet_wurde()
+    {
+        using var factory = new Factory();
+        factory.Tuya.DeviceListResponse = _ => TuyaJson.DeviceList(false, null, (TuyaId, "Tür", true));
+        factory.Tuya.StatusResponse = (_, _) => """{ "success": true, "result": [ { "code": "battery_percentage", "value": 90 } ] }""";
+        factory.Tuya.PropertiesResponse = """{ "success": true, "result": { "properties": [ { "code": "battery_percentage", "value": 90, "time": 1700000000123 } ] } }""";
+        var (admin, _, id) = await PrepareAsync(factory, "Tür", googleId: null);
+
+        (await admin.PostAsync("/api/tuya/sync", null)).EnsureSuccessStatusCode();
+
+        var saved = await admin.GetFromJsonAsync<DeviceResponse>($"/api/devices/{id}");
+        Assert.Equal(90, saved!.BatteryPercent);
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1700000000123), saved.BatteryReportedAtUtc);
+    }
+
     private static async Task<HttpResponseMessage> LinkAsync(Factory factory, HttpClient admin, Guid id, string googleId)
     {
         using var scope = factory.Services.CreateScope();

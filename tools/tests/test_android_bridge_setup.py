@@ -91,6 +91,20 @@ class AndroidBridgeSetupTests(unittest.TestCase):
             setup.plan_changes(self.root, "bridge")
         self.assertEqual("custom", path.read_text())
 
+    def test_usb_weiterleitung_wird_erneuert_bis_gateway_endet(self):
+        class Gateway:
+            returncode = 0
+            calls = 0
+
+            def poll(self):
+                self.calls += 1
+                return None if self.calls < 3 else 0
+
+        commands = []
+        with patch.object(setup.subprocess, "run", side_effect=lambda command, **_: commands.append(command)):
+            self.assertEqual(0, setup.keep_connected(Gateway(), ["adb"], pause=0))
+        self.assertEqual([["adb", "reverse", "tcp:5390", "tcp:5390"]] * 2, commands)
+
     def test_older_own_bridge_may_be_updated(self):
         path = self.root / setup.PACKAGE / "bridge/HomeControlBridge.kt"
         path.parent.mkdir()

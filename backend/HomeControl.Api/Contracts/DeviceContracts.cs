@@ -24,5 +24,6 @@ public record DeviceResponse(
     int? TuyaSyncSeconds,
     DateTimeOffset? PowerMeasuredAtUtc,
     double? EstimatedEnergyKwh,
-    string? GoogleHomeDeviceId);
+    string? GoogleHomeDeviceId,
+    DateTimeOffset? BatteryReportedAtUtc);
 

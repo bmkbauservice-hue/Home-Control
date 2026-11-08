@@ -4,6 +4,7 @@ import { useAutoRefresh } from '../hooks/useAutoRefresh'
 import type { Device } from '../api/devices'
 import { useStatus } from '../status/statusContext'
 import { energyNow, lowestBattery, maxMeasurementAgeMinutes } from './energy'
+import { oldBatteryReport } from './measurements'
 
 // Deutsche Zahl mit einer Nachkommastelle: 42,5 W
 const wattFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -76,6 +77,7 @@ export function EnergyCard({ devices }: EnergyCardProps) {
 
 export function BatteryCard({ devices }: EnergyCardProps) {
   const battery = lowestBattery(devices)
+  const oldReport = oldBatteryReport(battery?.device.batteryReportedAtUtc)
 
   return (
     <article className="energy-card" aria-label="Batterien">
@@ -102,6 +104,7 @@ export function BatteryCard({ devices }: EnergyCardProps) {
             <p className="energy-meta">
               {battery.low ? 'Bald Batterie tauschen · ' : 'Niedrigster Stand · '}
               {battery.deviceCount === 1 ? '1 Gerät mit Akku' : `${battery.deviceCount} Geräte mit Akku`}
+              {oldReport && ` · letzte Meldung ${oldReport}`}
             </p>
           </>
         )}

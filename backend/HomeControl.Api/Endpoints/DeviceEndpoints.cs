@@ -85,7 +85,7 @@ public static class DeviceEndpoints
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
                 d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
-                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId))
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId, d.BatteryReportedAtUtc))
             .ToListAsync();
 
         return Results.Ok(devices);
@@ -151,6 +151,7 @@ public static class DeviceEndpoints
             device.EstimatedEnergyKwh = null;
             device.VoltageVolt = null;
             device.BatteryPercent = null;
+            device.BatteryReportedAtUtc = null;
             device.MeasuredAtUtc = null;
         }
 
@@ -198,7 +199,7 @@ public static class DeviceEndpoints
             .Select(d => new DeviceResponse(
                 d.Id, d.Name, d.Type, d.RoomId, d.Room.Name, d.LastValue, d.TuyaDeviceId,
                 d.PowerWatt, d.VoltageVolt, d.BatteryPercent, d.MeasuredAtUtc, d.TuyaSyncSeconds,
-                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId))
+                d.PowerMeasuredAtUtc, d.EstimatedEnergyKwh, d.GoogleHomeDeviceId, d.BatteryReportedAtUtc))
             .FirstOrDefaultAsync();
     }
 

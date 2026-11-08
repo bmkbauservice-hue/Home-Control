@@ -21,6 +21,8 @@ export type Device = {
   estimatedEnergyKwh?: number | null
   voltageVolt: number | null
   batteryPercent: number | null
+  // Wann der Sensor seinen Akkustand zuletzt selbst gemeldet hat (ISO-Zeit, UTC)
+  batteryReportedAtUtc?: string | null
   // Wann die Messwerte zuletzt von einem ONLINE-Gerät kamen (ISO-Zeit, UTC)
   measuredAtUtc: string | null
   // Eigener Abgleich-Takt in Sekunden, null = Standard

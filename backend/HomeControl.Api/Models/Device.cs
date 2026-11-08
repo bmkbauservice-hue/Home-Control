@@ -34,6 +34,10 @@ public class Device
 
     public int? BatteryPercent { get; set; }
 
+    // Wann das Gerät seinen Akkustand zuletzt selbst an Tuya gemeldet hat. Tuya liefert sonst
+    // immer den letzten Stand, auch wenn der Sensor seit Tagen nichts mehr gesendet hat.
+    public DateTimeOffset? BatteryReportedAtUtc { get; set; }
+
     // Wann die Messwerte oben zuletzt von einem ONLINE-Gerät kamen. Bei Offline-Geräten liefert
     // Tuya nur den alten Stand, dann bleiben Werte und Zeitpunkt unverändert.
     public DateTimeOffset? MeasuredAtUtc { get; set; }

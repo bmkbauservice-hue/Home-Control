@@ -4,8 +4,10 @@ import android.util.Log
 import com.example.googlehomeapisampleapp.BuildConfig
 import com.google.home.ConnectivityState
 import com.google.home.DeviceType
+import com.google.home.matter.standard.BooleanState
 import com.google.home.matter.standard.HumiditySensorDevice
 import com.google.home.matter.standard.OnOff
+import com.google.home.matter.standard.PowerSource
 import com.google.home.matter.standard.RelativeHumidityMeasurement
 import com.google.home.matter.standard.TemperatureMeasurement
 import com.google.home.matter.standard.TemperatureSensorDevice
@@ -35,6 +37,7 @@ object HomeControlBridge {
     private class SwitchDevice(val name: String, val online: Boolean, val trait: OnOff)
 
     private val switches = ConcurrentHashMap<String, SwitchDevice>()
+    private val inventory = ConcurrentHashMap<String, String>()
     private val polling = AtomicBoolean(false)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -43,6 +46,7 @@ object HomeControlBridge {
 
     suspend fun publishDevice(id: String, name: String, types: Set<DeviceType>) {
         rememberSwitch(id, name, types)
+        logInventory(id, name, types)
 
         val traits = types.filter { type ->
             (type.factory == TemperatureSensorDevice || type.factory == HumiditySensorDevice) && isOnline(type)
@@ -70,6 +74,22 @@ object HomeControlBridge {
     private fun isOnline(type: DeviceType): Boolean {
         val state = type.metadata.sourceConnectivity.connectivityState
         return state == ConnectivityState.ONLINE || state == ConnectivityState.PARTIALLY_ONLINE
+    }
+
+    /** Matter meldet den Akku in halben Prozent. Fehlt er, bleibt der Wert null. */
+    private fun batteryPercent(types: Set<DeviceType>): Int? =
+        types.flatMap { it.traits() }.filterIsInstance<PowerSource>()
+            .firstNotNullOfOrNull { it.batPercentRemaining }?.toInt()?.div(2)?.takeIf { it in 0..100 }
+
+    /** Inventur fürs Handy-Protokoll, nur bei Änderungen. Von der ID nur die letzten vier Zeichen. */
+    private fun logInventory(id: String, name: String, types: Set<DeviceType>) {
+        val onOff = types.flatMap { it.traits() }.filterIsInstance<OnOff>().firstOrNull()
+        val line = "Inventar: $name | ID ...${id.takeLast(4)} | online=${types.any(::isOnline)}" +
+            " | ein=${onOff?.onOff} | kontakt=${types.flatMap { it.traits() }.filterIsInstance<BooleanState>().firstOrNull()?.stateValue}" +
+            " | akku=${batteryPercent(types)}" +
+            " | typen=${types.map { it.factory.toString().substringAfterLast('.') }.sorted()}" +
+            " | faehigkeiten=${types.flatMap { it.traits() }.map { it.factory.toString().substringAfterLast('.') }.distinct().sorted()}"
+        if (inventory.put(id, line) != line) Log.i("HomeControlBridge", line)
     }
 
     /** Merkt sich den neuesten Stand. Das SDK liefert bei jeder Änderung ein neues Trait-Objekt. */
@@ -131,6 +151,7 @@ object HomeControlBridge {
             while (switches[deviceId]?.trait?.onOff != on) delay(250)
             on
         }
+        Log.i("HomeControlBridge", "Schaltbefehl ${if (confirmed == null) "nicht bestaetigt" else "bestaetigt"}")
         report(commandId, confirmed, null)
     }
 

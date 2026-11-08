@@ -73,6 +73,7 @@ def plan_changes(root: Path, bridge: str) -> dict[Path, str]:
                           "        traits.emit(combinedTraits)\n        " + TAG + "\n        " + hook,
                           "DeviceViewModel")
     for symbol, anchor in (("RelativeHumidityMeasurement", "TemperatureMeasurement"),
+                           ("PowerSource", "TemperatureMeasurement"),
                            ("HumiditySensorDevice", "TemperatureSensorDevice")):
         line = f"import com.google.home.matter.standard.{symbol}\n"
         if line not in module:
@@ -173,18 +174,28 @@ def probe(url: str, key: str) -> int:
         return error.code
 
 
+def keep_connected(gateway: subprocess.Popen, adb_command: list[str], pause: float = 5) -> int:
+    """Ein kurzer USB-Abbruch löscht die Weiterleitung. Deshalb wird sie laufend erneuert."""
+    while gateway.poll() is None:
+        # Schlägt fehl, solange das Handy getrennt ist. Dann einfach beim nächsten Mal wieder.
+        subprocess.run(adb_command + ["reverse", "tcp:5390", "tcp:5390"], capture_output=True)
+        time.sleep(pause)
+    return gateway.returncode
+
+
 def run() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--android", type=Path,
                         default=Path.home() / "Schreibtisch/Umschulung/google-home-api-sample-app-android")
     parser.add_argument("--device", help="ADB-Seriennummer des gewünschten Handys")
     parser.add_argument("--install", action="store_true", help="Sichern, ergänzen, bauen, per USB installieren und Gateway starten")
+    parser.add_argument("--nur-verbinden", action="store_true", help="Ohne Neubau: USB-Weiterleitung und Gateway für die installierte App starten")
     options = parser.parse_args()
     root = options.android.resolve()
     bridge = (BASE / "integrations/google-home-bridge/HomeControlBridge.kt").read_text()
     changes = plan_changes(root, bridge)
     print("Quellcode geprüft: Temperatur, Luftfeuchte und Sender können verbunden werden.", flush=True)
-    if not options.install:
+    if not options.install and not options.nur_verbinden:
         print("Nur geprüft. Mit --install wird die vorhandene Android-App ergänzt.")
         return 0
     adb = shutil.which("adb")
@@ -198,6 +209,8 @@ def run() -> int:
     adb_command = [adb, "-s", select_device(devices, options.device)]
     # Eigenen Port vor dem Build prüfen. Keinen vorhandenen Gateway beenden.
     with socket.socket() as listener:
+        # Wie der Gateway selbst: Abklingende alte Verbindungen zählen nicht als belegt.
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.bind(("127.0.0.1", 5390))
     key = read_key(Path.home() / ".config/home-control/sensor-bridge.key")
     payload = json.dumps({"SensorBridge:Key": key})
@@ -211,19 +224,20 @@ def run() -> int:
         time.sleep(0.25)
     else:
         raise ValueError("Backend auf 5181 übernimmt den Schlüssel noch nicht. Gemeinsame Testversion neu starten, dann wiederholen.")
-    backup = apply_changes(root, changes, Path.home() / ".local/share/HomeControl/android-sicherungen")
-    print(f"Android-Quellcode gesichert: {backup}", flush=True)
-    environment = os.environ.copy()
-    environment["HOME_CONTROL_SENSOR_URL"] = "http://127.0.0.1:5390"
-    environment["HOME_CONTROL_SENSOR_KEY"] = key
-    print("Bestehende Android-App bauen. Google-Anmeldung und SDK bleiben erhalten.", flush=True)
-    # Kein Schlüssel als CLI-Argument oder in Gradle-Ausgaben mit --info/--debug.
-    subprocess.run(["bash", "./gradlew", ":app:assembleDebug", "--console=plain", "--no-daemon"],
-                   cwd=root, env=environment, check=True)
-    apk = root / "app/build/outputs/apk/debug/app-debug.apk"
-    if not apk.is_file():
-        raise ValueError("Build beendet, aber Debug-APK nicht am erwarteten Ort. Kein APK installiert.")
-    subprocess.run(adb_command + ["install", "-r", str(apk)], check=True)
+    if options.install:
+        backup = apply_changes(root, changes, Path.home() / ".local/share/HomeControl/android-sicherungen")
+        print(f"Android-Quellcode gesichert: {backup}", flush=True)
+        environment = os.environ.copy()
+        environment["HOME_CONTROL_SENSOR_URL"] = "http://127.0.0.1:5390"
+        environment["HOME_CONTROL_SENSOR_KEY"] = key
+        print("Bestehende Android-App bauen. Google-Anmeldung und SDK bleiben erhalten.", flush=True)
+        # Kein Schlüssel als CLI-Argument oder in Gradle-Ausgaben mit --info/--debug.
+        subprocess.run(["bash", "./gradlew", ":app:assembleDebug", "--console=plain", "--no-daemon"],
+                       cwd=root, env=environment, check=True)
+        apk = root / "app/build/outputs/apk/debug/app-debug.apk"
+        if not apk.is_file():
+            raise ValueError("Build beendet, aber Debug-APK nicht am erwarteten Ort. Kein APK installiert.")
+        subprocess.run(adb_command + ["install", "-r", str(apk)], check=True)
     subprocess.run(adb_command + ["reverse", "tcp:5390", "tcp:5390"], check=True)
     gateway_environment = os.environ.copy()
     gateway_environment["HOME_CONTROL_SENSOR_BACKEND"] = "http://127.0.0.1:5181"
@@ -247,7 +261,7 @@ def run() -> int:
         print("USB-Bridge läuft. Test-App öffnen, Haus auswählen und im Vordergrund lassen.", flush=True)
         print("Home Control > Klima: Empfang prüfen, dann die vier Sensoren ihren Räumen zuordnen.", flush=True)
         print("Dieses Terminal und USB-Verbindung offen lassen. Strg+C beendet nur diesen Gateway.", flush=True)
-        return gateway.wait()
+        return keep_connected(gateway, adb_command)
     finally:
         gateway.terminate()
         try:

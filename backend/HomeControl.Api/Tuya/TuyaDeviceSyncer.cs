@@ -111,6 +111,9 @@ public class TuyaDeviceSyncer(
                     var syncResult = apply
                         ? Apply(db, device, status, DateTimeOffset.UtcNow, IsOnline(online, device.TuyaDeviceId!))
                         : null;
+                    // Nur beim vollständigen Abgleich: Jeder Abruf kostet Tuya-Kontingent.
+                    if (apply && refreshOnline && device.BatteryPercent is not null)
+                        await UpdateBatteryReportTimeAsync(device, cancellationToken);
                     results.Add(new TuyaLinkedDeviceResult(device.Id, device.Name, device.Type, status, syncResult, null));
                 }
                 catch (TuyaApiException ex)
@@ -217,6 +220,23 @@ public class TuyaDeviceSyncer(
     //
     // online = false: Tuya liefert für Offline-Geräte den LETZTEN bekannten Stand. Die Messwerte
     // werden dann nicht übernommen, sonst sähe ein alter Wert wie ein neuer aus.
+    // Liest, wann der Sensor seinen Akkustand zuletzt gemeldet hat. Scheitert das, bleibt der Zeitpunkt
+    // einfach unbekannt: Der Abgleich der übrigen Werte darf daran nicht hängen.
+    private async Task UpdateBatteryReportTimeAsync(Device device, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var properties = await client.GetReportedPropertiesAsync(device.TuyaDeviceId!, cancellationToken);
+            device.BatteryReportedAtUtc = properties.FirstOrDefault(p => p.Code == BatteryCode)?.ReportedAtUtc
+                ?? device.BatteryReportedAtUtc;
+        }
+        catch (Exception ex) when (ex is TuyaApiException or HttpRequestException or JsonException
+                                     || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            logger.LogInformation("Akku-Meldezeit nicht abrufbar ({ExceptionType}).", ex.GetType().Name);
+        }
+    }
+
     public static string Apply(
         ApplicationDbContext db,
         Device device,

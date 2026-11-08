@@ -40,12 +40,17 @@ public static class GoogleHomeEndpoints
         // Die App benutzt denselben Schlüssel wie die Klima-Bridge statt eines Browser-JWT.
         group.MapPost("/bridge/poll", Poll).AllowAnonymous();
         group.MapPost("/bridge/commands/{commandId:guid}/result", ReportResult).AllowAnonymous();
+        // Nur für das Diagnosewerkzeug auf diesem Rechner. Der Gateway leitet diese Adresse nicht weiter.
+        group.MapGet("/bridge/devices", GetDevicesForTool).AllowAnonymous();
     }
 
     private static IResult GetDevices(GoogleHomeBridge bridge) =>
         Results.Ok(new DevicesResponse(bridge.IsConnected, bridge.Devices
             .Select(d => new ReportedDevice(d.Id, d.Name, d.Online, d.On, GoogleHomeBridge.IsProtectedName(d.Name)))
             .ToList()));
+
+    private static IResult GetDevicesForTool(HttpContext context, GoogleHomeBridge bridge, IConfiguration config) =>
+        RejectBridgeCall(context, config) ?? GetDevices(bridge);
 
     private static async Task<IResult> Poll(
         HttpContext context, PollInput input, GoogleHomeBridge bridge, ApplicationDbContext db,
