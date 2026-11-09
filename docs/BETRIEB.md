@@ -12,7 +12,7 @@ Die [Lernunterlage zum Linux-Dauerdienst](Lernunterlage-Betrieb.pdf) beschreibt 
 | Tuya und Wetter | OVH spricht direkt mit der jeweiligen Cloud | Konfiguration und erreichbare Anbieter |
 | Google Home | Muju Home auf Android und privater Sensor-Gateway auf OVH | WLAN, Tailscale und geöffnete Android-App beim direkten Weg. Der PC ist nur beim älteren USB-Weg Teil der Verbindung. |
 | Blink | OVH mit einem auf Blink begrenzten HTTP-Proxy | Linux-PC mit Tailscale und laufendem Heimproxy |
-| n8n | Kann die API mit einem lesenden Schlüssel ansprechen | Leseschlüssel und geprüfte Verbindung. Am echten OVH-Agenten noch offen. |
+| n8n | Muju-Agent über n8n | Anbindung laut Betreiber eingerichtet. Die API nutzt dafür einen Leseschlüssel. |
 
 ## OVH prüfen und aktualisieren
 
