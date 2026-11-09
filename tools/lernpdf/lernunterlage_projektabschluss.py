@@ -14,8 +14,9 @@ d.p("Meine Geräte waren auf mehrere Apps verteilt. Wenn ich wissen wollte, wie 
     "Informationen pro Raum sehen und ausgewählte Geräte von einer Stelle aus bedienen.")
 d.p("Angefangen habe ich mit Räumen, Geräten und einem Verlauf. Danach kamen die Verbindungen zu den "
     "Herstellern, das Schalten und die Türregel dazu. Für den Zugriff vom Handy habe ich das System auf "
-    "einen OVH-Server umgezogen. Über die eigene Schnittstelle habe ich auch meinen Muju-Agenten angebunden.")
-d.merksatz("<b>Mein Ziel:</b> Auf einen Blick sehen, was zu Hause passiert. "
+    "einen OVH-Server umgezogen. Die Google-Home-Verbindung habe ich zuerst per USB getestet und später "
+    "für WLAN eingerichtet. Über meine eigene Schnittstelle habe ich auch den Muju-Agenten angebunden.")
+d.merksatz("<b>Ich möchte auf einen Blick sehen, was zu Hause passiert.</b> "
            "Bei einem Schaltbefehl möchte ich wissen, ob das Gerät den neuen Zustand wirklich gemeldet hat.")
 d.table([
     ["Seite", "Thema"],
@@ -23,9 +24,10 @@ d.table([
     ["3", "Welche Schnittstellen ich selbst gebaut habe"],
     ["4", "Welche externen APIs und Dienste ich nutze"],
     ["5", "Wie Schalten, Raumklima und Messwerte funktionieren"],
-    ["6", "Wie Türkontakt, Blink und Alarmclips zusammenspielen"],
-    ["7", "Warum ich auf OVH umgezogen bin"],
-    ["8", "Wie mein Muju-Agent angebunden ist und was ich geprüft habe"],
+    ["6", "Warum ich ein altes Android-Handy weiterverwende"],
+    ["7", "Warum Blink die größte Herausforderung war"],
+    ["8", "Warum ich auf OVH umgezogen bin"],
+    ["9", "Wie mein Muju-Agent angebunden ist und was ich geprüft habe"],
 ], [0.13, 0.87])
 d.h2("Wie ich gearbeitet habe")
 d.p("Bei der Entwicklung von Home Control habe ich ChatGPT und Claude Code eingesetzt. "
@@ -91,8 +93,8 @@ d.h2("Welche weiteren Messwege ich vorbereitet habe")
 d.p("Für geeignete Shelly-Geräte kann ich Leistung und Zählerstand über die lokale HTTP-RPC-Schnittstelle "
     "abfragen. Für kompatible Bluetooth-Klimasensoren gibt es unter Linux eine eigene Bridge. "
     "Sie reicht ihre Werte über den vorhandenen Klima-Endpunkt weiter.")
-d.merksatz("<b>So zähle ich die Schnittstellen:</b> Eine selbst gebaute REST-API mit mehreren Bereichen "
-           "und vier zentrale externe Anbindungen. Shelly und Bluetooth sind zusätzliche lokale Messwege.")
+d.merksatz("<b>Ich habe eine eigene REST-API gebaut.</b> Sie hat mehrere Bereiche. Dazu kommen "
+           "vier zentrale externe Anbindungen. Shelly und Bluetooth sind zusätzliche lokale Messwege.")
 
 d.page_break()
 d.h1("5  Wie Schalten und Messwerte funktionieren")
@@ -118,7 +120,49 @@ d.p("Watt zeigt die aktuelle Leistung. Aus aufeinanderfolgenden Wattmessungen sc
     "Fehlende Strom- oder Akkuwerte lasse ich offen. Die PC-Steckdose behandle ich ausschließlich als Messpunkt.")
 
 d.page_break()
-d.h1("6  Wie Türkontakt, Blink und Alarm zusammenspielen")
+d.h1("6  Warum ich ein altes Android-Handy weiterverwende")
+d.p("Für einige meiner Geräte brauche ich Google Home als Vermittler. Dafür habe ich die Android-App "
+    "Muju Home eingerichtet. Sie nutzt Googles Home-SDK, liest zum Beispiel Klima und Türkontakt "
+    "und kann die zugeordneten Google-Home-Geräte schalten. Mein altes Android-Handy war bereits "
+    "vorhanden und kann diese Aufgabe zu Hause dauerhaft übernehmen.")
+d.h2("Wie ich vom USB-Test zur Verbindung über WLAN gekommen bin")
+d.p("Zuerst habe ich das Handy per USB mit dem Linux-PC verbunden. ADB leitete die Anfragen vom "
+    "Handy zum PC weiter. So konnte ich den Ablauf lokal prüfen. Für den Betrieb habe ich danach "
+    "die private HTTPS-Adresse des Gateways auf OVH in die Android-App eingebaut. "
+    "Das Handy liegt zu Hause, ist per WLAN mit meinem Router verbunden und erreicht OVH über Tailscale.")
+d.table([
+    ["Station", "Aufgabe"],
+    ["Mein iPhone", "Ich öffne die Home-Control-Web-App über Tailscale und schicke den Schaltwunsch an OVH. Für den Zugriff von unterwegs reicht auf dem iPhone eine Internetverbindung mit aktivem Tailscale."],
+    ["Home Control auf OVH", "Meine API prüft die Sitzung und das ausgewählte Gerät. Dann legt sie den Befehl für Muju Home bereit."],
+    ["Altes Android-Handy zu Hause", "Muju Home holt den Befehl ab, schaltet das Gerät über Google Home und meldet den beobachteten Zustand an OVH zurück."],
+], [0.28, 0.72])
+d.h2("Warum ich dafür keine native iPhone-App gebaut habe")
+d.p("Das iPhone ist meine Bedienoberfläche. Die vorhandene Web-App genügt dafür und lässt sich "
+    "auf dem Home-Bildschirm ablegen. Android war für die Bridge der naheliegende Weg, weil ich "
+    "das alte Handy und eine funktionierende Android-Integration schon hatte. Google bietet "
+    "Home APIs auch für iOS an. Apple erlaubt Tests auf eigenen Geräten ohne Mitgliedschaft. "
+    "Für eine Veröffentlichung im App Store braucht man in der Regel das kostenpflichtige "
+    "Apple Developer Program. Meine Web-App braucht diese Veröffentlichung nicht. Ausschlaggebend "
+    "für Android waren das vorhandene Gerät und der geringere Entwicklungsaufwand.")
+d.p('<link href="https://developers.home.google.com/apis" color="#0e7490">Google Home APIs</link> · '
+    '<link href="https://developer.apple.com/help/account/membership/programs-overview/" color="#0e7490">Apple Developer Program</link>')
+d.merksatz("Für diesen Google-Home-Weg muss das Android-Handy an sein, im WLAN bleiben und Muju Home "
+           "geöffnet haben. Der WLAN-Weg ist installiert. Der Ein- und Ausschaltversuch vom iPhone "
+           "über Mobilfunk bei ausgeschaltetem PC steht als abschließender Praxistest aus.")
+
+d.page_break()
+d.h1("7  Warum Blink die größte Herausforderung war")
+d.p("Für die Kamerafunktionen, die ich brauchte, stand mir keine offiziell dokumentierte Blink-API "
+    "zur Verfügung. Deshalb habe ich einen eigenen Client für die inoffizielle Schnittstelle eingebunden. "
+    "Er übernimmt die Anmeldung, die Kameraliste und den Abruf der Bilder und Clips. "
+    "Das Zugangstoken bleibt im Backend. Nur eine Instanz erneuert das rotierende Blink-Token.")
+d.h2("Warum Blink auf dem Server zunächst nicht lief")
+d.p("Dieselbe Testanfrage mit einem absichtlich ungültigen Token lieferte über meinen Heimanschluss "
+    "HTTP 401 und direkt von OVH HTTP 406. Das hat den Netzwerkweg als Ursache eingegrenzt. "
+    "Deshalb leite ich nur die Blink-HTTP-Anfragen über einen privaten Proxy am Heimanschluss. "
+    "Danach wurden die Kameras auf OVH angezeigt. Für diesen Proxy braucht mein Aufbau "
+    "weiterhin den eingeschalteten Linux-PC.")
+d.h2("Wie ich die Kamera mit dem Türkontakt verbunden habe")
 d.p("Ich wollte aus einem Türsignal eine praktische Aktion machen. Meine Regel schaltet deshalb "
     "das ausgewählte Blink-System scharf, wenn die Flurtür frisch von Zu auf Auf wechselt. "
     "Die Regel läuft im Backend und damit auch bei geschlossenem Browser.")
@@ -136,13 +180,12 @@ d.p("Dort sehe ich die Ergebnisse meiner Regeln und die verfügbaren Clips vom U
 d.p("Videos werden erst beim Abspielen über das Backend geladen. Ein echter Testclip brach im Browser "
     "wegen eines leeren Videopakets ab. Deshalb verarbeitet ffmpeg die heruntergeladene Kopie vor der "
     "Ausgabe, ohne Bild und Ton neu zu kodieren. Die Originaldatei bleibt auf dem Stick erhalten.")
-d.h2("Was ich an der Kamera sehen kann")
-d.p("Die Kameraansicht zeigt das letzte Standbild mit Aufnahmezeit. Als Admin kann ich ein neues "
-    "Bild anfordern. Für Livebilder gibt es eine Probe, die den Empfang von Videodaten prüft. "
-    "Die Live-Wiedergabe im Browser ist noch offen.")
+d.p("Ein frisches Standbild kann ich als Admin anfordern. Die Livebild-Probe prüft den Empfang von "
+    "Videodaten. Die Live-Wiedergabe im Browser ist noch offen. "
+    '<link href="https://support.blinkforhome.com/de_DE/how-to-resolve-http-406-errors" color="#0e7490">Blink-Hilfe zu HTTP 406</link>')
 
 d.page_break()
-d.h1("7  Warum ich das System auf OVH betreibe")
+d.h1("8  Warum ich das System auf OVH betreibe")
 d.p("Anfangs lief Home Control auf meinem Linux-PC. Ich wollte die Oberfläche auch unterwegs aufrufen "
     "können und habe sie deshalb auf OVH umgezogen. Ich habe Hausdaten, Klimadaten und die "
     "Data-Protection-Schlüssel gesichert und in die Docker-Volumes übernommen. Die Schlüssel braucht "
@@ -157,15 +200,15 @@ d.h2("Was ich beim Umzug anpassen musste")
 d.p("Beim ersten Start konnte der App-Benutzer im Container die Konfiguration nicht lesen. "
     "Die Dateien waren beim Entpacken zu restriktiv geworden. Ich habe der App-Gruppe die nötigen "
     "Leserechte gegeben und den Start aus einem privat entpackten Archiv in die Docker-Prüfung aufgenommen.")
-d.p("Blink beantwortete dieselbe Testanfrage vom Heimanschluss mit HTTP 401 und von OVH mit HTTP 406. "
-    "Deshalb leite ich nur die Blink-HTTP-Anfragen über einen privaten Proxy am Heimanschluss. "
-    "Für diesen Proxy muss der Linux-PC aktuell laufen. Die Android-Bridge habe ich zusätzlich für "
-    "den direkten Weg per WLAN und Tailscale eingerichtet. Dabei bleibt Muju Home auf dem Android-Handy geöffnet.")
+d.p("Für Tuya habe ich die vorhandenen Gerätezuordnungen aus der Datenbank übernommen und die "
+    "Cloud-Zugangsdaten separat in der Laufzeitkonfiguration eingerichtet. Für den Google-Home-Gateway "
+    "musste ich in Compose beide Betriebsprofile aktivieren. So startet der Gateway zusammen mit "
+    "der API, an die er seine Anfragen weitergibt.")
 d.merksatz("Die Web-App und die direkte Tuya-Anbindung laufen auf OVH. Google Home braucht die Android-Bridge. "
            "Blink braucht in meinem Aufbau den Heimproxy.")
 
 d.page_break()
-d.h1("8  Wie ich meinen Muju-Agenten angebunden habe")
+d.h1("9  Wie ich meinen Muju-Agenten angebunden habe")
 d.p("Ich habe Home Control mit meinem Muju-Agenten verbunden. Der Agent läuft über n8n und nutzt meine "
     "REST-API als Datenquelle. Damit kann er zum Beispiel den aktuellen Systemstatus über "
     "<b>GET /api/status</b> abrufen und die Antwort für eine Auskunft aufbereiten.")
@@ -180,8 +223,9 @@ d.p("Ich habe den Agentenzugriff getrennt, weil der Agent für eine Statusauskun
 d.h2("Was ich praktisch geprüft habe")
 d.p("Auf OVH waren Tuya, Live-Klima und die Blink-Kameras erreichbar. Die Türregel wurde am echten "
     "System ausgelöst. Einen gespeicherten Clip konnte ich im Browser abspielen und spulen. "
-    "Die Android-App für den direkten WLAN-Weg wurde installiert. Der vollständige Stehlampentest "
-    "über Mobilfunk bei ausgeschaltetem Linux-PC ist der noch offene Abnahmeschritt.")
+    "Die Android-App für den direkten WLAN-Weg ist installiert, und das Handy ist im privaten "
+    "Tailscale-Netz verbunden. Den vollständigen Ein- und Ausschaltversuch bei ausgeschaltetem PC "
+    "führe ich als letzten Abnahmeschritt durch.")
 d.h2("Was ich aus dem Projekt mitnehme")
 d.p("Am meisten habe ich bei der Anbindung echter Geräte gelernt. Ein sauberer Build zeigt, dass der Code "
     "gebaut werden kann. Der Gerätetest zeigt, ob eine Meldung ankommt und eine Aktion wirklich ausgeführt "
