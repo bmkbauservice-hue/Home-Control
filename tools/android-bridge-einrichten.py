@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ergänzt die vorhandene Google-Home-Test-App; USB-Test ohne LAN-Freigabe."""
+"""Installiert die Google-Home-Bridge für USB oder einen privaten HTTPS-Gateway."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
@@ -168,12 +169,24 @@ def read_key(path: Path) -> str:
     return key
 
 
+def private_gateway_url(value: str) -> str:
+    url = urlsplit(value)
+    host = url.hostname or ""
+    if (url.scheme != "https" or url.username is not None or url.password is not None
+            or url.path not in ("", "/") or url.query or url.fragment
+            or not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+ts\.net", host)
+            or url.port == 0):
+        raise ValueError("Der direkte Gateway braucht eine private HTTPS-Adresse unter .ts.net.")
+    return f"https://{host}:{url.port}" if url.port is not None else f"https://{host}"
+
+
 def probe(url: str, key: str) -> int:
     # Absichtlich ungültiges, leeres Paket: prüft Authentifizierung, legt keinen Messwert an.
     body = json.dumps({"sensorId": "home-control-connection-check", "name": "Verbindungsprüfung",
                        "temperatureCelsius": None, "humidityPercent": None}).encode()
     request = Request(url + "/api/climate/bridge/readings", data=body, method="POST",
-                      headers={"Content-Type": "application/json", "X-Sensor-Key": key})
+                      headers={"Content-Type": "application/json"})
+    request.add_unredirected_header("X-Sensor-Key", key)
     try:
         with urlopen(request, timeout=3) as response:
             return response.status
@@ -197,7 +210,11 @@ def run() -> int:
     parser.add_argument("--device", help="ADB-Seriennummer des gewünschten Handys")
     parser.add_argument("--install", action="store_true", help="Sichern, ergänzen, bauen, per USB installieren und Gateway starten")
     parser.add_argument("--nur-verbinden", action="store_true", help="Ohne Neubau: USB-Weiterleitung und Gateway für die installierte App starten")
+    parser.add_argument("--gateway-url", help="Privater Tailscale-HTTPS-Gateway statt USB-Datenweg")
     options = parser.parse_args()
+    if options.gateway_url and (not options.install or options.nur_verbinden):
+        parser.error("--gateway-url braucht --install.")
+    gateway_url = private_gateway_url(options.gateway_url) if options.gateway_url else None
     root = options.android.resolve()
     bridge = (BASE / "integrations/google-home-bridge/HomeControlBridge.kt").read_text()
     changes = plan_changes(root, bridge)
@@ -210,32 +227,40 @@ def run() -> int:
         candidate = Path.home() / "Android/Sdk/platform-tools/adb"
         if candidate.is_file():
             adb = str(candidate)
-    if not adb or not shutil.which("dotnet"):
+    if not adb or (gateway_url is None and not shutil.which("dotnet")):
         raise ValueError("ADB oder dotnet nicht gefunden. Keine Quelldateien wurden geändert.")
     devices = subprocess.check_output([adb, "devices", "-l"], text=True)
     adb_command = [adb, "-s", select_device(devices, options.device)]
-    # Eigenen Port vor dem Build prüfen. Keinen vorhandenen Gateway beenden.
-    with socket.socket() as listener:
-        # Wie der Gateway selbst: Abklingende alte Verbindungen zählen nicht als belegt.
-        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        listener.bind(("127.0.0.1", 5390))
-    key = read_key(Path.home() / ".config/home-control/sensor-bridge.key")
-    payload = json.dumps({"SensorBridge:Key": key})
-    result = subprocess.run(["dotnet", "user-secrets", "set", "--project", str(BASE / "backend/HomeControl.Api")],
-                            input=payload, text=True, capture_output=True)
-    if result.returncode:
-        raise ValueError("Bridge-Schlüssel konnte nicht in den lokalen User Secrets eingerichtet werden.")
-    for _ in range(12):
-        if probe("http://127.0.0.1:5181", key) == 400:
-            break
-        time.sleep(0.25)
+    if gateway_url is None:
+        # Eigenen Port vor dem Build prüfen. Keinen vorhandenen Gateway beenden.
+        key = read_key(Path.home() / ".config/home-control/sensor-bridge.key")
+        with socket.socket() as listener:
+            # Wie der Gateway selbst: Abklingende alte Verbindungen zählen nicht als belegt.
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 5390))
+        payload = json.dumps({"SensorBridge:Key": key})
+        result = subprocess.run(["dotnet", "user-secrets", "set", "--project", str(BASE / "backend/HomeControl.Api")],
+                                input=payload, text=True, capture_output=True)
+        if result.returncode:
+            raise ValueError("Bridge-Schlüssel konnte nicht in den lokalen User Secrets eingerichtet werden.")
+        for _ in range(12):
+            if probe("http://127.0.0.1:5181", key) == 400:
+                break
+            time.sleep(0.25)
+        else:
+            raise ValueError("Backend auf 5181 übernimmt den Schlüssel noch nicht. Gemeinsame Testversion neu starten, dann wiederholen.")
     else:
-        raise ValueError("Backend auf 5181 übernimmt den Schlüssel noch nicht. Gemeinsame Testversion neu starten, dann wiederholen.")
+        key_path = Path.home() / ".config/home-control/sensor-bridge.key"
+        if not key_path.is_file():
+            raise ValueError("Der vorhandene Bridge-Schlüssel wurde nicht gefunden.")
+        key = read_key(key_path)
+        if probe(gateway_url, key) != 400:
+            raise ValueError("Der private Gateway hat die Verbindungsprobe nicht bestätigt. Keine App installiert.")
     if options.install:
         backup = apply_changes(root, changes, Path.home() / ".local/share/HomeControl/android-sicherungen")
         print(f"Android-Quellcode gesichert: {backup}", flush=True)
         environment = os.environ.copy()
-        environment["HOME_CONTROL_SENSOR_URL"] = "http://127.0.0.1:5390"
+        environment["HOME_CONTROL_SENSOR_URL"] = gateway_url or "http://127.0.0.1:5390"
         environment["HOME_CONTROL_SENSOR_KEY"] = key
         print("Bestehende Android-App bauen. Google-Anmeldung und SDK bleiben erhalten.", flush=True)
         # Kein Schlüssel als CLI-Argument oder in Gradle-Ausgaben mit --info/--debug.
@@ -245,6 +270,12 @@ def run() -> int:
         if not apk.is_file():
             raise ValueError("Build beendet, aber Debug-APK nicht am erwarteten Ort. Kein APK installiert.")
         subprocess.run(adb_command + ["install", "-r", str(apk)], check=True)
+    if gateway_url:
+        subprocess.run(adb_command + ["shell", "am", "start", "-n",
+                       "com.example.googlehomeapisampleapp/.MainActivity"], check=True)
+        print("App für den privaten Gateway installiert. Tailscale am Android-Handy einschalten.")
+        print("In Muju Home das Haus auswählen und den Empfang in Home Control prüfen.")
+        return 0
     subprocess.run(adb_command + ["reverse", "tcp:5390", "tcp:5390"], check=True)
     gateway_environment = os.environ.copy()
     gateway_environment["HOME_CONTROL_SENSOR_BACKEND"] = "http://127.0.0.1:5181"
