@@ -17,7 +17,7 @@ Muju Home → liest den neuen Zustand → meldet ihn zurück
 Backend → zeigt „Ein“ oder „Aus“ erst jetzt
 ```
 
-Home Control kann das Handy nicht von sich aus erreichen. Deshalb fragt die App regelmäßig nach (Polling). Der Weg läuft über USB, ADB-Reverse und den vorhandenen Gateway auf Port 5390.
+Home Control kann das Handy nicht von sich aus erreichen. Deshalb fragt die App regelmäßig nach (Polling). Die App kann den Gateway per USB und ADB-Reverse oder direkt über eine private Tailscale-HTTPS-Adresse erreichen.
 
 ## Regeln
 
@@ -41,6 +41,24 @@ Home Control kann das Handy nicht von sich aus erreichen. Deshalb fragt die App 
 
 ## Einrichten
 
+### Direkt zu OVH über WLAN
+
+Der OVH-Gateway muss privat über Tailscale erreichbar sein. Auf dem Android-Handy Tailscale im selben
+Netz verbinden. Das Handy einmal per USB anschließen und die App mit der privaten Gateway-Adresse
+installieren:
+
+```bash
+python3 tools/android-bridge-einrichten.py --install --gateway-url 'https://<gateway>.<tailnet>.ts.net:9444'
+```
+
+Der Installer prüft zuerst den Gateway mit dem vorhandenen Bridge-Schlüssel. Danach in Muju Home
+das Zuhause auswählen und USB abziehen. Auf dem Android-Handy muss der Gateway unter `/healthz`
+antworten. Unter **Klima** in Home Control zeigt ein neuer Empfang, dass Daten ankommen. Der
+abschließende Test ist Ein/Aus auf dem iPhone über Mobilfunk und Tailscale bei ausgeschaltetem Linux-PC.
+Die Android-App und ihre Tailscale-Verbindung müssen dabei zu Hause weiterlaufen.
+
+### USB für Entwicklung und Fehlersuche
+
 Handy per USB verbinden und entsperren. Im Projektordner:
 
 ```bash
@@ -51,7 +69,7 @@ Das Skript sichert den Android-Quellcode, ersetzt die Bridge durch die aktuelle 
 
 Danach unter **Geräte → Stehlampe → Bearbeiten → Google-Home-Gerät** den Sockel auswählen und speichern.
 
-## Nach einem Neustart oder USB-Abbruch
+## USB nach einem Neustart oder Verbindungsabbruch
 
 Ein kurzer USB-Abbruch löscht die Weiterleitung, Muju Home ist dann still getrennt. Das Skript erneuert sie deshalb alle 5 Sekunden.
 Ohne Neubau der App reicht:
@@ -76,4 +94,4 @@ Beim Türsensor liefert Tuya immer den letzten gemeldeten Stand. Home Control sp
 
 ## Grenzen
 
-Der Weg funktioniert nur, solange das Handy angeschlossen und Muju Home geöffnet ist. Für die Präsentation reicht das, ein Dauerbetrieb ist es nicht.
+Muju Home muss geöffnet bleiben. Im USB-Modus braucht die Bridge den angeschlossenen PC. Im WLAN-Modus braucht sie das Android-Handy, WLAN und Tailscale. Der Hardwaretest bei ausgeschaltetem PC ist Teil der Abnahme.

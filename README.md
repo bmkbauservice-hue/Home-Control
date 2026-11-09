@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Dein Zuhause auf einen Blick: Räume, Geräte, Energie, Batterien und Kameras –<br>
-  aus Tuya, Blink und Open-Meteo, mit sicheren Schaltern für verknüpfte Tuya-Geräte.</strong>
+  aus Tuya, Google Home, Blink und Open-Meteo, mit bestätigten Schaltzuständen.</strong>
 </p>
 
 <p align="center">
@@ -31,11 +31,9 @@ Kameras zuletzt gesehen haben. Dazu gibt es pro Gerät einen Verlauf und eine Ta
 
 Die Gerätewerte kommen aus der **Tuya-Cloud**, die Kamerabilder von **Blink**, und das aktuelle Außenwetter von **Open-Meteo**.
 Tuya-Schalter können durch Admins ein- und ausgeschaltet werden, aber nur nach Online-Prüfung und mit bestätigter Rückmeldung.
-Außerdem gibt es den Blink-Knopf „Neues Bild“ (nur Admin, höchstens einmal pro Minute und Kamera).
+Muju Home liefert Raumklima und unterstützt ausdrücklich verknüpfte Google-Home-Schalter. Die Alarmseite zeigt Szenarienläufe und verfügbare Blink-Clips.
 
-Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Geplant, entschieden
-und geprüft habe ich jeden Schritt selbst. Als Werkzeuge habe ich KI-Assistenten (Claude, Codex) eingesetzt, deshalb
-steht Claude auch bei den Mitwirkenden.
+Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Planung und Entscheidungen lagen bei mir. Claude und Codex habe ich als Werkzeuge für Entwicklung, Dokumentation und Prüfung eingesetzt.
 
 ## Funktionen
 
@@ -43,12 +41,14 @@ steht Claude auch bei den Mitwirkenden.
 |---|---|---|
 | 🏠 | **Übersicht** | Begrüßung mit einer Aussage in einem Satz („Ein Gerät braucht deinen Blick“), Status-Leiste mit LEDs (Server, Tuya, Blink, Geräte online/offline), Raumkarten mit Gerätezeilen, „Energie jetzt“, Batterien, Kameras |
 | 🌤️ | **Live-Wetter** | Außentemperatur, Sonne/Wolken/Regen, Uhrzeit, Zeitstempel; Open-Meteo und 5-Minuten-Cache |
-| 💡 | **Steuern** | Licht, Steckdosen und Schalter mit Tuya-`switch_1` an/aus; Admin-Rechte und echte Zustandsbestätigung |
+| 💡 | **Steuern** | Verknüpfte Tuya- und Google-Home-Geräte ein- und ausschalten, mit Admin-Rechten und Zustandsbestätigung |
 | 🚪 | **Räume** | Anlegen, umbenennen, löschen, suchen |
 | 🔌 | **Geräte** | Anlegen, bearbeiten, löschen, suchen und filtern; Verknüpfung mit einem Tuya-Gerät; Zustand, Watt, Volt, Akku; Verlauf pro Gerät |
 | ⏱️ | **Hintergrund-Abgleich** | Holt die Werte automatisch bei Tuya, Takt pro Gerät (Standard 30 Minuten, Tür 3 Minuten), Backoff bei Störungen, Knopf „Mit Tuya abgleichen“ |
 | 📊 | **Reports** | Tagesauswertung: Anzahl Ereignisse, Aktionen, Geräte mit den meisten Ereignissen |
-| 📷 | **Blink** | Kameras mit letztem Vorschaubild, Akku und Aufnahmezeit (gelb ab einem Tag), „Neues Bild“ für Admins |
+| 🌡️ | **Klima** | Temperatur, Luftfeuchte und letzter Empfang aus der Android-Bridge |
+| 📷 | **Blink** | Letztes Vorschaubild, Akku, Aufnahmezeit und „Neues Bild“ für Admins |
+| 🔔 | **Szenarien und Alarm** | Blink beim Öffnen der Tür scharfschalten, Ergebnisse und zeitlich passende USB-Clips ansehen |
 | ⚙️ | **Einstellungen** | Benutzer und Rollen verwalten, eigenes Passwort ändern, Verbindungen prüfen, Abgleich-Takt pro Gerät, Systeminfo (nur Admin) |
 | 🔐 | **Anmeldung** | Konten mit Rollen Admin und „Nur lesen“, Sperre nach 5 Fehlversuchen, automatische Verlängerung der Sitzung |
 | 🤖 | **KI-Agent** | Eigener API-Schlüssel, mit dem ein Agent (n8n) nur lesen darf |
@@ -99,7 +99,7 @@ flowchart LR
         DB[("SQLite<br>EF Core")]
     end
     Tuya["Tuya-Cloud<br>lesen + sichere Schaltbefehle"]
-    Blink["Blink<br>nur lesend + Neues Bild"]
+    Blink["Blink<br>Bilder, Clips, Scharfschalten"]
 
     Browser -- "HTTPS (Tailscale)" --> API
     Agent -- HTTPS --> API
@@ -121,7 +121,7 @@ Mehr: [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) �
 | Sicherheit | ASP.NET Core Identity · JWT + Refresh-Token-Rotation · Rollen · Rate Limiting · Data Protection |
 | API | REST · DTOs · `AddValidation` + DataAnnotations · ProblemDetails · OpenAPI + Scalar |
 | Frontend | React 19 · TypeScript · Vite · eigenes CSS mit Design-Tokens · PWA |
-| Anbindungen | Tuya Cloud API (HMAC-SHA256, Token-Cache, Schaltbefehl) · Blink · Open-Meteo |
+| Anbindungen | Tuya Cloud API (HMAC-SHA256, Token-Cache, Schaltbefehl) · Google Home · Blink · Open-Meteo |
 | Qualität | über 230 xUnit-Tests · oxlint · `./pruefen.sh` (Build, Migrationen, Tests, Frontend, Lint) |
 | Betrieb | systemd-Dienst · Tailscale HTTPS · Docker (mehrstufiges Image, nicht als root, Healthcheck) |
 
@@ -129,7 +129,7 @@ Mehr: [Architektur](docs/ARCHITEKTUR.md) · [Datenmodell](docs/DATENMODELL.md) �
 
 Es gibt drei Wege. Für alle gilt: **Geheimnisse kommen nie ins Repository.**
 
-### 1. Docker (jeder Rechner mit Docker)
+### 1. Docker auf dem Server oder lokal
 
 ```bash
 cp .env.example .env           # Werte eintragen, mindestens Jwt__SigningKey (Befehl steht in der Datei)
@@ -137,7 +137,7 @@ docker compose up -d           # http://localhost:5400
 ```
 
 Datenbank und Schlüssel liegen in Volumes und überleben Updates. Der Container läuft nicht als root und hat einen
-Healthcheck (`/healthz`). Details, Update und Umzug: [docs/DOCKER.md](docs/DOCKER.md).
+Healthcheck (`/healthz`). Der Betrieb auf OVH und die Abhängigkeiten von Blink und Google Home stehen in der [Betriebsanleitung](docs/BETRIEB.md). Details zu Volumes und Sicherung stehen in [Docker](docs/DOCKER.md).
 
 ### 2. Dauerdienst auf dem Linux-PC (systemd + Tailscale)
 
@@ -194,7 +194,7 @@ Ein eigenes Review mit Umsetzungsstand liegt in [REVIEW.md](REVIEW.md). Das Wich
 
 ## Grenzen
 
-- **Nur lesend:** Home Control schaltet keine Geräte. Das ist Absicht (Sicherheit und Fokus), keine Lücke.
+- **Begrenzte Schreibrechte:** Admins können geeignete verknüpfte Geräte schalten, Standbilder anfordern und ein Blink-System über eine Regel scharfschalten. Die PC-Steckdose bleibt ein reiner Messpunkt.
 - **Polling statt Push:** Tuya wird in festen Abständen abgefragt. Eine Tür, die zwischen zwei Abfragen auf- und
   wieder zugeht, fehlt im Verlauf, und als Zeit gilt der Abruf. Jede Abfrage kostet Kontingent bei Tuya.
 - **Blink ist inoffiziell:** Es gibt keine offizielle API. Ändert Blink etwas, kann die Anbindung ausfallen.
@@ -210,11 +210,11 @@ Ein eigenes Review mit Umsetzungsstand liegt in [REVIEW.md](REVIEW.md). Das Wich
 - **MCP-Server für KI-Assistenten:** Das **Model Context Protocol** ist ein Standard, über den KI-Assistenten Werkzeuge
   aufrufen. Ein kleiner MCP-Server könnte Werkzeuge wie „Welche Geräte sind offline?“ oder „Was ist heute passiert?“
   anbieten, nur lesend und mit dem Agent-Schlüssel, statt dass der Agent rohe HTTP-Aufrufe zusammenbaut.
-- **Betrieb auf dem Server:** mit Docker auf einem eigenen Server, Geheimnisse als Umgebungsvariablen.
-- **Blink-Clips** vom USB-Speicher des Sync-Moduls anzeigen.
-- **Kleinere Verbesserungen:** `TypedResults` in allen Endpunkten, Audit-Log für Admin-Aktionen, GitHub Action mit `./pruefen.sh`.
+- **Kleinere Verbesserungen:** `TypedResults` in allen Endpunkten, Audit-Log für Admin-Aktionen.
 
 ## Dokumentation
+
+**[Projekthandbuch als PDF](docs/Home-Control-Projektabschluss.pdf)** für Schulabgabe, Bedienung, Architektur und Betrieb.
 
 **Einstieg für jede Arbeitssitzung:** [docs/UEBERGABE.md](docs/UEBERGABE.md) (Stand, offene Punkte, Regeln).
 
@@ -226,14 +226,12 @@ Ein eigenes Review mit Umsetzungsstand liegt in [REVIEW.md](REVIEW.md). Das Wich
 
 ### Lernunterlagen (PDF)
 
-Aktueller gemeinsamer Teststand (Wetter, Tuya und vier Klimasensoren):
-[Android-Verbindung und nächster Hardwaretest](docs/ANDROID_SENSOR_BRIDGE.md).
-
 Zu jedem größeren Schritt gibt es eine Lernunterlage: Begriffe, Ablauf, Code-Landkarte, Grenzen und Kurzantworten für
 Rückfragen. Erzeugt mit `tools/lernpdf` (Python, reportlab).
 
 | Thema | PDF |
 |---|---|
+| Projektabschluss (Architektur, Bedienung, Google Home, Alarm und OVH) | [Home-Control-Projektabschluss.pdf](docs/Home-Control-Projektabschluss.pdf) |
 | Authentifizierung und Autorisierung (JWT, Refresh-Token, Rollen, XSS/CSRF) | [Lernunterlage-Authentifizierung.pdf](docs/Lernunterlage-Authentifizierung.pdf) |
 | ASP.NET Core Identity (UserManager, IdentityUser, Rollen, Passwort-Hashing, Lockout) | [Lernunterlage-Identity.pdf](docs/Lernunterlage-Identity.pdf) |
 | Smart-Home-Geräte verbinden (Tuya-Cloud, Statuscodes, Skalierung, Abgleich) | [Lernunterlage-Tuya-Geraete.pdf](docs/Lernunterlage-Tuya-Geraete.pdf) |

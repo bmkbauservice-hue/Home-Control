@@ -2,15 +2,13 @@
 
 **Zum Lernen:** [Lernunterlage-Docker.pdf](Lernunterlage-Docker.pdf)
 
-Home Control lässt sich als **Container** starten, z. B. auf einem anderen Rechner oder später auf einem Server.
-Der Dienst auf dem PC (`./dienst-einrichten.sh`, Port 5200) bleibt davon **unberührt**: Docker ist eine
-zusätzliche Möglichkeit, kein Ersatz.
+Home Control läuft auf OVH in Docker. Dieselbe Compose-Datei kann lokal verwendet werden. Für den tatsächlichen Serverbetrieb und das Update eines vorhandenen Containers siehe [Betrieb](BETRIEB.md).
 
 | Datei | Aufgabe |
 |---|---|
-| `Dockerfile` | Bauplan des Images in drei Stufen: Oberfläche bauen (Node), API veröffentlichen (.NET SDK), schlankes Laufzeit-Image (aspnet) |
+| `Dockerfile` | Bauplan des Images in drei Stufen: Oberfläche bauen (Node), API veröffentlichen (.NET SDK), Laufzeit-Image (aspnet mit ffmpeg) |
 | `.dockerignore` | Was beim Bauen nicht in den Container kommt: `.env`, Datenbanken, `bin/`, `obj/`, `node_modules/`, `.git/`, Doku |
-| `docker-compose.yml` | Zwei Dienste: `homecontrol` (Profil `betrieb`) und `demo` (Profil `demo`), Volumes, Ports |
+| `docker-compose.yml` | `homecontrol` (Profil `betrieb`), optionaler `sensor-gateway` (Profil `sensoren`) und `demo` (Profil `demo`), Volumes und Ports |
 | `.env.example` | Vorlage für die Geheimnisse, **ohne Werte**. Die echte `.env` steht in `.gitignore` und `.dockerignore`. |
 
 ## Demo im Container
@@ -18,7 +16,7 @@ zusätzliche Möglichkeit, kein Ersatz.
 Braucht keine `.env` und keine Geheimnisse:
 
 ```bash
-docker compose --profile demo up
+docker compose --profile demo up demo
 ```
 
 Dann `http://localhost:5300` öffnen, Konto `demo@example.de`, Passwort `Demo-Haus-2026` (änderbar mit
@@ -88,7 +86,7 @@ Ohne Volume wären die Daten beim nächsten `docker compose up` nach einem neuen
 ist zum Wegwerfen gedacht. Die Schlüssel brauchen ein eigenes Volume: Ohne sie ließe sich das gespeicherte
 Blink-Token nach einem Update nicht mehr entschlüsseln.
 
-## Umzug vom PC-Dienst in den Container (später)
+## Hausdaten vom PC in den Container übernehmen
 
 1. **Blink:** Blink erlaubt nur **eine** Stelle, die das Token erneuert. Deshalb steht in `.env.example`
    `Blink__Enabled=false`. Erst einschalten, wenn der PC-Dienst gestoppt ist

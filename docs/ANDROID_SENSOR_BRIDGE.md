@@ -1,16 +1,9 @@
 # Sensoren mit der vorhandenen Android-Test-App verbinden
 
-Stand: 06.11.2026. Gemeinsamer Arbeitsstand: PR #41, lokaler Testordner
-`Home-Control-Gemeinsam`, Port 5181. Keine weitere Home-Control-Kopie anlegen.
-
-## Bestätigt und offen
-
-- Wetter wird angezeigt, der Nutzer hat die Heizdecke tatsächlich geschaltet.
-- Vier Sensoren vorhanden: Wohnzimmer, Gästezimmer, Schlafzimmer, Bad.
-- Die Quellcode-Ausgabe der vorhandenen Android-Test-App enthält `TemperatureMeasurement`,
-  aber keinen Aufruf von `HomeControlBridge`. Genau diese Verbindung ergänzt das Einbauskript.
-- Vollständiger Android-Build, Geräteinstallation und echter Empfang stehen noch aus.
-  Python-Tests ersetzen diese Hardwareprüfung nicht.
+Diese Anleitung beschreibt den USB-Weg für Entwicklung und Fehlersuche. Die direkte Verbindung
+per WLAN und privatem OVH-Gateway steht in [Google Home schalten](GOOGLE_HOME_SCHALTEN.md).
+Das Projekthandbuch und die [Übergabe](UEBERGABE.md) halten die bestätigten Tests und offenen
+Abnahmeschritte fest.
 
 ## Einbau auf dem Linux-PC
 
