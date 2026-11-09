@@ -33,7 +33,7 @@ Die Gerätewerte kommen aus der **Tuya-Cloud**, die Kamerabilder von **Blink**, 
 Tuya-Schalter können durch Admins ein- und ausgeschaltet werden, aber nur nach Online-Prüfung und mit bestätigter Rückmeldung.
 Muju Home liefert Raumklima und unterstützt ausdrücklich verknüpfte Google-Home-Schalter. Die Alarmseite zeigt Szenarienläufe und verfügbare Blink-Clips.
 
-Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Planung und Entscheidungen lagen bei mir. Claude und Codex habe ich als Werkzeuge für Entwicklung, Dokumentation und Prüfung eingesetzt.
+Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Ich habe die Anforderungen vorgegeben, die Entscheidungen getroffen und die Funktionen an meinen Geräten geprüft. ChatGPT und Claude Code haben nach meinen Vorgaben am Code mitgearbeitet und mich bei der Fehlersuche und Dokumentation unterstützt.
 
 ## Funktionen
 
