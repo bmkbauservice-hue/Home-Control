@@ -49,7 +49,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Container-Image bauen
-        run: docker build -t homecontrol:latest .
+        run: |
+          umask 077
+          build_dir=$(mktemp -d)
+          git archive HEAD | tar -xf - -C "$build_dir"
+          docker build -t homecontrol:latest "$build_dir"
       - name: Sensor-Gateway und dauerhafte Daten prüfen
         run: python3 tools/tests/docker_smoke.py
 

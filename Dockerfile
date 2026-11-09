@@ -42,6 +42,8 @@ RUN apt-get update \
 RUN mkdir -p /data /keys && chown app:app /data /keys
 COPY --from=backend /app ./
 COPY --from=frontend /src/frontend/dist ./wwwroot
+# Auch bei einem Build aus einem privat entpackten Archiv muss der App-Benutzer lesen können.
+RUN chgrp -R app /app && chmod -R g+rX,go-w /app
 
 # Feste, ungeheime Einstellungen für den Container. Alles Geheime steht in .env (nie im Image).
 ENV ASPNETCORE_ENVIRONMENT=Production \
