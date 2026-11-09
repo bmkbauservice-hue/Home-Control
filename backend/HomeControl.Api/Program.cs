@@ -119,7 +119,23 @@ builder.Services.AddScoped<BlinkCredentialStore>();
 // Eigener schlanker Client statt Blink.NET (REVIEW.md M-5, docs/BLINK.md). Singleton: Access Token und
 // letzter Stand bleiben erhalten. Für die Datenbank holt er sich über IServiceScopeFactory einen Scope.
 // Der HttpClient kommt aus der IHttpClientFactory, ohne Standard-Header (kein alter App-Build).
-builder.Services.AddHttpClient(BlinkHttpCameraClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
+var blinkHttpClient = builder.Services.AddHttpClient(
+    BlinkHttpCameraClient.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
+var blinkProxyUrl = builder.Configuration["Blink:ProxyUrl"];
+if (!string.IsNullOrWhiteSpace(blinkProxyUrl))
+{
+    if (!Uri.TryCreate(blinkProxyUrl, UriKind.Absolute, out var blinkProxyUri)
+        || (blinkProxyUri.Scheme != Uri.UriSchemeHttp && blinkProxyUri.Scheme != Uri.UriSchemeHttps)
+        || string.IsNullOrEmpty(blinkProxyUri.Host))
+    {
+        throw new InvalidOperationException("Blink:ProxyUrl muss eine absolute HTTP- oder HTTPS-Proxy-Adresse sein.");
+    }
+
+    blinkHttpClient.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        Proxy = new WebProxy(blinkProxyUri)
+    });
+}
 // Echter Blink-Client oder (im Demo-Modus) Fake-Kameras, dazu im Demo die Fake-Tuya-Cloud hinter dem TuyaClient.
 DemoMode.AddTuyaAndBlink(builder.Services, demoMode, tuyaHttpClient);
 
