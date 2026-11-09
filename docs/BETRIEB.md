@@ -1,123 +1,74 @@
-# Betrieb: Home Control auf Handy, Rechner und Server
+# Betrieb auf OVH, Linux-PC und iPhone
 
-**Zum Lernen:** [Lernunterlage-Betrieb.pdf](Lernunterlage-Betrieb.pdf)
+Stand 09.11.2026. Die Web-App läuft auf OVH als Docker-Dienst. Tailscale stellt den privaten
+HTTPS-Zugang bereit. Das [Projekthandbuch](Home-Control-Projektabschluss.pdf) erklärt Aufbau und Bedienung.
+Die [Lernunterlage zum Linux-Dauerdienst](Lernunterlage-Betrieb.pdf) beschreibt den früheren lokalen Betrieb.
 
-Stand 31.10.2026: Die App ist als PWA vorbereitet (Manifest, Icons, Service Worker). Für den Dauerbetrieb
-gibt es zwei Skripte: `dienst-einrichten.sh` (Dienst) und `tailscale-https-einrichten.sh` (HTTPS-Link).
-Beide sind geschrieben, aber auf dem Rechner noch **nicht ausgeführt** worden.
+## Was wo läuft
 
-## Ziel
-
-- Ein Link, den man am Rechner als Lesezeichen und am Handy als App-Symbol (Startbildschirm) öffnet.
-- Login und Logout (gibt es schon: Anmeldeseite, Abmelden-Knopf in der Navigation).
-- Der KI-Agent (n8n auf dem OVH-Server) liest über den API-Schlüssel mit.
-
-## Was schon da ist (PWA)
-
-| Datei | Zweck |
-|---|---|
-| `frontend/public/manifest.webmanifest` | Name, Farben, Icons, „standalone“ (läuft ohne Browserleiste) |
-| `frontend/public/icons/` | App-Symbole (192, 512, maskable, Apple-Touch) |
-| `frontend/public/sw.js` | Service Worker: Oberfläche öffnet sich auch bei kurzem Netzausfall; `/api` wird nie zwischengespeichert |
-| `frontend/index.html` | Verweise auf Manifest und Apple-Meta-Tags |
-
-Wichtig: Der Service Worker läuft nur im Build (`npm run build`), nicht mit `npm run dev`, und **nur über HTTPS**
-(oder `localhost`). Auf dem iPhone geht „Zum Home-Bildschirm“ über Safari → Teilen.
-
-## Betriebsvarianten
-
-| Variante | Vorteil | Nachteil |
+| Teil | Laufzeit | Abhängigkeit |
 |---|---|---|
-| A  Backend + Frontend auf dem Linux-PC, Zugriff per **Tailscale** (`tailscale serve` liefert HTTPS) | Sofort möglich, keine Daten wandern, Agent und Handy sind schon im Tailscale-Netz | PC muss laufen |
-| B  Alles auf dem **OVH-Server** (Docker, Reverse Proxy mit HTTPS) | Läuft rund um die Uhr, Agent liegt schon dort | Datenbank und Geheimnisse umziehen, Server absichern |
+| Home Control und Web-App | OVH mit Docker Compose | Browser oder iPhone mit Tailscale |
+| Tuya und Wetter | OVH spricht direkt mit der jeweiligen Cloud | Konfiguration und erreichbare Anbieter |
+| Google Home | Muju Home auf Android und privater Sensor-Gateway auf OVH | WLAN, Tailscale und geöffnete Android-App beim direkten Weg. Der PC ist nur beim älteren USB-Weg Teil der Verbindung. |
+| Blink | OVH mit einem auf Blink begrenzten HTTP-Proxy | Linux-PC mit Tailscale und laufendem Heimproxy |
+| n8n | Kann die API mit einem lesenden Schlüssel ansprechen | Leseschlüssel und geprüfte Verbindung. Am echten OVH-Agenten noch offen. |
 
-Empfehlung: erst A (ein Link `https://<pc-name>.<tailnet>.ts.net`), später B.
+## OVH prüfen und aktualisieren
 
-## Ein Link für alles (gebaut, noch nicht getestet)
-
-Das Backend liefert das gebaute Frontend selbst aus, wenn dort eine `index.html` liegt
-(`Frontend:Path`, sonst der Ordner `wwwroot`). Dann gibt es einen Port und einen Link, und kein CORS.
-Starten im Repo-Hauptordner: `./app-starten.sh` → `http://localhost:5111`.
-
-- Statische Dateien stehen vor der Authentifizierung, damit die Anmeldeseite lädt. Geschützt sind die Daten unter `/api`.
-- Unbekannte Adressen unter `/api` bleiben ein echter 404; alle anderen bekommen die `index.html` (React-Router).
-- Das Refresh-Cookie ist außerhalb von Development `Secure` (gehört hinter HTTPS). `app-starten.sh` läuft als Development,
-  der Dauerdienst als Production (siehe unten).
-
-## Dauerbetrieb einrichten (Variante A: Linux-PC + Tailscale)
-
-### 1. Dienst: Home Control läuft von allein
+Im Bereitstellungsverzeichnis die dort verwendete Compose-Konfiguration beibehalten. In dieser
+Installation ist `compose.ovh.yml` die lokale Datei für das aktive Image. `.env` enthält die
+privaten Einstellungen. Beide Dateien bleiben auf dem Server. Der Projektname bestimmt die
+vorhandenen Volumes und muss bei Updates gleich bleiben.
 
 ```bash
-./dienst-einrichten.sh
+docker compose -p homecontrol-ovh -f docker-compose.yml -f compose.ovh.yml \
+  --profile betrieb --profile sensoren ps
+curl -fsS http://127.0.0.1:5400/healthz
+curl -fsS http://127.0.0.1:5391/healthz
 ```
 
-| Was | Wie |
-|---|---|
-| Bauen | Frontend (`npm ci`, `npm run build`), Backend als Release (`dotnet publish`) nach `~/.local/share/home-control/app` |
-| Dienst | systemd-**Benutzer**dienst `~/.config/systemd/user/home-control.service`, kein `sudo` nötig |
-| Adresse | nur `http://127.0.0.1:5200`, also von außen nicht direkt erreichbar |
-| Datenbank | dieselbe wie beim Entwickeln: `backend/HomeControl.Api/homecontrol.db` |
-| Absturz | `Restart=on-failure`: nach 5 Sekunden startet der Dienst neu |
-| Neustart des PCs | `loginctl enable-linger`: Der Dienst startet beim Hochfahren, auch ohne Anmeldung |
-| Update | Das Skript einfach noch einmal ausführen (baut neu und startet neu) |
+1. Vor einem Update Hausdaten, Klimadaten, Einstellungen und Data-Protection-Schlüssel sichern.
+2. Das geprüfte Image bauen und den lokalen Compose-Override auf dieses Image setzen. Mit demselben Projekt und beiden Profilen starten.
+3. Die beiden Gesundheitsprüfungen und danach Anmeldung, Tuya, Klima, Google-Home-Schalter und Blink prüfen. Ein GitHub-Merge ändert den laufenden Container erst beim anschließenden Deployment.
 
-Warum Port **5200**? `dotnet run` beim Entwickeln benutzt 5111. Laufen beide gleichzeitig, kommen sie
-sich so nicht in die Quere (kein „address already in use“).
+Siehe [Docker](DOCKER.md) für Volumes und Wiederherstellung. Ein Update soll dieselben Volumes verwenden.
+`docker compose down -v` löscht sie.
 
-Nützliche Befehle:
+## Zugriff vom iPhone
 
-```bash
-systemctl --user status home-control      # läuft er?
-journalctl --user -u home-control -f      # Log live ansehen (Strg+C beendet nur die Anzeige)
-systemctl --user restart home-control     # neu starten
-systemctl --user stop home-control        # anhalten
-systemctl --user disable --now home-control   # ganz abschalten
-```
+Tailscale verbinden und die eigene Home-Control-Adresse in Safari öffnen. Unter **Teilen → Zum
+Home-Bildschirm** lässt sich Home Control als Web-App ablegen. Die PWA speichert Dateien der Oberfläche
+zwischen. API-Daten werden live abgefragt.
 
-SQL-Befehle von EF Core stehen nicht im Log (`Microsoft.EntityFrameworkCore.Database.Command` auf `Warning` in
-`appsettings.json`), sonst stünden dort jede Minute mehrere Abfragen. Zum Fehlersuchen vorübergehend per
-Umgebungsvariable einschalten: `Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command=Information`.
+Der Sensor-Gateway verwendet einen getrennten privaten HTTPS-Port. Die Freigabe erfolgt mit
+`tailscale serve` im Tailnet. Die Bridge-API prüft zusätzlich ihren eigenen Schlüssel.
+Ein Aufruf von `/healthz` bestätigt die Erreichbarkeit des Gateways. Ein neuer Empfang unter **Klima**
+bestätigt Daten vom Android-Handy. Die Stehlampe per Mobilfunk bei ausgeschaltetem PC zu schalten ist
+der Endtest für den direkten Weg. [Einrichtung der Android-App](GOOGLE_HOME_SCHALTEN.md)
 
-### 2. HTTPS-Link im Tailscale-Netz
+## Blink auf OVH
 
-Einmalig in der Tailscale-Verwaltung (login.tailscale.com → **DNS**) „MagicDNS“ und
-„HTTPS Certificates“ einschalten. Dann:
+Beim Umzug die Datenbank und die Data-Protection-Schlüssel gemeinsam übernehmen. Nur die aktive Instanz
+darf das rotierende Blink-Token erneuern. Der Linux-Dauerdienst wurde für Blink deaktiviert.
 
-```bash
-./tailscale-https-einrichten.sh
-```
+Beim getesteten Netzwerkweg lieferte Blink für dieselbe OAuth-Anfrage mit Platzhalter von OVH
+HTTP 406 und vom Heimanschluss HTTP 401. Die OVH-Anbindung war über den Heimproxy erfolgreich.
+`Blink__ProxyUrl` konfiguriert ausschließlich den Blink-HTTP-Client. Der Tinyproxy-Heimdienst
+lauscht auf der privaten Tailscale-Adresse, akzeptiert nur den vorgesehenen VPS und filtert die Blink-Ziele.
+Wenn der Linux-PC ausgeschaltet ist, kann OVH diesen Proxy nicht erreichen. Die Blink-Oberfläche
+unterscheidet Standbilder, gespeicherte Clips und die Livebild-Probe. [Blink](BLINK.md) · [Alarm](ALARM.md)
 
-Das Skript ruft `tailscale serve --bg http://127.0.0.1:5200` auf. Tailscale holt selbst ein echtes
-Zertifikat und leitet `https://<rechner>.<tailnet>.ts.net` an den Dienst weiter. Erreichbar ist das
-**nur aus deinem Tailscale-Netz** (iPhone, iPad, MacBook, OVH-Server), nicht aus dem Internet.
+## Lokaler Linux-Dauerdienst
 
-Meldet das Skript fehlende Rechte: einmal `sudo tailscale set --operator=$USER`, dann erneut starten.
-Abschalten: `tailscale serve reset`.
+`./dienst-einrichten.sh` veröffentlicht die App als Benutzer-Systemdienst auf
+`127.0.0.1:5200`. Der Entwicklungsstart mit `./app-starten.sh` verwendet Port 5111.
+Für echte Zugangsdaten unter Linux nutzt der Dienst die .NET User Secrets. Beim Docker-Betrieb
+werden sie über eine geschützte Laufzeitkonfiguration bereitgestellt. Für die isolierte
+Schulvorführung eignet sich [die Demo](DEMO.md).
 
-### 3. iPhone und iPad
+## Lesender Agent
 
-1. Tailscale-App installieren und mit demselben Konto anmelden.
-2. In **Safari** den Link `https://<rechner>.<tailnet>.ts.net` öffnen und anmelden.
-3. Teilen → **„Zum Home-Bildschirm“**. Home Control startet dann wie eine App ohne Browserleiste.
-
-### 4. KI-Agent (n8n)
-
-1. `./agent-schluessel-einrichten.sh`, danach `./dienst-einrichten.sh` (Dienst übernimmt den Schlüssel beim Neustart).
-2. In n8n: Basis-Adresse `https://<rechner>.<tailnet>.ts.net`, Header `X-Api-Key` (Zugangsdaten „Header Auth“).
-3. Prüfen, dass der Agent Daten bekommt. Neu: `GET /api/status` sagt, welche Geräte offline sind.
-4. Erst dann `Auth:RequireLoginForReading` auf `true` setzen und den Dienst neu starten.
-
-## Bewusste Grenzen
-
-- **Der Dienst läuft als `Production`** (seit 02.11.2026, REVIEW.md M-1). Folgen: Das Refresh-Cookie ist
-  `Secure`, die API-Doku (`/scalar`, `/openapi`) gibt es nur noch beim Entwickeln (`app-starten.sh`,
-  `dotnet run` → `http://localhost:5111/scalar`), und ohne `Jwt:SigningKey` startet der Dienst nicht.
-  `dienst-einrichten.sh` prüft den Schlüssel vorher und bricht mit einem Hinweis ab.
-- **Geheimnisse:** Sie bleiben in den User Secrets. ASP.NET Core liest die im Production nicht von sich
-  aus, deshalb setzt der Dienst `HomeControl__UseUserSecrets=true`, und `Program.cs` bindet sie dann
-  ausdrücklich ein. Für einen echten Server (Variante B) gehören die Geheimnisse in Umgebungsvariablen
-  (`Jwt__SigningKey`, `Tuya__ClientSecret` …) oder Docker-Secrets, der Schalter bleibt dort aus.
-- `http://127.0.0.1:5200` funktioniert trotz `Secure`-Cookie: Browser behandeln `localhost` und
-  `127.0.0.1` wie eine sichere Verbindung.
-- Der PC muss laufen. Für 24/7 ist Variante B (OVH-Server, Docker) der nächste Schritt.
+Für einen Agenten kann ein eigener Schlüssel über `Agent__ApiKey` auf dem Server eingerichtet werden.
+In n8n den Wert im Credential-Speicher als Header `X-Api-Key` hinterlegen. Mit einer lesenden Abfrage
+wie `GET /api/status` prüfen. Der Schlüssel ermöglicht keine Admin-Aktionen. Der Leseschutz bleibt aktiv.
