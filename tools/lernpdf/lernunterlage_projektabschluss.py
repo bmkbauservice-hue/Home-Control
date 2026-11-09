@@ -28,9 +28,10 @@ d.table([
     ["8", "Wie mein Muju-Agent angebunden ist und was ich geprüft habe"],
 ], [0.13, 0.87])
 d.h2("Wie ich gearbeitet habe")
-d.p("Ich habe festgelegt, welche Geräte eingebunden werden und welche Aktionen die App ausführen darf. "
-    "Beim Programmieren, Prüfen und Dokumentieren habe ich Claude und Codex als Werkzeuge eingesetzt. "
-    "Die Ergebnisse an meinen Geräten habe ich in die weitere Entwicklung einbezogen.")
+d.p("Bei der Entwicklung von Home Control habe ich ChatGPT und Claude Code eingesetzt. "
+    "Beide haben nach meinen Vorgaben am Code mitgearbeitet und mich bei der Fehlersuche und Dokumentation unterstützt. "
+    "Ich habe festgelegt, welche Geräte eingebunden werden und was die App darf. "
+    "Die Ergebnisse habe ich an meinen Geräten geprüft und für die weitere Entwicklung genutzt.")
 
 d.page_break()
 d.h1("2  Wie ich die Anwendung aufgebaut habe")
