@@ -1,9 +1,12 @@
 # Blink-Anbindung
 
-Home Control liest (nur lesend) Status und Kameras eines Blink-Systems. Wie bei Tuya wird
-nie geschaltet – hier zusätzlich: nie unscharfgeschaltet und nie ein Clip gelöscht. Scharfschalten nur über eine Regel, siehe [SZENARIEN.md](SZENARIEN.md).
-**Einzige bewusste Ausnahme:** der Knopf „Neues Bild“ (siehe unten). Er lässt eine Kamera ein neues
-Vorschaubild aufnehmen, kostet Akku, schaltet aber nichts.
+Home Control zeigt Blink-Status, Kameras, Vorschaubilder und vorhandene [Alarmclips](ALARM.md).
+Admins können mit „Neues Bild“ ein frisches Standbild anfordern. Eine ausdrücklich aktivierte
+[Szenario-Regel](SZENARIEN.md) kann das ausgewählte Blink-System scharfschalten. Entschärfen
+geschieht in der Blink-App. Clips werden ausschließlich gelesen.
+
+Der [OVH-Betrieb](BETRIEB.md#blink-auf-ovh) beschreibt den Heimproxy und die Übernahme des
+rotierenden Tokens.
 
 ## 1. Wichtig: keine offizielle API
 

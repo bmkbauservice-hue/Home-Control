@@ -9,7 +9,7 @@ Home Control hat drei Schichten:
 1. Die **React-App** zeigt die Oberfläche und schickt HTTP-Anfragen an die API (`fetch`).
 2. Die **REST API** prüft die Eingaben, arbeitet mit der Datenbank und antwortet mit JSON.
 3. **Entity Framework Core** übersetzt C#-Abfragen (LINQ) in SQL.
-4. **SQLite** speichert die Daten in einer einzigen Datei (`homecontrol.db`).
+4. **SQLite** speichert Hausdaten in `homecontrol.db` und Raumklima in einer separaten Klimadatenbank.
 
 ```mermaid
 flowchart LR
