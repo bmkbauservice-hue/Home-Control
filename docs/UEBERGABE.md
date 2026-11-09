@@ -1,7 +1,7 @@
 # Übergabe für Home Control
 
 Stand 09.11.2026. Das [Projekthandbuch](Home-Control-Projektabschluss.pdf) bündelt Bedienung,
-Architektur, Fehlersuche und Schulvortrag. Die einzelnen Lernunterlagen bleiben im [README](../README.md) verlinkt.
+Architektur, Schnittstellen und Betrieb in einer Projekterklärung. Die einzelnen Lernunterlagen bleiben im [README](../README.md) verlinkt.
 
 ## Arbeitsstand
 
@@ -13,7 +13,7 @@ Architektur, Fehlersuche und Schulvortrag. Die einzelnen Lernunterlagen bleiben 
 | Blink | Sichtbare Kameras auf OVH bestätigt. Die HTTP-Anfragen laufen über einen privaten Proxy am Heimanschluss. OVH führt das rotierende Blink-Token. | [Blink](BLINK.md), [Betrieb](BETRIEB.md) |
 | Alarm | Scharfschalten beim Öffnen der Tür wurde am echten System bestätigt. Ein USB-Clip wurde mit Wiedergabe und Spulen geprüft. Hörbarer Ton und Live-Wiedergabe im Browser bleiben offen. | [Szenarien](SZENARIEN.md), [Alarm](ALARM.md) |
 | Strom und Akkus | Watt und geschätzte kWh aus verfügbaren Messwerten. Shelly-Zählerstände separat. Akkustände nur bei gemeldetem Wert. Die PC-Steckdose wird nie geschaltet. | [Direkte Geräte](DIREKTE_GERAETE.md), [Tuya](TUYA.md) |
-| n8n | Lesender API-Zugriff ist implementiert. Der Zugriff des echten Agenten auf die OVH-Instanz wurde nicht geprüft. | [Betrieb](BETRIEB.md), [Authentifizierung](AUTHENTIFIZIERUNG.md) |
+| n8n | Muju-Agent ist laut Betreiber über n8n angebunden. Die API stellt dafür einen lesenden Schlüssel bereit. | [Betrieb](BETRIEB.md), [Authentifizierung](AUTHENTIFIZIERUNG.md) |
 
 ## Weiterarbeiten
 

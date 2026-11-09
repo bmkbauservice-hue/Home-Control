@@ -3,215 +3,189 @@ from lernpdf import Doc
 
 d = Doc(
     "Home Control",
-    "Projekthandbuch für Schulabgabe, Bedienung und technischen Betrieb",
-    footer="Home Control | Mario Kujoth | Projektabschluss 09.11.2026",
+    "Meine Projektbeschreibung | Mario Kujoth",
+    footer="Home Control | Mario Kujoth | Projektstand 09.11.2026",
 )
 
-d.h1("1  Das Projekt auf einen Blick")
-d.p("Home Control ist eine Smart-Home-Web-App aus meiner Umschulung zum Softwareentwickler. "
-    "Ich wollte die Geräte verschiedener Hersteller in einer Oberfläche sehen und ausgewählte Geräte "
-    "schalten können. Als Beispiel verbindet eine Regel den Türkontakt mit dem Scharfschalten eines Blink-Systems.")
-d.merksatz("<b>Ausgangspunkt für die Vorführung:</b> Die Demo ist ein separates Beispielhaus. "
-           "Sie zeigt die Bedienung, ohne auf meine Geräte, Konten oder Kameras zuzugreifen.")
+d.h1("1  Warum ich Home Control gebaut habe")
+d.p("Meine Geräte waren auf mehrere Apps verteilt. Wenn ich wissen wollte, wie warm es im Wohnzimmer ist, "
+    "ob die Flurtür offen steht oder was die Kamera zuletzt aufgenommen hat, musste ich zwischen den Apps "
+    "wechseln. Deshalb habe ich im Rahmen meiner Umschulung Home Control gebaut. Ich wollte die wichtigsten "
+    "Informationen pro Raum sehen und ausgewählte Geräte von einer Stelle aus bedienen.")
+d.p("Angefangen habe ich mit Räumen, Geräten und einem Verlauf. Danach kamen die Verbindungen zu den "
+    "Herstellern, das Schalten und die Türregel dazu. Für den Zugriff vom Handy habe ich das System auf "
+    "einen OVH-Server umgezogen. Über die eigene Schnittstelle habe ich auch meinen Muju-Agenten angebunden.")
+d.merksatz("<b>Mein Ziel:</b> Auf einen Blick sehen, was zu Hause passiert. "
+           "Bei einem Schaltbefehl möchte ich wissen, ob das Gerät den neuen Zustand wirklich gemeldet hat.")
 d.table([
-    ["Seite", "Inhalt"],
-    ["2", "Architektur, Datenfluss und technische Entscheidungen"],
-    ["3", "Bedienung, Tuya, Klima, Wetter und Strom"],
-    ["4", "Google Home und Schalten ohne USB"],
-    ["5", "Blink, Türregel und Alarmclips"],
-    ["6", "Vom Linux-PC zum OVH-Server und zum iPhone"],
-    ["7", "Sicherheit, Wartung, Tests und Fehlersuche"],
-    ["8", "Kurzvortrag, Prüfungsfragen und Abgrenzung"],
+    ["Seite", "Thema"],
+    ["2", "Wie ich die Anwendung aufgebaut habe"],
+    ["3", "Welche Schnittstellen ich selbst gebaut habe"],
+    ["4", "Welche externen APIs und Dienste ich nutze"],
+    ["5", "Wie Schalten, Raumklima und Messwerte funktionieren"],
+    ["6", "Wie Türkontakt, Blink und Alarmclips zusammenspielen"],
+    ["7", "Warum ich auf OVH umgezogen bin"],
+    ["8", "Wie mein Muju-Agent angebunden ist und was ich geprüft habe"],
 ], [0.13, 0.87])
-d.h2("Was ist praktisch bestätigt?")
-d.p("Das Dashboard lief auf OVH. Tuya, Live-Klima und sichtbare Blink-Kameras wurden dort bestätigt. "
-    "Die Türregel wurde zuvor am echten System ausgelöst. Ein echter Blink-Clip wurde im Browser abgespielt "
-    "und vor- und zurückgespult. Für die Google-Home-Bridge per WLAN sind Android-Build, Installation "
-    "und Tailscale-Verbindung bestätigt. Der vollständige Stehlampentest vom iPhone bei ausgeschaltetem "
-    "PC ist noch offen.")
-d.p("Planung und Entscheidungen lagen bei mir. Claude und Codex habe ich als Werkzeuge für Entwicklung, "
-    "Dokumentation und Prüfung eingesetzt.")
+d.h2("Wie ich gearbeitet habe")
+d.p("Ich habe festgelegt, welche Geräte eingebunden werden und welche Aktionen die App ausführen darf. "
+    "Beim Programmieren, Prüfen und Dokumentieren habe ich Claude und Codex als Werkzeuge eingesetzt. "
+    "Die Ergebnisse an meinen Geräten habe ich in die weitere Entwicklung einbezogen.")
 
 d.page_break()
-d.h1("2  Architektur und Datenfluss")
-d.p("Eine Aktion im Browser wird zu einer HTTP-Anfrage an die API. Die API entscheidet anhand von Sitzung, "
-    "Rolle und Gerätezuordnung, was passieren darf. Erst danach liest sie Daten oder ruft den passenden "
-    "Anbieter auf. Bei Schaltaktionen wartet sie auf einen bestätigten Zustand.")
+d.h1("2  Wie ich die Anwendung aufgebaut habe")
+d.p("Ich habe die Oberfläche und die Logik im Server getrennt. Die Oberfläche soll Informationen gut "
+    "darstellen und Eingaben aufnehmen. Im Backend liegen die Regeln, die Anmeldung und die Verbindungen "
+    "zu den Geräten. So kann ich zum Beispiel eine Geräteanbindung ändern, ohne dafür die ganze Oberfläche umzubauen.")
 d.table([
-    ["Baustein", "Aufgabe und Grund"],
-    ["React, TypeScript, Vite", "Dashboard und Bedienung im Browser. Komponenten werden wiederverwendet, TypeScript prüft die Schnittstellen im Frontend."],
-    ["ASP.NET Core 10", "Die C#-Minimal-API verarbeitet Anfragen, prüft Berechtigungen und verbindet die externen Dienste. Sie liefert das gebaute Frontend aus."],
-    ["EF Core und SQLite", "Hausdaten, Zuordnungen und Verlauf bleiben in einer lokalen Datenbank. Für Klima gibt es eine eigene Datei. Migrationen halten Schemaänderungen nachvollziehbar."],
-    ["REST und SSE", "REST dient für Abfragen und Aktionen. Server-Sent Events übertragen Änderungen vom Backend zum Browser. Tuya wird weiterhin aktiv abgefragt."],
-    ["Docker und Tailscale", "Docker verpackt App und Laufzeit. Compose startet die Dienste. Tailscale stellt den privaten HTTPS-Zugang bereit."],
-], [0.32, 0.68])
-d.h2("Beispiel vom Schalter bis zum bestätigten Zustand")
+    ["Baustein", "Warum ich ihn verwende"],
+    ["React, TypeScript und Vite", "Mit React kann ich Raumkarten, Schalter und Statusanzeigen wiederverwenden. TypeScript prüft, ob die Daten beim Aufruf zur erwarteten Form passen. Vite baut die Web-App."],
+    ["C# und ASP.NET Core 10", "Hier prüfe ich die Rechte, verarbeite Anfragen und rufe die passende Geräteanbindung auf. Im Betrieb liefert das Backend auch die gebaute Web-App aus. Für beides genügt damit eine Adresse."],
+    ["EF Core und SQLite", "Ich betreibe das System als einzelne Instanz. SQLite hält den Betrieb einfach. EF Core ordnet die C#-Modelle den Tabellen zu und verwaltet Änderungen am Schema über Migrationen."],
+], [0.33, 0.67])
+d.h2("Welche Daten ich speichere")
+d.p("In der Hausdatenbank liegen unter anderem Räume, Gerätezuordnungen und Ereignisse. "
+    "Die Klimawerte liegen in einer eigenen SQLite-Datei. So kann ich beim Umzug beide Bestände gezielt "
+    "sichern und übernehmen. Für Benutzerkonten verwende ich ASP.NET Core Identity.")
+d.h2("Wie Änderungen im Browser ankommen")
+d.p("Über REST fragt der Browser gezielt Daten ab oder sendet eine Aktion. Für Statusänderungen nutze ich "
+    "zusätzlich Server-Sent Events (SSE). Dabei hält der Browser einen Datenstrom vom Backend offen. "
+    "Das ist der Weg <b>vom Backend zum Browser</b>. Die Tuya-Cloud fragt das Backend weiterhin in Intervallen ab.")
+d.merksatz("Der Ablauf einer Aktion führt von der Oberfläche über die API zum passenden Gerätedienst. "
+           "Die Oberfläche übernimmt den neuen Schaltzustand nach der Rückmeldung.")
+
+d.page_break()
+d.h1("3  Welche Schnittstellen ich selbst gebaut habe")
+d.p("In meinem Backend habe ich <b>eine eigene REST-API</b> gebaut. Ich teile ihre Endpunkte hier in "
+    "vier Aufgabenbereiche ein. Ein Endpunkt ist eine Adresse für eine bestimmte Abfrage oder Aktion. "
+    "Die Übersicht zeigt Beispiele direkt aus meinem Code.")
+d.table([
+    ["Aufgabenbereich", "Beispiel aus meiner API", "Wofür ich ihn brauche"],
+    ["1. Hausdaten und Status", "<b>GET /api/rooms</b><br/>GET /api/devices<br/>GET /api/status", "Räume, Geräte und den Verbindungsstatus einheitlich an die Oberfläche liefern. Dazu kommen Verlauf und Tagesauswertungen."],
+    ["2. Anmeldung und Rechte", "<b>POST /api/auth/login</b><br/>POST /api/auth/refresh", "Eine Sitzung eröffnen und erneuern. Die Rechte prüfe ich im Backend, damit ein direkter Aufruf dieselben Regeln einhält wie ein Klick in der Oberfläche."],
+    ["3. Android-Bridge", "<b>POST /api/climate/bridge/readings</b><br/>POST /api/google-home/bridge/poll", "Klimawerte annehmen. Muju Home holt über den zweiten Endpunkt Befehle ab und meldet das Ergebnis über einen eigenen Rückkanal."],
+    ["4. Steuerung und Alarm", "<b>POST /api/tuya/devices/{id}/switch</b><br/>GET /api/alarm/clips", "Erlaubte Schaltaktionen ausführen und Alarmdaten an berechtigte Benutzer liefern. Für Google-Home-Schalter und Szenarien gibt es eigene Endpunkte im selben Backend."],
+], [0.25, 0.36, 0.39])
+d.h2("Warum ich die API so aufgebaut habe")
+d.p("Der Browser und mein Muju-Agent können dieselben vorgesehenen Lese-Endpunkte nutzen. "
+    "Die Herstellerdetails bleiben in den jeweiligen Anbindungen. Dadurch arbeiten das Dashboard "
+    "und der Agent mit einer gemeinsamen Sicht auf meine Geräte. Den Eingang für die Android-Bridge "
+    "habe ich separat abgesichert, weil sich das Handy mit einem eigenen Bridge-Schlüssel meldet.")
+d.p("Im Entwicklungsmodus kann ich die API-Beschreibung in Scalar öffnen und sehen, welche Anfragen "
+    "ein Endpunkt erwartet und welche Antworten möglich sind. Im Betrieb prüft das Backend "
+    "die Anmeldung und die Rolle am jeweiligen Endpunkt.")
+
+d.page_break()
+d.h1("4  Welche externen Schnittstellen ich nutze")
+d.p("Die vier zentralen Anbindungen liefern Daten oder Funktionen von außen. Ich habe die jeweiligen "
+    "Schnittstellen in Home Control eingebunden und ihre Ergebnisse für meine Oberfläche aufbereitet.")
+d.table([
+    ["Anbindung", "Was ich abrufe oder auslöse", "Warum ich sie eingebunden habe"],
+    ["Tuya Cloud API", "Geräteliste, Online-Status, verfügbare Messwerte und Ein/Aus bei geeigneten Geräten.", "Viele meiner Geräte sind bereits in Tuya eingerichtet. Ich kann ihre Zustände zentral anzeigen und unterstützte Geräte gezielt bedienen."],
+    ["Google Home APIs", "Muju Home nutzt das Android-SDK für Raumklima, Türkontakt und verknüpfte Schalter.", "Damit bekomme ich Daten und Schaltmöglichkeiten für Geräte, die ich über mein Tuya-Projekt nicht erreichen konnte."],
+    ["Blink", "Kameraliste, Vorschaubilder, verfügbare Clips und das Scharfschalten eines ausgewählten Systems.", "Ich wollte Kameras und Türereignisse in derselben Anwendung sehen. Dafür nutze ich einen eigenen Client für die inoffizielle Blink-Schnittstelle."],
+    ["Open-Meteo", "Außentemperatur und Wetterdaten für die Übersicht.", "Das Dashboard soll neben den Werten aus den Räumen auch das Wetter draußen zeigen. Die Abfrage wird kurz zwischengespeichert."],
+], [0.23, 0.37, 0.40])
+d.h2("Welche weiteren Messwege ich vorbereitet habe")
+d.p("Für geeignete Shelly-Geräte kann ich Leistung und Zählerstand über die lokale HTTP-RPC-Schnittstelle "
+    "abfragen. Für kompatible Bluetooth-Klimasensoren gibt es unter Linux eine eigene Bridge. "
+    "Sie reicht ihre Werte über den vorhandenen Klima-Endpunkt weiter.")
+d.merksatz("<b>So zähle ich die Schnittstellen:</b> Eine selbst gebaute REST-API mit mehreren Bereichen "
+           "und vier zentrale externe Anbindungen. Shelly und Bluetooth sind zusätzliche lokale Messwege.")
+
+d.page_break()
+d.h1("5  Wie Schalten und Messwerte funktionieren")
+d.h2("Warum ich beim Schalten eine Bestätigung brauche")
+d.p("Bei Tuya ordne ich einem Gerät in Home Control das passende Cloud-Gerät zu. "
+    "Meine API prüft vor dem Befehl die Admin-Rolle, die Erreichbarkeit und den unterstützten Schaltpunkt. "
+    "Nach dem Befehl liest sie den Zustand erneut. So sehe ich, ob das Gerät den Wechsel tatsächlich gemeldet hat.")
+d.h2("Warum meine Stehlampe einen anderen Weg nimmt")
+d.p("Die Steckdose der Wohnzimmer-Stehlampe liegt in Lidl Home. Mein Tuya-Projekt hatte dafür keine "
+    "Berechtigung, über Google Home war sie erreichbar. Deshalb habe ich Muju Home als Android-Bridge "
+    "genutzt. Die App kennt die zugeordneten Google-Home-Geräte und fragt das Backend ungefähr alle "
+    "1,5 Sekunden nach offenen Befehlen.")
 d.numbered([
-    "Die Oberfläche sendet den Schaltwunsch für ein konkret zugeordnetes Gerät.",
-    "Die API prüft Admin-Rolle, Online-Status und die unterstützte Schaltfunktion.",
-    "Der Tuya-Client oder die Android-Bridge führt den Befehl aus.",
-    "Der bestätigte Zustand wird zurückgemeldet. Fehlt die Bestätigung, zeigt die App den Fehler oder einen unbekannten Zustand.",
+    "Home Control legt einen Schaltbefehl für das verknüpfte Gerät bereit.",
+    "Muju Home holt ihn innerhalb von vier Sekunden ab und schaltet über Google Home.",
+    "Die App meldet den beobachteten Zustand zurück. Abgelaufene Befehle bleiben verworfen.",
 ])
-d.h2("Wo der Code liegt")
-d.p("<b>frontend/src/</b> enthält Seiten, Komponenten und API-Aufrufe. "
-    "<b>backend/HomeControl.Api/</b> enthält Endpunkte, Integrationen und Migrationen. "
-    "<b>backend/HomeControl.Api.Tests/</b> enthält die xUnit-Tests. "
-    "<b>integrations/</b> enthält die Bridge und weitere Anbindungen. "
-    "<b>tools/</b> enthält Diagnose, Installation und die PDF-Generatoren.")
+d.h2("Wie ich Klima, Strom und Akku darstelle")
+d.p("Muju Home sendet Temperatur und Luftfeuchte an meine Klima-Schnittstelle. In der Oberfläche ordne ich "
+    "den Sensor einem Raum zu und zeige die Zeit des letzten Empfangs an. Ältere Werte sind gekennzeichnet.")
+d.p("Watt zeigt die aktuelle Leistung. Aus aufeinanderfolgenden Wattmessungen schätze ich den Verbrauch "
+    "in Kilowattstunden und kennzeichne ihn entsprechend. Gemeldete Shelly-Zählerstände stehen separat. "
+    "Fehlende Strom- oder Akkuwerte lasse ich offen. Die PC-Steckdose behandle ich ausschließlich als Messpunkt.")
 
 d.page_break()
-d.h1("3  Bedienung und Messwerte")
+d.h1("6  Wie Türkontakt, Blink und Alarm zusammenspielen")
+d.p("Ich wollte aus einem Türsignal eine praktische Aktion machen. Meine Regel schaltet deshalb "
+    "das ausgewählte Blink-System scharf, wenn die Flurtür frisch von Zu auf Auf wechselt. "
+    "Die Regel läuft im Backend und damit auch bei geschlossenem Browser.")
 d.table([
-    ["Bereich", "So nutze ich ihn"],
-    ["Übersicht", "Zeigt Räume, Außentemperatur, Verbindungsstatus, Geräte, Batterien, Strom und Kameras. Online und Ein/Aus sind getrennte Zustände."],
-    ["Räume und Geräte", "Räume und Geräte verwalten, den richtigen Anbieter zuordnen und den Verlauf ansehen. Mit Tuya abgleichen holt den verfügbaren Stand."],
-    ["Klima und Wetter", "Die Klimaansicht zeigt Temperatur, Luftfeuchte und letzten Empfang. Open-Meteo liefert das Außenwetter. Ältere Raumwerte sind gekennzeichnet."],
-    ["Reports und Waage", "Reports zeigen gespeicherte Ereignisse und Tagesauswertungen. Die Waagenansicht braucht eine konfigurierte Quelle mit tatsächlich gemeldeten Messwerten."],
-    ["Einstellungen", "Je nach Rolle Konten, Verbindungen, Abgleich-Takte und Systeminformationen prüfen."],
+    ["Schritt", "Was im System passiert"],
+    ["Türkontakt", "Muju Home sendet den Zustand. Mein Backend erkennt einen frischen Wechsel. Wiederholte oder veraltete Meldungen lösen die Regel nicht aus."],
+    ["Regel", "Eine aktivierte Regel sendet den Scharfschaltbefehl an das ausgewählte Blink-System. Neue Regeln sind zunächst ausgeschaltet."],
+    ["Rückmeldung", "Das Backend liest den Zustand erneut. Der Verlauf zeigt Bestätigt erst, wenn Blink Scharf meldet."],
+], [0.24, 0.76])
+d.h2("Warum es eine Alarmseite gibt")
+d.p("Dort sehe ich die Ergebnisse meiner Regeln und die verfügbaren Clips vom USB-Speicher des "
+    "Blink-Sync-Moduls. Home Control markiert einen Clip als zeitlich passend, wenn er zwischen "
+    "30 Sekunden vor und drei Minuten nach dem Türereignis aufgenommen wurde. "
+    "Die Markierung beschreibt den zeitlichen Zusammenhang. Die Ursache der Aufnahme bleibt offen.")
+d.p("Videos werden erst beim Abspielen über das Backend geladen. Ein echter Testclip brach im Browser "
+    "wegen eines leeren Videopakets ab. Deshalb verarbeitet ffmpeg die heruntergeladene Kopie vor der "
+    "Ausgabe, ohne Bild und Ton neu zu kodieren. Die Originaldatei bleibt auf dem Stick erhalten.")
+d.h2("Was ich an der Kamera sehen kann")
+d.p("Die Kameraansicht zeigt das letzte Standbild mit Aufnahmezeit. Als Admin kann ich ein neues "
+    "Bild anfordern. Für Livebilder gibt es eine Probe, die den Empfang von Videodaten prüft. "
+    "Die Live-Wiedergabe im Browser ist noch offen.")
+
+d.page_break()
+d.h1("7  Warum ich das System auf OVH betreibe")
+d.p("Anfangs lief Home Control auf meinem Linux-PC. Ich wollte die Oberfläche auch unterwegs aufrufen "
+    "können und habe sie deshalb auf OVH umgezogen. Ich habe Hausdaten, Klimadaten und die "
+    "Data-Protection-Schlüssel gesichert und in die Docker-Volumes übernommen. Die Schlüssel braucht "
+    "der Server unter anderem zum Lesen des verschlüsselten Blink-Tokens.")
+d.table([
+    ["Teil", "Meine Entscheidung"],
+    ["Docker-Image", "Node baut die Oberfläche. Das .NET SDK veröffentlicht die API. Das Laufzeit-Image enthält die App und ffmpeg für die Clips."],
+    ["Container und Volumes", "Compose startet Home Control und den Sensor-Gateway. Die Daten und Schlüssel liegen in Volumes, damit ein neues Image sie weiterverwenden kann."],
+    ["Privater Zugriff", "Tailscale stellt den HTTPS-Zugang für die Web-App und einen getrennten Zugang für die Android-Bridge bereit. Auf dem iPhone öffne ich die Web-App über Tailscale."],
 ], [0.29, 0.71])
-d.h2("Tuya liest die Cloud und schaltet ausgewählte Geräte")
-d.p("Home Control signiert die Cloud-Anfragen, hält das Zugangs-Token im Speicher und fragt den Status "
-    "regelmäßig ab. Die Takte lassen sich pro Gerät einstellen. Ein verknüpfter, erreichbarer "
-    "Tuya-Schalter mit dem passenden booleschen Datenpunkt <b>switch_1</b> lässt sich als Admin bedienen. "
-    "Danach liest das Backend den Gerätezustand zur Bestätigung erneut.")
-d.h2("Watt, kWh und Batterie richtig lesen")
-d.p("Watt ist die aktuelle Leistung. Die aus Messreihen berechneten Kilowattstunden sind als Schätzung "
-    "gekennzeichnet. Direkt gemeldete Shelly-Zählerstände erscheinen separat. Die PC-Steckdose bleibt "
-    "als reiner Messpunkt gedacht und wird nicht geschaltet. Werte erscheinen nur, wenn die Quelle sie "
-    "liefert. Ein gemeldeter Nullwert und ein fehlender Wert haben unterschiedliche Bedeutung.")
-d.p("Akkustände werden angezeigt, soweit sie der Anbieter liefert. Bei der geprüften Google-Home-Inventur "
-    "lieferte keiner der vier Klimasensoren einen Akkustand. Das Projekt füllt solche Lücken nicht mit Schätzungen.")
-d.merksatz("Die Stromkarte ist umgesetzt. Ein eigener Haushaltszähler und aktuelle Messwerte für jedes "
-           "Netzgerät sind nicht Teil des bestätigten Praxisstands.")
+d.h2("Was ich beim Umzug anpassen musste")
+d.p("Beim ersten Start konnte der App-Benutzer im Container die Konfiguration nicht lesen. "
+    "Die Dateien waren beim Entpacken zu restriktiv geworden. Ich habe der App-Gruppe die nötigen "
+    "Leserechte gegeben und den Start aus einem privat entpackten Archiv in die Docker-Prüfung aufgenommen.")
+d.p("Blink beantwortete dieselbe Testanfrage vom Heimanschluss mit HTTP 401 und von OVH mit HTTP 406. "
+    "Deshalb leite ich nur die Blink-HTTP-Anfragen über einen privaten Proxy am Heimanschluss. "
+    "Für diesen Proxy muss der Linux-PC aktuell laufen. Die Android-Bridge habe ich zusätzlich für "
+    "den direkten Weg per WLAN und Tailscale eingerichtet. Dabei bleibt Muju Home auf dem Android-Handy geöffnet.")
+d.merksatz("Die Web-App und die direkte Tuya-Anbindung laufen auf OVH. Google Home braucht die Android-Bridge. "
+           "Blink braucht in meinem Aufbau den Heimproxy.")
 
 d.page_break()
-d.h1("4  Google Home und die Android-Bridge")
-d.p("Die Wohnzimmer-Stehlampe ließ sich in Google Home bedienen. Das verknüpfte Tuya-Projekt "
-    "hatte auf ihren Lidl-Home-Sockel keinen Zugriff. Deshalb bleibt die Google-Home-Anbindung "
-    "für diese Lampe getrennt vom Tuya-Schaltweg.")
-d.h2("Wie Muju Home mit der API spricht")
-d.numbered([
-    "Muju Home nutzt das Google-Home-SDK auf dem Android-Handy und meldet Klima, unterstützte Schalter und Türsignale.",
-    "Für Schaltbefehle fragt die App das Backend ungefähr alle 1,5 Sekunden ab. Ein Befehl muss innerhalb von vier Sekunden abgeholt werden.",
-    "Die Android-App schaltet das verknüpfte Gerät und meldet den beobachteten Zustand. Abgelaufene Befehle werden nach einer Unterbrechung nicht nachgeholt.",
-])
+d.h1("8  Wie ich meinen Muju-Agenten angebunden habe")
+d.p("Ich habe Home Control mit meinem Muju-Agenten verbunden. Der Agent läuft über n8n und nutzt meine "
+    "REST-API als Datenquelle. Damit kann er zum Beispiel den aktuellen Systemstatus über "
+    "<b>GET /api/status</b> abrufen und die Antwort für eine Auskunft aufbereiten.")
 d.table([
-    ["Weg", "Wann er gebraucht wird"],
-    ["Ursprünglich per USB", "ADB leitet einen lokalen Port vom Handy zum PC weiter. Ein Gateway sendet von dort zur API. Dieser Weg diente zum Entwickeln und Testen."],
-    ["Direkt per WLAN", "Die App verwendet eine private HTTPS-Adresse auf OVH. Das Android-Handy braucht WLAN, Tailscale und die geöffnete Muju-Home-App. USB ist einmalig zur Installation nötig."],
-    ["iPhone unterwegs", "Das iPhone öffnet die Web-App mit Tailscale. Das Android-Handy zu Hause bleibt für die Google-Home-Anbindung zuständig."],
-], [0.31, 0.69])
-d.h2("Warum ein separater Gateway?")
-d.p("Der Gateway leitet nur vorgesehene Bridge-Anfragen an die API weiter. Die API erwartet einen "
-    "gemeinsamen Bridge-Schlüssel und nimmt den Aufruf intern vom lokalen Gateway entgegen. "
-    "Der HTTPS-Port für die Bridge wird nur im privaten Tailscale-Netz bereitgestellt.")
-d.merksatz("<b>Abnahmetest:</b> Auf dem Android-Handy den Gateway mit <b>/healthz</b> prüfen, in Muju Home das "
-           "Zuhause wählen und USB abziehen. In Home Control auf den neuen Klima-Empfang warten. Danach "
-           "den PC ausschalten und die Stehlampe vom iPhone per Mobilfunk ein- und ausschalten. "
-           "Erst die bestätigte Reaktion belegt den vollständigen Weg.")
-
-d.page_break()
-d.h1("5  Blink, Türregel und Alarmseite")
-d.h2("Kamerabilder und Scharfschalten")
-d.p("Die Blink-Seite zeigt das letzte vorhandene Bild mit Aufnahmezeit. Als Admin kann ich ein neues "
-    "Standbild anfordern. Die Livebild-Probe testet den Empfang von Videodaten. "
-    "Eine Live-Wiedergabe im Browser ist dabei noch nicht umgesetzt.")
-d.numbered([
-    "In Szenarien den Türkontakt und das gewünschte Blink-System auswählen und die Regel aktivieren.",
-    "Ein frischer Wechsel von Zu auf Auf löst aus. Eine bereits offene Tür beim Start, doppelte Meldungen und alte Zustände nach einer Verbindungslücke lösen nicht aus.",
-    "Im Verlauf steht erst Bestätigt, wenn Blink das System beim erneuten Lesen als scharf meldet. Bei Bedarf wird es über die Blink-App wieder entschärft.",
-])
-d.h2("Warum Clips auf einer eigenen Seite stehen")
-d.p("Der Alarmverlauf zeigt das Ergebnis der Türregel. Die Clip-Liste kommt über Blink vom lokalen "
-    "USB-Speicher des Sync-Moduls. Ein Clip gilt als zeitlich passend, wenn er zwischen 30 Sekunden vor "
-    "und drei Minuten nach dem Ereignis aufgenommen wurde. Die Zeitnähe belegt keine Ursache.")
-d.p("Ein Video wird erst beim Abspielen über das Backend geladen. Ein echter Testclip brach in Chrome "
-    "wegen eines leeren Videopakets ab. ffmpeg verpackt die heruntergeladene Kopie neu, ohne Bild und Ton "
-    "neu zu kodieren. Der Stick wird dabei nur gelesen. Wiedergabe und Spulen wurden geprüft. "
-    "Die Audiospur wurde technisch dekodiert, der hörbare Ton blieb ungeprüft.")
-d.h2("Warum Blink auf OVH den Heimanschluss nutzt")
-d.p("Die gleiche OAuth-Testanfrage mit einem Platzhalter ergab vom Heimanschluss HTTP 401 und direkt "
-    "von OVH HTTP 406. Der private Heimproxy leitete Blink danach erfolgreich über den Heimanschluss. "
-    "Nur der Blink-HTTP-Client nutzt diesen Proxy. Sichtbare Kameras auf OVH wurden bestätigt.")
-d.merksatz("Blink verwendet eine inoffizielle Schnittstelle. Nur eine Instanz darf das rotierende "
-           "Refresh-Token erneuern. Der Heimproxy braucht derzeit den eingeschalteten Linux-PC.")
-
-d.page_break()
-d.h1("6  Betrieb auf OVH und auf dem iPhone")
-d.h2("Warum wir umgezogen sind")
-d.p("Der VPS kann das Dashboard unabhängig vom Linux-PC bereitstellen. Die Haus- und Klima-Datenbanken "
-    "wurden gesichert und in Docker-Volumes übernommen. Die Data-Protection-Schlüssel wurden mitgenommen, "
-    "damit der Server das verschlüsselte Blink-Token lesen kann. Die Tuya-Zugangsdaten wurden separat "
-    "in die Laufzeitkonfiguration übertragen.")
-d.table([
-    ["Teil", "Was er im Betrieb macht"],
-    ["Image", "Node baut die React-Oberfläche. Das .NET SDK veröffentlicht die API. Im Laufzeit-Image liegen API, Frontend und ffmpeg."],
-    ["Compose", "Startet Home Control und optional den Sensor-Gateway. Beim Gateway-Start sind die Profile betrieb und sensoren aktiv."],
-    ["Volumes", "Unter /data bleiben Haus- und Klima-Daten erhalten. Unter /keys liegen die Schlüssel. Beide müssen gesichert werden."],
-    ["Healthcheck", "Der Endpunkt /healthz prüft den Dienst. Ein gesunder Container bestätigt noch keine erfolgreiche Kamera- oder Geräteanbindung."],
-    ["Privater Zugang", "Tailscale Serve stellt HTTPS für die Oberfläche und einen getrennten Eingang für die Android-Bridge bereit."],
-], [0.29, 0.71])
-d.h2("Der Startfehler beim Umzug")
-d.p("Das Quellarchiv war mit restriktiven Dateirechten entpackt worden. Der unprivilegierte App-Benutzer "
-    "konnte appsettings.json im Image nicht lesen. Wir korrigierten die Leserechte für seine Gruppe "
-    "und prüften den Containerstart aus einem privat entpackten Archiv in der CI.")
-d.h2("Was vom iPhone erreichbar ist")
-d.p("Mit Tailscale verbunden, öffne ich die private Home-Control-Adresse in Safari. Über Teilen und "
-    "Zum Home-Bildschirm lege ich einen Startpunkt ab. Die Anwendung läuft auf OVH. "
-    "Direkt über Tuya verknüpfte Online-Geräte brauchen den Heim-PC dafür nicht.")
-d.merksatz("Die Abhängigkeiten gehören zum Betrieb: Google Home braucht das Android-Handy als Bridge. "
-           "Blink braucht aktuell den Heimproxy auf dem Linux-PC. Für die Web-Oberfläche selbst genügt "
-           "der erreichbare OVH-Server.")
-
-d.page_break()
-d.h1("7  Sicherheit, Wartung und Fehlersuche")
-d.h2("Wie der Zugriff geschützt wird")
-d.p("ASP.NET Core Identity verwaltet Konten und Passwort-Hashes. JWT und ein HttpOnly-Refresh-Cookie "
-    "sichern die Sitzung. Admins dürfen verwalten und ausgewählte Aktionen ausführen. Lesende Nutzer "
-    "und der API-Schlüssel für den Agenten erhalten keine Schaltrechte. Anfragen werden begrenzt. "
-    "Private Adressen und Geheimnisse bleiben außerhalb des öffentlichen Repositorys.")
-d.p("Kamerabilder und Clips liefert die API an berechtigte Browser. Die Anbieter-Token bleiben beim "
-    "Backend. Für Diagnose und Backups werden keine geheimen Werte in Terminalausgaben oder Git kopiert.")
-d.h2("Was bei einer Störung zuerst geprüft wird")
-d.table([
-    ["Symptom", "Erster Schritt"],
-    ["Web-App nicht erreichbar", "Tailscale-Verbindung prüfen. Auf dem Server Compose-Status und /healthz prüfen."],
-    ["Klima oder Google-Schalter fehlen", "WLAN und Tailscale auf dem Android-Handy, geöffnetes Muju Home, ausgewähltes Zuhause und letzten Empfang prüfen."],
-    ["Tuya fehlt", "Cloud-Konfiguration, Zugriff auf das Gerät und Status beim manuellen Abgleich prüfen. Online-Status ist nicht gleich Ein/Aus."],
-    ["Blink fehlt", "Heimproxy und die tokenführende Instanz prüfen. Bei HTTP 406 den Netzwerkweg mit einer Anfrage ohne echte Zugangsdaten vergleichen."],
-    ["Altes Bild oder fehlender Clip", "Aufnahmezeit oder Alarmverlauf prüfen. Standbilder, Clips und die Livebild-Probe sind verschiedene Funktionen."],
-], [0.34, 0.66])
-d.h2("Updates und Tests")
-d.p("Änderungen kommen über einen Branch und Pull Request ins Repository. Das Prüfskript kontrolliert "
-    "Backend-Build, Migrationen, Tests, Frontend-Build und Lint. GitHub Actions prüft zusätzlich "
-    "das Container-Image, den Sensor-Gateway und den Datenerhalt nach Neuerstellung.")
-d.p("Ein GitHub-Commit aktualisiert den VPS nicht automatisch. Vor einem Update Haus- und Klimadaten "
-    "sowie Schlüssel sichern. Anschließend das Image wechseln, Healthchecks ausführen und die "
-    "relevanten Geräte praktisch testen. Volumes nicht mit <b>docker compose down -v</b> löschen.")
-
-d.page_break()
-d.h1("8  Kurzvortrag und Projektgrenzen")
-d.h2("Fünf Minuten für die Abgabe")
-d.numbered([
-    "Ziel und Nutzen erklären. Eine Oberfläche zeigt Zustände verschiedener Hersteller und verbindet Geräteereignisse mit Regeln.",
-    "Die Demo öffnen. Räume, Klima und den Unterschied zwischen Online-Status und Schaltzustand zeigen.",
-    "Den Datenfluss erklären. React fragt die C#-API an. Diese prüft Rechte, liest SQLite und spricht mit dem jeweiligen Anbieter.",
-    "Das Türszenario erklären. Ein frisches Türsignal löst das Scharfschalten aus. Im Alarmverlauf steht das Ergebnis, daneben stehen zeitlich passende Clips.",
-    "Den OVH-Umzug und den Startfehler erklären. Image, Container und Volume unterscheiden. Zum Schluss sagen, welche Schritte an echten Geräten geprüft wurden.",
-])
-d.code("docker compose --profile demo up demo")
-d.p("Die Demo läuft standardmäßig auf <b>localhost:5300</b>. Das Demo-Konto heißt "
-    "<b>demo@example.de</b>. Das Standardpasswort lautet <b>Demo-Haus-2026</b>, sofern es "
-    "nicht überschrieben wurde.")
-d.h2("Typische Prüfungsfragen")
-d.table([
-    ["Frage", "Kurze Antwort"],
-    ["Warum ist ein grüner Test allein zu wenig?", "Fakes prüfen Logik reproduzierbar. Geräte, Anbieter und Dateien können sich anders verhalten, wie beim echten Blink-Clip."],
-    ["Warum SQLite und Volumes?", "SQLite hält den Ein-Instanz-Betrieb einfach. Volumes trennen Daten und Schlüssel vom austauschbaren Image."],
-    ["Was passiert bei einem Ausfall?", "Die Oberfläche zeigt fehlende oder ältere Daten. Schaltzustände werden erst nach Bestätigung übernommen."],
-    ["Was ist noch offen?", "Der PC-aus-Test für die Google-Stehlampe, der n8n-Zugriff am echten Server, dauerhafter Blink-Betrieb ohne Heim-PC und weitere Regeln wie Wecker."],
-], [0.40, 0.60])
-d.p('Weitere Details stehen bei Bedarf im <link href="https://github.com/bmkbauservice-hue/Home-Control" color="#0e7490">'
-    'GitHub-Repository</link>. Dieses Handbuch deckt den Vortrag und die wesentlichen Betriebsabläufe ab.')
+    ["Schritt", "So ist die Verbindung aufgebaut"],
+    ["n8n sendet eine Anfrage", "Der Workflow ruft den vorgesehenen Home-Control-Endpunkt auf. Den Schlüssel speichere ich in n8n als Zugangsdaten."],
+    ["Home Control prüft den Schlüssel", "Der Workflow sendet ihn im Header X-Api-Key. Das Backend prüft ihn und gibt die für den Agenten freigegebenen Daten zurück."],
+    ["Der Agent liest die Antwort", "Der Schlüssel erlaubt lesende Zugriffe. Schaltbefehle und andere Admin-Aktionen brauchen eine Admin-Sitzung. Private Kamerainhalte haben zusätzliche Zugriffsvorgaben."],
+], [0.30, 0.70])
+d.p("Ich habe den Agentenzugriff getrennt, weil der Agent für eine Statusauskunft weder mein Benutzerpasswort "
+    "noch Schaltrechte braucht. Den API-Schlüssel und die Hersteller-Zugangsdaten halte ich aus dem Repository heraus.")
+d.h2("Was ich praktisch geprüft habe")
+d.p("Auf OVH waren Tuya, Live-Klima und die Blink-Kameras erreichbar. Die Türregel wurde am echten "
+    "System ausgelöst. Einen gespeicherten Clip konnte ich im Browser abspielen und spulen. "
+    "Die Android-App für den direkten WLAN-Weg wurde installiert. Der vollständige Stehlampentest "
+    "über Mobilfunk bei ausgeschaltetem Linux-PC ist der noch offene Abnahmeschritt.")
+d.h2("Was ich aus dem Projekt mitnehme")
+d.p("Am meisten habe ich bei der Anbindung echter Geräte gelernt. Ein sauberer Build zeigt, dass der Code "
+    "gebaut werden kann. Der Gerätetest zeigt, ob eine Meldung ankommt und eine Aktion wirklich ausgeführt "
+    "wird. Für Vorführungen habe ich deshalb eine getrennte Demo mit Beispieldaten. "
+    'Den Quellcode und die einzelnen Anleitungen habe ich auf <link href="https://github.com/bmkbauservice-hue/Home-Control" '
+    'color="#0e7490">GitHub</link> dokumentiert.')
 
 d.save("docs/Home-Control-Projektabschluss.pdf")
