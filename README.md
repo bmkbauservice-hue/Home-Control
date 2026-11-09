@@ -35,6 +35,18 @@ Muju Home liefert Raumklima und unterstützt ausdrücklich verknüpfte Google-Ho
 
 Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur** (2026/27). Ich habe die Anforderungen vorgegeben, die Entscheidungen getroffen und die Funktionen an meinen Geräten geprüft. ChatGPT und Claude Code haben nach meinen Vorgaben am Code mitgearbeitet und mich bei der Fehlersuche und Dokumentation unterstützt.
 
+### Warum das Projekt so aufgebaut ist
+
+Meine eigene REST-API bündelt Hausdaten, Anmeldung, die Android-Bridge und Schalt- oder Alarmaktionen.
+Die vier zentralen externen Anbindungen sind Tuya, Google Home, Blink und Open-Meteo. Den Muju-Agenten
+habe ich über n8n mit einem eigenen Leseschlüssel angebunden.
+
+Home Control läuft privat auf OVH. Auf dem iPhone bediene ich die Web-App über Tailscale. Ein altes
+Android-Handy bleibt zu Hause im WLAN und verbindet Google Home über Muju Home mit dem Server.
+Für Blink nutze ich eine inoffizielle Schnittstelle. Weil der direkte Abruf von OVH im Test mit
+HTTP 406 scheiterte, leite ich Blink-Anfragen über einen privaten Heimproxy. Die Hintergründe und
+der Stand der Praxistests stehen im [Projektabschluss als PDF](docs/Home-Control-Projektabschluss.pdf).
+
 ## Funktionen
 
 | | Bereich | Was die App kann |
@@ -76,16 +88,34 @@ Entstanden ist sie als **Solo-Projekt in der Umschulung zum Software-Ingenieur**
 
 ## Demo in einer Minute
 
-Ohne Tuya-Konto, ohne Blink-Konto, ohne Geheimnisse:
+Beim Besuch oder Klonen dieses GitHub-Repositories erhältst du den Quellcode und die Anleitung.
+Die Demo startest du auf deinem eigenen Rechner mit einem dieser Befehle:
 
 ```bash
-./demo-starten.sh                    # oder mit Docker:  docker compose --profile demo up
+docker compose --profile demo up demo
 ```
 
-Dann **http://localhost:5300** öffnen und mit `demo@example.de` anmelden. Das Passwort zeigt das Skript beim Start
-an (Standard `Demo-Haus-2026`, nur für die Demo). Oben steht immer das Banner „Demo-Modus – Beispieldaten“. Es gibt
-keine Aufrufe an Tuya oder Blink. Die Demo hat eigene Datenbank und eigenen Port und startet nie im Betrieb.
-Details: [docs/DEMO.md](docs/DEMO.md).
+```bash
+./demo-starten.sh
+```
+
+Danach öffnest du [localhost:5300](http://localhost:5300) und meldest dich mit `demo@example.de` an.
+Das Standardpasswort `Demo-Haus-2026` gilt für das Demo-Konto. Das Banner „Demo-Modus – Beispieldaten“
+kennzeichnet das Beispielhaus. Die Demo verwendet eine eigene Datenbank und simulierte Antworten
+für Tuya und Blink. [Anleitung zur Demo](docs/DEMO.md)
+
+### Demo, eigene Installation und privates Zuhause
+
+| Was du öffnest | Was du bekommst |
+|---|---|
+| GitHub-Repository | Quellcode, Anleitung und Demo-Screenshots. |
+| Demo auf `localhost:5300` | Ein getrenntes Beispielhaus mit einem eigenen Demo-Konto. |
+| Eigener Entwicklungsstart mit `./app-starten.sh` | Eine lokale Instanz auf Port 5111 mit eigener Datenbank. Bei einer frischen Datenbank legst du dein erstes Konto an. |
+| Private OVH-Instanz | Meine echte Installation. Für den Zugriff sind ein freigegebener Zugang zu meinem privaten Tailscale-Netz und ein gültiges Home-Control-Konto erforderlich. |
+
+Die Produktivdatenbank mit den Konten und die privaten Zugangsdaten liegen außerhalb des Repositorys.
+Das Demo-Konto und ein Konto in einer eigenen Installation gewähren keinen Zugriff auf meine OVH-Instanz.
+[Mehr zum privaten Betrieb](docs/BETRIEB.md)
 
 ## Architektur
 
