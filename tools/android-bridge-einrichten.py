@@ -233,11 +233,11 @@ def run() -> int:
     adb_command = [adb, "-s", select_device(devices, options.device)]
     if gateway_url is None:
         # Eigenen Port vor dem Build prüfen. Keinen vorhandenen Gateway beenden.
-        key = read_key(Path.home() / ".config/home-control/sensor-bridge.key")
         with socket.socket() as listener:
             # Wie der Gateway selbst: Abklingende alte Verbindungen zählen nicht als belegt.
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("127.0.0.1", 5390))
+        key = read_key(Path.home() / ".config/home-control/sensor-bridge.key")
         payload = json.dumps({"SensorBridge:Key": key})
         result = subprocess.run(["dotnet", "user-secrets", "set", "--project", str(BASE / "backend/HomeControl.Api")],
                                 input=payload, text=True, capture_output=True)
