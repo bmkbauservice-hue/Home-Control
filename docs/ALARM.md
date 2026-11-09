@@ -26,7 +26,7 @@ Auf dem Stick wird nichts verändert oder gelöscht.
 
 Blink-Kameras schreiben gelegentlich leere Videopakete ohne Bild in ihre Clips. Chrome brach die Wiedergabe eines echten Clips daran nach etwa 3,7 Sekunden ab. Das Backend verpackt die heruntergeladene Kopie deshalb mit `ffmpeg` neu und lässt solche Pakete weg, ohne Bild oder Ton neu zu kodieren. Die Kopie liegt dafür kurz in einem eigenen temporären Ordner und wird sofort gelöscht.
 
-Fehlt `ffmpeg` oder scheitert die Aufbereitung, liefert das Backend das unveränderte Video. Es kann dann an solchen Stellen abbrechen. Im Docker-Image ist `ffmpeg` bisher nicht enthalten. Das gehört zur Vorbereitung des Servers.
+Fehlt `ffmpeg` oder scheitert die Aufbereitung, liefert das Backend das unveränderte Video. Es kann dann an solchen Stellen abbrechen. Das Docker-Image enthält `ffmpeg`. Der Container-Test prüft, ob es als Anwendungsbenutzer gestartet werden kann.
 
 ## Geprüft am echten Clip
 
