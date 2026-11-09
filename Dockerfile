@@ -33,6 +33,10 @@ RUN dotnet publish backend/HomeControl.Api/HomeControl.Api.csproj -c Release -o 
 # ---------- 3. Fertiges Image ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+# Blink-Clips vor der Wiedergabe aufbereiten.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 # Ordner für die Volumes: Datenbank (/data) und Data-Protection-Schlüssel (/keys). Sie gehören dem
 # Benutzer "app" (im aspnet-Image schon vorhanden), damit die App ohne root hineinschreiben kann.
 RUN mkdir -p /data /keys && chown app:app /data /keys

@@ -57,6 +57,7 @@ def main():
 
         try:
             run("up", "-d", "--wait", "--wait-timeout", "150", "--no-build")
+            run("exec", "-T", "homecontrol", "ffmpeg", "-version")
             api, gateway = address(8080), address(5390)
             with urlopen(api, timeout=10) as response:
                 assert b"<html" in response.read().lower(), "Oberfläche fehlt im Image"

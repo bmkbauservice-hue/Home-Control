@@ -42,6 +42,12 @@ public class DemoBlinkCameraClient : IBlinkCameraClient
     public Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken) =>
         Task.FromResult<BlinkLiveProbeResult?>(new BlinkLiveProbeResult(false, 0, 0, "Im Demo-Modus gibt es kein Livebild."));
 
+    public Task<BlinkClipList> GetClipsAsync(bool refresh, CancellationToken cancellationToken) =>
+        Task.FromResult(new BlinkClipList([], "Im Demo-Modus gibt es keine Clips."));
+
+    public Task<BlinkClipVideo?> GetClipVideoAsync(string key, CancellationToken cancellationToken) =>
+        Task.FromResult<BlinkClipVideo?>(null);
+
     public DemoBlinkCameraClient(TimeProvider timeProvider)
     {
         this.timeProvider = timeProvider;

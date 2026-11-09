@@ -51,6 +51,15 @@ public class FakeBlinkHandler : HttpMessageHandler
 
     public int CommandCount { get { lock (sync) return commandCount; } }
 
+    // Alle Aufrufe an den lokalen Speicher. Darf nie einen Löschbefehl enthalten.
+    public List<string> LocalStorageCalls { get; } = [];
+
+    public Func<(HttpStatusCode Status, string Body)> ManifestResponse { get; set; } = () => (HttpStatusCode.OK,
+        """{ "manifest_id": "900", "clips": [ { "id": "11", "camera_name": "Flur", "created_at": "2026-11-08T22:55:13+00:00", "size": 297 } ] }""");
+
+    public Func<(HttpStatusCode Status, byte[] Body)> ClipResponse { get; set; } =
+        () => (HttpStatusCode.OK, [0, 0, 0, 24, .. Encoding.ASCII.GetBytes("ftypisom"), 0, 0, 0, 1]);
+
     public int TierInfoCount { get { lock (sync) return tierInfoCount; } }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -107,6 +116,21 @@ public class FakeBlinkHandler : HttpMessageHandler
         {
             lock (sync) snapshotRequests.Add(request);
             return Respond(SnapshotResponse());
+        }
+
+        if (url.Contains("/local_storage/", StringComparison.Ordinal))
+        {
+            lock (sync) LocalStorageCalls.Add($"{request.Method} {url}");
+            if (request.Method == HttpMethod.Post)
+            {
+                return Respond((HttpStatusCode.OK, """{ "id": 77, "network_id": 1 }"""));
+            }
+            if (url.Contains("/clip/request/", StringComparison.Ordinal))
+            {
+                var (status, body) = ClipResponse();
+                return new HttpResponseMessage(status) { Content = new ByteArrayContent(body) };
+            }
+            return Respond(ManifestResponse());
         }
 
         if (url.Contains("/command/", StringComparison.Ordinal))

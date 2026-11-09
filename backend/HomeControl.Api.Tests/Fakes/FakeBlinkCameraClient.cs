@@ -46,6 +46,16 @@ public class FakeBlinkCameraClient : IBlinkCameraClient
     public Task<BlinkLiveProbeResult?> ProbeLiveViewAsync(string cameraId, CancellationToken cancellationToken) =>
         Task.FromResult<BlinkLiveProbeResult?>(new BlinkLiveProbeResult(true, 5, 900, null));
 
+    public BlinkClipList Clips { get; set; } = new([], null);
+
+    public Func<string, BlinkClipVideo?> ClipVideo { get; set; } = _ => null;
+
+    public Task<BlinkClipList> GetClipsAsync(bool refresh, CancellationToken cancellationToken) =>
+        Task.FromResult(Clips);
+
+    public Task<BlinkClipVideo?> GetClipVideoAsync(string key, CancellationToken cancellationToken) =>
+        Task.FromResult(ClipVideo(key));
+
     public Task<BlinkThumbnail?> GetThumbnailAsync(string cameraId, CancellationToken cancellationToken)
     {
         RequestedThumbnails.Add(cameraId);

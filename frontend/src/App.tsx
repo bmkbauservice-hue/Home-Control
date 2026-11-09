@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DemoBanner } from './components/DemoBanner'
 import { Navigation, type Page } from './components/Navigation'
+import { AlarmPage } from './pages/AlarmPage'
 import { BlinkPage } from './pages/BlinkPage'
 import { ClimatePage } from './pages/ClimatePage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -62,6 +63,7 @@ function AppShell() {
           {page === 'climate' && <ClimatePage />}
           {page === 'scale' && isAdmin && <ScalePage />}
           {page === 'scenarios' && isAdmin && <ScenariosPage />}
+          {page === 'alarm' && isAdmin && <AlarmPage />}
           {page === 'reports' && <ReportsPage />}
           {page === 'blink' && <BlinkPage />}
           {page === 'settings' && isAdmin && <SettingsPage />}
