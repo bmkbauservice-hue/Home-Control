@@ -147,6 +147,21 @@ class AndroidBridgeSetupTests(unittest.TestCase):
         finally:
             os.umask(original_mask)
 
+    def test_private_gateway_url_requires_https_and_tailnet_host(self):
+        self.assertEqual(
+            "https://vps.tailnet.ts.net:9444",
+            setup.private_gateway_url("https://vps.tailnet.ts.net:9444/"),
+        )
+        for url in (
+            "http://vps.tailnet.ts.net",
+            "https://vps.tailnet.ts.net.example.org",
+            "https://user@vps.tailnet.ts.net",
+            "https://vps.tailnet.ts.net/other",
+            "https://vps.tailnet.ts.net?debug",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                setup.private_gateway_url(url)
+
     def test_probe_never_sends_a_valid_measurement(self):
         seen = []
 
@@ -159,7 +174,7 @@ class AndroidBridgeSetupTests(unittest.TestCase):
         body = json.loads(seen[0].data)
         self.assertIsNone(body["temperatureCelsius"])
         self.assertIsNone(body["humidityPercent"])
-        self.assertEqual("test-key", seen[0].get_header("X-sensor-key"))
+        self.assertEqual("test-key", seen[0].unredirected_hdrs["X-sensor-key"])
 
 
 if __name__ == "__main__":
