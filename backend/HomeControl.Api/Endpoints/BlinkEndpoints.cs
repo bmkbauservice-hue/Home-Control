@@ -226,7 +226,7 @@ public static class BlinkEndpoints
     // (HttpRequestException) oder eine Zeitüberschreitung (TaskCanceledException, aber nicht
     // durch den Client selbst abgebrochen). Gibt false zurück, wenn ex keiner dieser Fälle ist –
     // dann läuft die Exception unbehandelt weiter (kein stiller Fehlschluck).
-    private static bool TryMapTransportError(
+    internal static bool TryMapTransportError(
         Exception ex,
         ILogger logger,
         CancellationToken cancellationToken,

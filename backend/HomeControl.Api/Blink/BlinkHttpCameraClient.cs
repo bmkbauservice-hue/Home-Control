@@ -25,7 +25,7 @@ namespace HomeControl.Api.Blink;
 // Nur lesend: Es wird nie ein neues Bild oder Video angefordert, nie scharf/unscharf geschaltet.
 //
 // Singleton: Das Access Token und der letzte Stand bleiben zwischen den Anfragen erhalten.
-public class BlinkHttpCameraClient(
+public partial class BlinkHttpCameraClient(
     IHttpClientFactory httpClientFactory,
     IServiceScopeFactory scopeFactory,
     IOptionsMonitor<BlinkOptions> options,
@@ -163,6 +163,7 @@ public class BlinkHttpCameraClient(
             var accountId = session?.AccountId ?? 0;
             (lastCameras, thumbnailPaths, cameraTargets) = MapCameras(homescreen.RootElement, accountId);
             lastSystems = MapSystems(homescreen.RootElement);
+            lastSyncModules = MapSyncModules(homescreen.RootElement);
             lastFetchAtUtc = timeProvider.GetUtcNow();
         }
         finally
